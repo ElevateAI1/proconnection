@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,22 +32,47 @@ export const AdminLogin = () => {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   // Redirect if already logged in as admin
   useEffect(() => {
     console.log('Auth state check:', { user: !!user, isAdmin, adminLoading });
-    if (user && isAdmin && !adminLoading) {
+    
+    // Only redirect if we have a user, they are confirmed as admin, and admin loading is complete
+    if (user && isAdmin === true && !adminLoading) {
       console.log('User is already admin, redirecting to dashboard');
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
     }
   }, [user, isAdmin, adminLoading, navigate]);
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Starting login process...');
-    setLoading(true);
+    
+    // Reset previous errors
     setError('');
+    
+    // Validate form data
+    if (!formData.email || !formData.password) {
+      setError('Por favor completa todos los campos');
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError('Por favor ingresa un email válido');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       console.log('Attempting login with email:', formData.email);
@@ -60,7 +85,17 @@ export const AdminLogin = () => {
       
       if (authError) {
         console.error('Auth error:', authError);
-        throw new Error(authError.message);
+        
+        // Handle specific error cases
+        if (authError.message.includes('Invalid login credentials')) {
+          throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
+        } else if (authError.message.includes('Email not confirmed')) {
+          throw new Error('Por favor confirma tu email antes de iniciar sesión.');
+        } else if (authError.message.includes('Too many requests')) {
+          throw new Error('Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.');
+        } else {
+          throw new Error(authError.message);
+        }
       }
 
       if (!authData.user) {
@@ -98,11 +133,9 @@ export const AdminLogin = () => {
         description: "Bienvenido al panel de administración",
       });
 
-      // Small delay to ensure auth state is updated
+      // Navigate to dashboard
       console.log('Navigating to dashboard...');
-      setTimeout(() => {
-        navigate('/admin/dashboard');
-      }, 100);
+      navigate('/admin/dashboard', { replace: true });
 
     } catch (error: any) {
       console.error('Login process error:', error);
@@ -114,20 +147,32 @@ export const AdminLogin = () => {
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreateLoading(true);
+    
+    // Reset previous errors
     setCreateError('');
+    
+    // Validate form data
+    if (!createFormData.email || !createFormData.password || !createFormData.confirmPassword) {
+      setCreateError('Por favor completa todos los campos');
+      return;
+    }
 
-    if (createFormData.password !== createFormData.confirmPassword) {
-      setCreateError('Las contraseñas no coinciden');
-      setCreateLoading(false);
+    if (!validateEmail(createFormData.email)) {
+      setCreateError('Por favor ingresa un email válido');
       return;
     }
 
     if (createFormData.password.length < 6) {
       setCreateError('La contraseña debe tener al menos 6 caracteres');
-      setCreateLoading(false);
       return;
     }
+
+    if (createFormData.password !== createFormData.confirmPassword) {
+      setCreateError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setCreateLoading(true);
 
     try {
       // Sign up the admin user with admin-specific metadata
@@ -141,7 +186,15 @@ export const AdminLogin = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          throw new Error('Ya existe una cuenta con este email');
+        } else if (error.message.includes('Password should be at least')) {
+          throw new Error('La contraseña debe tener al menos 6 caracteres');
+        } else {
+          throw error;
+        }
+      }
 
       if (data.user) {
         // Add to admins table
@@ -149,7 +202,10 @@ export const AdminLogin = () => {
           .from('admins')
           .insert({ id: data.user.id });
 
-        if (adminError) throw adminError;
+        if (adminError) {
+          console.error('Error adding to admins table:', adminError);
+          throw new Error('Error al crear la cuenta de administrador');
+        }
 
         toast({
           title: "Cuenta de administrador creada",
@@ -170,6 +226,11 @@ export const AdminLogin = () => {
       setCreateLoading(false);
     }
   };
+
+  // Don't render if user is already an admin (to prevent flash)
+  if (user && isAdmin === true && !adminLoading) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
@@ -210,6 +271,7 @@ export const AdminLogin = () => {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
                     placeholder="admin@psiconnect.com"
+                    disabled={loading}
                   />
                 </div>
 
@@ -223,11 +285,13 @@ export const AdminLogin = () => {
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
                       minLength={6}
+                      disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      disabled={loading}
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -261,6 +325,7 @@ export const AdminLogin = () => {
                     onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
                     required
                     placeholder="nuevo-admin@psiconnect.com"
+                    disabled={createLoading}
                   />
                 </div>
 
@@ -275,11 +340,13 @@ export const AdminLogin = () => {
                       required
                       minLength={6}
                       placeholder="Mínimo 6 caracteres"
+                      disabled={createLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowCreatePassword(!showCreatePassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      disabled={createLoading}
                     >
                       {showCreatePassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -296,6 +363,7 @@ export const AdminLogin = () => {
                     required
                     minLength={6}
                     placeholder="Repetir contraseña"
+                    disabled={createLoading}
                   />
                 </div>
 
