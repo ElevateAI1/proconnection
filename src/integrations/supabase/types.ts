@@ -58,6 +58,13 @@ export type Database = {
             foreignKeyName: "appointments_psychologist_id_fkey"
             columns: ["psychologist_id"]
             isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
             referencedRelation: "psychologists"
             referencedColumns: ["id"]
           },
@@ -151,6 +158,13 @@ export type Database = {
             foreignKeyName: "patients_psychologist_id_fkey"
             columns: ["psychologist_id"]
             isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patients_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
             referencedRelation: "psychologists"
             referencedColumns: ["id"]
           },
@@ -238,7 +252,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      psychologist_stats: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          is_expired: boolean | null
+          last_name: string | null
+          professional_code: string | null
+          subscription_days_remaining: number | null
+          subscription_end_date: string | null
+          subscription_status: string | null
+          trial_days_remaining: number | null
+          trial_end_date: string | null
+          trial_start_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychologists_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       generate_professional_code: {

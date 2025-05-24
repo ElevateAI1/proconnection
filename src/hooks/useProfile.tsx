@@ -19,6 +19,10 @@ interface Psychologist {
   license_number?: string;
   specialization?: string;
   phone?: string;
+  subscription_status?: string;
+  trial_start_date?: string;
+  trial_end_date?: string;
+  subscription_end_date?: string;
 }
 
 interface Patient {
