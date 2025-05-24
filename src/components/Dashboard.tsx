@@ -1,104 +1,178 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, MessageCircle, TrendingUp } from "lucide-react";
+import { Calendar, Users, MessageCircle, Clock } from "lucide-react";
+import { ProfessionalCodeDisplay } from "./ProfessionalCodeDisplay";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Dashboard = () => {
-  const stats = [
-    { title: "Pacientes Activos", value: "28", icon: Users, color: "from-blue-500 to-blue-600" },
-    { title: "Citas Hoy", value: "6", icon: Calendar, color: "from-emerald-500 to-emerald-600" },
-    { title: "Mensajes Nuevos", value: "12", icon: MessageCircle, color: "from-purple-500 to-purple-600" },
-    { title: "Sesiones Este Mes", value: "84", icon: TrendingUp, color: "from-orange-500 to-orange-600" },
-  ];
+  const { psychologist } = useProfile();
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    todayAppointments: 0,
+    unreadMessages: 0,
+    thisWeekSessions: 0
+  });
+  const [recentPatients, setRecentPatients] = useState<any[]>([]);
 
-  const upcomingAppointments = [
-    { time: "09:00", patient: "Ana Martínez", type: "Terapia Individual" },
-    { time: "10:30", patient: "Carlos López", type: "Evaluación Inicial" },
-    { time: "14:00", patient: "María Rodriguez", type: "Seguimiento" },
-    { time: "15:30", patient: "Pedro Sánchez", type: "Terapia Familiar" },
-  ];
+  useEffect(() => {
+    if (psychologist) {
+      fetchDashboardData();
+    }
+  }, [psychologist]);
 
-  const recentMessages = [
-    { from: "Ana Martínez", message: "Buenos días doctora, quería confirmar mi cita de mañana...", time: "hace 5 min" },
-    { from: "Carlos López", message: "Muchas gracias por la sesión de ayer, me ayudó mucho...", time: "hace 1 hora" },
-    { from: "María Rodriguez", message: "¿Podríamos reprogramar la cita del viernes?", time: "hace 2 horas" },
-  ];
+  const fetchDashboardData = async () => {
+    if (!psychologist) return;
+
+    try {
+      // Fetch total patients
+      const { data: patients, error: patientsError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('psychologist_id', psychologist.id);
+
+      if (!patientsError) {
+        setStats(prev => ({ ...prev, totalPatients: patients.length }));
+        setRecentPatients(patients.slice(-5));
+      }
+
+      // Fetch today's appointments
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayAppts } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('psychologist_id', psychologist.id)
+        .gte('appointment_date', today)
+        .lt('appointment_date', `${today}T23:59:59`);
+
+      if (todayAppts) {
+        setStats(prev => ({ ...prev, todayAppointments: todayAppts.length }));
+      }
+
+      // Fetch unread messages
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('receiver_id', psychologist.id)
+        .is('read_at', null);
+
+      if (messages) {
+        setStats(prev => ({ ...prev, unreadMessages: messages.length }));
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  if (!psychologist) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-slate-800 mb-2">Dashboard</h2>
-        <p className="text-slate-600">Resumen de tu práctica profesional</p>
+        <p className="text-slate-600">Bienvenido de vuelta, Dr. {psychologist.first_name}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
-                  </div>
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Appointments */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Calendar className="w-5 h-5" />
-              Citas de Hoy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-semibold">
-                      {appointment.time}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">{appointment.patient}</p>
-                      <p className="text-sm text-slate-600">{appointment.type}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Pacientes Total</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.totalPatients}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Messages */}
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Citas Hoy</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.todayAppointments}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Mensajes Nuevos</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.unreadMessages}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Sesiones Semana</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.thisWeekSessions}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Professional Code and Recent Patients */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ProfessionalCodeDisplay code={psychologist.professional_code} />
+
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-800">
-              <MessageCircle className="w-5 h-5" />
-              Mensajes Recientes
+              <Users className="w-5 h-5" />
+              Pacientes Recientes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentMessages.map((message, index) => (
-                <div key={index} className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-semibold text-slate-800 text-sm">{message.from}</p>
-                    <p className="text-xs text-slate-500">{message.time}</p>
+            <div className="space-y-3">
+              {recentPatients.length > 0 ? (
+                recentPatients.map((patient, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      {patient.first_name[0]}{patient.last_name[0]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800">{patient.first_name} {patient.last_name}</p>
+                      <p className="text-sm text-slate-600">
+                        {patient.age ? `${patient.age} años` : 'Edad no especificada'}
+                      </p>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {new Date(patient.created_at).toLocaleDateString()}
+                    </div>
                   </div>
-                  <p className="text-sm text-slate-600 line-clamp-2">{message.message}</p>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No hay pacientes registrados aún</p>
+                  <p className="text-sm">Comparte tu código profesional para que los pacientes se registren</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
