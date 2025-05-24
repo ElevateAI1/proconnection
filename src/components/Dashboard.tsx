@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Users, MessageCircle, Clock } from "lucide-react";
 import { ProfessionalCodeDisplay } from "./ProfessionalCodeDisplay";
 import { TrialStatus } from "./TrialStatus";
+import { AppointmentRequests } from "./AppointmentRequests";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,7 +14,8 @@ export const Dashboard = () => {
     totalPatients: 0,
     todayAppointments: 0,
     unreadMessages: 0,
-    thisWeekSessions: 0
+    thisWeekSessions: 0,
+    pendingRequests: 0
   });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
 
@@ -60,6 +62,17 @@ export const Dashboard = () => {
 
       if (messages) {
         setStats(prev => ({ ...prev, unreadMessages: messages.length }));
+      }
+
+      // Fetch pending appointment requests
+      const { data: pendingRequests } = await supabase
+        .from('appointment_requests')
+        .select('*')
+        .eq('psychologist_id', psychologist.id)
+        .eq('status', 'pending');
+
+      if (pendingRequests) {
+        setStats(prev => ({ ...prev, pendingRequests: pendingRequests.length }));
       }
 
     } catch (error) {
@@ -129,8 +142,8 @@ export const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Sesiones Semana</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.thisWeekSessions}</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">Solicitudes Pendientes</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.pendingRequests}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center">
                 <Clock className="w-6 h-6 text-white" />
@@ -139,6 +152,9 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Appointment Requests Section */}
+      <AppointmentRequests />
 
       {/* Professional Code and Recent Patients */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
