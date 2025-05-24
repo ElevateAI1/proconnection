@@ -36,61 +36,76 @@ export const AdminLogin = () => {
 
   // Redirect if already logged in as admin
   useEffect(() => {
+    console.log('Auth state check:', { user: !!user, isAdmin, adminLoading });
     if (user && isAdmin && !adminLoading) {
+      console.log('User is already admin, redirecting to dashboard');
       navigate('/admin/dashboard');
     }
   }, [user, isAdmin, adminLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting login process...');
     setLoading(true);
     setError('');
 
     try {
-      console.log('Attempting admin login for:', formData.email);
+      console.log('Attempting login with email:', formData.email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // First, sign in the user
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
       
-      if (error) {
-        console.error('Login error:', error);
-        throw error;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error(authError.message);
       }
 
-      if (data.user) {
-        console.log('Login successful, checking admin status...');
-        
-        // Check if user is admin
-        const { data: adminData, error: adminError } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle();
+      if (!authData.user) {
+        console.error('No user data returned');
+        throw new Error('Error de autenticación');
+      }
 
-        if (adminError) {
-          console.error('Error checking admin status:', adminError);
-          throw new Error('Error verificando permisos de administrador');
-        }
+      console.log('User authenticated successfully:', authData.user.id);
+      
+      // Check if user is admin
+      console.log('Checking admin status for user:', authData.user.id);
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', authData.user.id)
+        .maybeSingle();
 
-        if (!adminData) {
-          console.log('User is not an admin');
-          await supabase.auth.signOut();
-          throw new Error('No tienes permisos de administrador');
-        }
+      console.log('Admin check result:', { adminData, adminError });
 
-        console.log('Admin verification successful, redirecting...');
-        toast({
-          title: "Acceso exitoso",
-          description: "Bienvenido al panel de administración",
-        });
+      if (adminError) {
+        console.error('Error checking admin status:', adminError);
+        await supabase.auth.signOut();
+        throw new Error('Error verificando permisos de administrador');
+      }
 
-        // Navigate to dashboard
+      if (!adminData) {
+        console.log('User is not an admin, signing out');
+        await supabase.auth.signOut();
+        throw new Error('No tienes permisos de administrador');
+      }
+
+      console.log('Admin verification successful, showing success message');
+      toast({
+        title: "Acceso exitoso",
+        description: "Bienvenido al panel de administración",
+      });
+
+      // Small delay to ensure auth state is updated
+      console.log('Navigating to dashboard...');
+      setTimeout(() => {
         navigate('/admin/dashboard');
-      }
+      }, 100);
+
     } catch (error: any) {
-      console.error('Admin login error:', error);
+      console.error('Login process error:', error);
       setError(error.message || 'Error de autenticación');
     } finally {
       setLoading(false);
