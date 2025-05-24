@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -105,15 +104,12 @@ export const AdminLogin = () => {
 
       console.log('User authenticated successfully:', authData.user.id);
       
-      // Check if user is admin
+      // Check if user is admin using the new function
       console.log('Checking admin status for user:', authData.user.id);
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('id', authData.user.id)
-        .maybeSingle();
+      const { data: isUserAdmin, error: adminError } = await supabase
+        .rpc('is_admin_user', { user_id: authData.user.id });
 
-      console.log('Admin check result:', { adminData, adminError });
+      console.log('Admin check result:', { isUserAdmin, adminError });
 
       if (adminError) {
         console.error('Error checking admin status:', adminError);
@@ -121,7 +117,7 @@ export const AdminLogin = () => {
         throw new Error('Error verificando permisos de administrador');
       }
 
-      if (!adminData) {
+      if (!isUserAdmin) {
         console.log('User is not an admin, signing out');
         await supabase.auth.signOut();
         throw new Error('No tienes permisos de administrador');

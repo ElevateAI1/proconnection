@@ -35,19 +35,29 @@ export const useAdmin = () => {
   }, [user]);
 
   const checkAdminStatus = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data: adminData } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      setIsAdmin(!!adminData);
+      console.log('Checking admin status for user:', user.id);
       
-      if (adminData) {
-        await fetchPsychologistStats();
+      // Usar la nueva función is_admin_user para evitar recursión
+      const { data: adminData, error: adminError } = await supabase
+        .rpc('is_admin_user', { user_id: user.id });
+
+      console.log('Admin check result:', { adminData, adminError });
+
+      if (adminError) {
+        console.error('Error checking admin status:', adminError);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(adminData === true);
+        
+        if (adminData === true) {
+          await fetchPsychologistStats();
+        }
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
