@@ -23,8 +23,9 @@ interface Appointment {
 interface Message {
   id: string;
   sender_id: string;
-  receiver_id: string;
+  conversation_id: string;
   content: string;
+  message_type?: string;
   read_at?: string;
   created_at: string;
 }
@@ -70,7 +71,7 @@ export const PatientPortal = () => {
       const now = new Date();
       const currentDateTime = now.toISOString();
       
-      // Fetch upcoming appointments con mejor filtrado
+      // Fetch upcoming appointments
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
@@ -88,27 +89,43 @@ export const PatientPortal = () => {
       const validAppointments = appointmentsData || [];
       setAppointments(validAppointments);
 
-      // Fetch recent messages
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('receiver_id', patient.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Fetch recent messages from conversations where patient is involved
+      const { data: conversationsData, error: conversationsError } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          messages!inner(*)
+        `)
+        .eq('patient_id', patient.id)
+        .order('last_message_at', { ascending: false });
 
-      if (messagesError) {
-        console.error('Error fetching messages:', messagesError);
-        // No lanzar error para mensajes, solo log
+      if (conversationsError) {
+        console.error('Error fetching conversations:', conversationsError);
       }
 
-      const validMessages = messagesData || [];
-      setMessages(validMessages);
+      // Extract messages from conversations
+      const allMessages: Message[] = [];
+      if (conversationsData) {
+        conversationsData.forEach(conversation => {
+          if (conversation.messages && Array.isArray(conversation.messages)) {
+            allMessages.push(...conversation.messages);
+          }
+        });
+      }
+
+      // Sort messages by creation date (most recent first) and limit to 5
+      const sortedMessages = allMessages
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5);
+
+      setMessages(sortedMessages);
 
       // Calculate stats
       const nextAppointment = validAppointments.length > 0 ? validAppointments[0] : null;
-      const unreadMessages = validMessages.filter(msg => !msg.read_at).length;
+      const unreadMessages = sortedMessages.filter(msg => !msg.read_at && msg.sender_id !== patient.id).length;
 
       console.log('Next appointment:', nextAppointment);
+      console.log('Unread messages count:', unreadMessages);
 
       // Fetch total completed sessions
       const { data: completedSessions, error: completedError } = await supabase
@@ -379,12 +396,14 @@ export const PatientPortal = () => {
                 messages.map((message) => (
                   <div key={message.id} className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
                     <div className="flex justify-between items-start mb-2">
-                      <p className="font-semibold text-slate-800 text-sm">Tu psicólogo</p>
+                      <p className="font-semibold text-slate-800 text-sm">
+                        {message.sender_id === patient.id ? 'Tú' : 'Tu psicólogo'}
+                      </p>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-slate-500">
                           {formatDateLong(message.created_at)}
                         </p>
-                        {!message.read_at && (
+                        {!message.read_at && message.sender_id !== patient.id && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         )}
                       </div>
@@ -399,7 +418,13 @@ export const PatientPortal = () => {
                   <p className="text-sm">Aquí aparecerán los mensajes de tu psicólogo</p>
                 </div>
               )}
-              <button className="w-full p-3 bg-gradient-to-r from-blue-500 to-emerald-500 text-white rounded-lg hover:shadow-lg transition-all duration-200">
+              <button 
+                onClick={() => {
+                  // Aquí iríamos a la vista de mensajes completa
+                  console.log('Navigate to messages view');
+                }}
+                className="w-full p-3 bg-gradient-to-r from-blue-500 to-emerald-500 text-white rounded-lg hover:shadow-lg transition-all duration-200"
+              >
                 Ver todos los mensajes
               </button>
             </div>
