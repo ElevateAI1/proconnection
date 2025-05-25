@@ -102,7 +102,9 @@ export const Dashboard = () => {
             {psychologist && <TrialStatus />}
             
             {/* Professional Code Display */}
-            {psychologist && <ProfessionalCodeDisplay />}
+            {psychologist && psychologist.professional_code && (
+              <ProfessionalCodeDisplay code={psychologist.professional_code} />
+            )}
 
             {/* Main Dashboard Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
