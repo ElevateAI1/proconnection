@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -15,44 +14,41 @@ import { AppointmentRequests } from "./AppointmentRequests";
 import { ProfessionalCodeDisplay } from "./ProfessionalCodeDisplay";
 import { TrialStatus } from "./TrialStatus";
 import { MeetingLinksCard } from "./MeetingLinksCard";
-
 export const Dashboard = () => {
-  const { user } = useAuth();
-  const { profile, psychologist, patient, loading } = useProfile();
+  const {
+    user
+  } = useAuth();
+  const {
+    profile,
+    psychologist,
+    patient,
+    loading
+  } = useProfile();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState("overview");
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600">Cargando dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <p className="text-slate-600">No se pudo cargar la información del perfil</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
@@ -60,7 +56,6 @@ export const Dashboard = () => {
       second: '2-digit'
     });
   };
-
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('es-ES', {
       weekday: 'long',
@@ -69,9 +64,7 @@ export const Dashboard = () => {
       day: 'numeric'
     });
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -96,19 +89,16 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {profile.user_type === 'psychologist' ? (
-          <>
+        {profile.user_type === 'psychologist' ? <>
             {/* Trial Status for Psychologists */}
             {psychologist && <TrialStatus />}
             
             {/* Professional Code Display */}
-            {psychologist && psychologist.professional_code && (
-              <ProfessionalCodeDisplay code={psychologist.professional_code} />
-            )}
+            {psychologist && psychologist.professional_code && <ProfessionalCodeDisplay code={psychologist.professional_code} />}
 
             {/* Main Dashboard Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-6 my-[28px]">
                 <TabsTrigger value="overview">Resumen</TabsTrigger>
                 <TabsTrigger value="calendar">Calendario</TabsTrigger>
                 <TabsTrigger value="patients">Pacientes</TabsTrigger>
@@ -219,10 +209,8 @@ export const Dashboard = () => {
                 <AppointmentRequests />
               </TabsContent>
             </Tabs>
-          </>
-        ) : (
-          /* Patient Dashboard - Simplified view */
-          <div className="space-y-6">
+          </> : (/* Patient Dashboard - Simplified view */
+      <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card className="border-0 shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -265,9 +253,7 @@ export const Dashboard = () => {
             </div>
 
             <DocumentsSection />
-          </div>
-        )}
+          </div>)}
       </div>
-    </div>
-  );
+    </div>;
 };
