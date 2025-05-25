@@ -121,35 +121,55 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
           throw new Error('Solicitud no encontrada');
         }
 
-        // Create datetime from preferred_date and preferred_time
-        const appointmentDateTime = new Date(`${request.preferred_date}T${request.preferred_time}`);
+        // Create appointment date by combining date and time
+        const [year, month, day] = request.preferred_date.split('-');
+        const [hours, minutes] = request.preferred_time.split(':');
+        
+        const appointmentDate = new Date();
+        appointmentDate.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+        appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         
         console.log('Creating appointment with data:', {
           patient_id: request.patient_id,
           psychologist_id: psychologist.id,
-          appointment_date: appointmentDateTime.toISOString(),
+          appointment_date: appointmentDate.toISOString(),
           type: request.type,
-          notes: request.notes
+          notes: request.notes,
+          status: 'confirmed'
         });
 
-        // First, create the actual appointment
+        // Create the actual appointment with all required fields
         const { data: appointmentData, error: appointmentError } = await supabase
           .from('appointments')
           .insert({
             patient_id: request.patient_id,
             psychologist_id: psychologist.id,
-            appointment_date: appointmentDateTime.toISOString(),
+            appointment_date: appointmentDate.toISOString(),
             type: request.type,
             status: 'confirmed',
-            notes: request.notes,
-            duration_minutes: 60 // Default duration
+            notes: request.notes || null,
+            duration_minutes: 60
           })
           .select()
           .single();
 
         if (appointmentError) {
           console.error('Error creating appointment:', appointmentError);
-          throw new Error('No se pudo crear la cita');
+          console.error('Appointment error details:', {
+            code: appointmentError.code,
+            message: appointmentError.message,
+            details: appointmentError.details,
+            hint: appointmentError.hint
+          });
+          
+          // Provide more specific error messages
+          if (appointmentError.message.includes('check constraint')) {
+            throw new Error('Error de validación: Verifica que el estado y tipo de cita sean válidos');
+          } else if (appointmentError.message.includes('foreign key')) {
+            throw new Error('Error de referencia: Paciente o psicólogo no válido');
+          } else {
+            throw new Error(`No se pudo crear la cita: ${appointmentError.message}`);
+          }
         }
 
         console.log('Appointment created successfully:', appointmentData);
