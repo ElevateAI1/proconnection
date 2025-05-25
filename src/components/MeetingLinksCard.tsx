@@ -11,7 +11,7 @@ interface AppointmentWithMeeting {
   appointment_date: string;
   type: string;
   duration_minutes: number;
-  meeting_url: string;
+  meeting_url?: string;
   patient?: {
     first_name: string;
     last_name: string;
@@ -62,7 +62,9 @@ export const MeetingLinksCard = () => {
         return;
       }
 
-      setAppointmentsWithMeetings(data || []);
+      // Filter appointments that actually have meeting URLs
+      const filteredData = (data || []).filter(appointment => appointment.meeting_url);
+      setAppointmentsWithMeetings(filteredData);
     } catch (error) {
       console.error('Error fetching appointments with meetings:', error);
     } finally {
@@ -149,6 +151,8 @@ export const MeetingLinksCard = () => {
               ? appointment.patient 
               : appointment.psychologist;
             
+            if (!appointment.meeting_url) return null;
+            
             return (
               <div key={appointment.id} className="p-4 rounded-lg border border-slate-200 bg-gradient-to-r from-green-50 to-blue-50">
                 <div className="flex items-start justify-between gap-4">
@@ -190,14 +194,14 @@ export const MeetingLinksCard = () => {
 
                   <div className="flex flex-col gap-2">
                     <button
-                      onClick={() => openMeeting(appointment.meeting_url)}
+                      onClick={() => openMeeting(appointment.meeting_url!)}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
                     >
                       <ExternalLink className="w-4 h-4" />
                       Unirse
                     </button>
                     <button
-                      onClick={() => copyMeetingLink(appointment.meeting_url)}
+                      onClick={() => copyMeetingLink(appointment.meeting_url!)}
                       className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
                     >
                       <Copy className="w-4 h-4" />
