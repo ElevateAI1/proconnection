@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, MessageSquare, Users, FileText, Settings, Bell } from "lucide-react";
-import { CalendarView } from "./CalendarView";
+import { Calendar as CalendarComponent } from "./CalendarView";
 import { PatientManagement } from "./PatientManagement";
 import { MessagingHub } from "./MessagingHub";
 import { DocumentsSection } from "./DocumentsSection";
@@ -99,10 +99,10 @@ export const Dashboard = () => {
         {profile.user_type === 'psychologist' ? (
           <>
             {/* Trial Status for Psychologists */}
-            {psychologist && <TrialStatus psychologist={psychologist} />}
+            {psychologist && <TrialStatus />}
             
             {/* Professional Code Display */}
-            {psychologist && <ProfessionalCodeDisplay professionalCode={psychologist.professional_code} />}
+            {psychologist && <ProfessionalCodeDisplay />}
 
             {/* Main Dashboard Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -198,7 +198,7 @@ export const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="calendar">
-                <CalendarView />
+                <CalendarComponent />
               </TabsContent>
 
               <TabsContent value="patients">
