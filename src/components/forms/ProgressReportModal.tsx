@@ -30,7 +30,7 @@ export const ProgressReportModal = ({ isOpen, onClose, psychologistId }: Progres
     challengesEncountered: "",
     clinicalObservations: "",
     interventionsUsed: "",
-    homewordCompliance: "",
+    homeworkCompliance: "",
     familyInvolvement: "",
     medicationCompliance: "",
     riskAssessment: "",
@@ -234,8 +234,8 @@ export const ProgressReportModal = ({ isOpen, onClose, psychologistId }: Progres
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="homewordCompliance">Cumplimiento de Tareas</Label>
-              <Select onValueChange={(value) => setFormData(prev => ({ ...prev, homewordCompliance: value }))}>
+              <Label htmlFor="homeworkCompliance">Cumplimiento de Tareas</Label>
+              <Select onValueChange={(value) => setFormData(prev => ({ ...prev, homeworkCompliance: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Nivel de cumplimiento" />
                 </SelectTrigger>

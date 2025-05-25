@@ -246,6 +246,42 @@ export type Database = {
           },
         ]
       }
+      patient_documents: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          patient_id: string
+          psychologist_id: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          patient_id: string
+          psychologist_id: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          patient_id?: string
+          psychologist_id?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           age: number | null
