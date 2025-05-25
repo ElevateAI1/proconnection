@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { PatientSelector } from "./PatientSelector";
 
 interface ConsentFormModalProps {
   isOpen: boolean;
@@ -33,12 +34,29 @@ export const ConsentFormModal = ({ isOpen, onClose, psychologistId }: ConsentFor
     signatureDate: ""
   });
 
+  const handlePatientSelect = (patientId: string, patientName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      patientId,
+      patientName
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!psychologistId) {
       toast({
         title: "Error",
         description: "No se pudo identificar al psicólogo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.patientId) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un paciente",
         variant: "destructive"
       });
       return;
@@ -105,26 +123,11 @@ export const ConsentFormModal = ({ isOpen, onClose, psychologistId }: ConsentFor
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="patientName">Nombre del Paciente</Label>
-              <Input
-                id="patientName"
-                value={formData.patientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientName: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="patientId">ID del Paciente</Label>
-              <Input
-                id="patientId"
-                value={formData.patientId}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientId: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
+          <PatientSelector
+            selectedPatientId={formData.patientId}
+            onPatientSelect={handlePatientSelect}
+            required
+          />
 
           <div>
             <Label htmlFor="treatmentDescription">Descripción del Tratamiento</Label>
