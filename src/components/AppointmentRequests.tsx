@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Check, X, FileText } from "lucide-react";
+import { Calendar, Clock, User, Check, X, FileText, RefreshCw } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -26,11 +26,16 @@ interface AppointmentRequest {
   patient?: Patient | null;
 }
 
-export const AppointmentRequests = () => {
+interface AppointmentRequestsProps {
+  onRequestProcessed?: () => void;
+}
+
+export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsProps) => {
   const { psychologist } = useProfile();
   const [requests, setRequests] = useState<AppointmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (psychologist?.id) {
@@ -59,7 +64,12 @@ export const AppointmentRequests = () => {
 
       if (error) {
         console.error('Error fetching appointment requests:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las solicitudes de citas",
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('Fetched appointment requests:', data);
@@ -77,12 +87,18 @@ export const AppointmentRequests = () => {
       console.error('Error fetching appointment requests:', error);
       toast({
         title: "Error",
-        description: "No se pudieron cargar las solicitudes de citas",
+        description: "Error inesperado al cargar las solicitudes",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchRequests();
   };
 
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
@@ -110,7 +126,7 @@ export const AppointmentRequests = () => {
 
       if (error) {
         console.error('Error updating request:', error);
-        throw error;
+        throw new Error('No se pudo actualizar la solicitud');
       }
 
       const actionLabel = action === 'approved' ? 'aprobada' : 'rechazada';
@@ -119,13 +135,15 @@ export const AppointmentRequests = () => {
         description: `La solicitud de cita ha sido ${actionLabel} exitosamente.`,
       });
 
-      // Refresh the requests list
+      // Refresh the requests list and notify parent component
       await fetchRequests();
+      onRequestProcessed?.();
     } catch (error) {
       console.error('Error updating request:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       toast({
         title: "Error",
-        description: "No se pudo procesar la solicitud",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -181,15 +199,29 @@ export const AppointmentRequests = () => {
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-slate-800">
-          <Calendar className="w-5 h-5" />
-          Solicitudes de Citas Pendientes
-          {requests.length > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {requests.length}
-            </Badge>
-          )}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            <CardTitle className="text-slate-800">
+              Solicitudes de Citas Pendientes
+            </CardTitle>
+            {requests.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {requests.length}
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {requests.length === 0 ? (

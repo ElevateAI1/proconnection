@@ -7,6 +7,7 @@ import { TrialStatus } from "./TrialStatus";
 import { AppointmentRequests } from "./AppointmentRequests";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export const Dashboard = () => {
   const { psychologist } = useProfile();
@@ -18,18 +19,23 @@ export const Dashboard = () => {
     pendingRequests: 0
   });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (psychologist) {
+    if (psychologist?.id) {
       fetchDashboardData();
     }
   }, [psychologist]);
 
   const fetchDashboardData = async () => {
-    if (!psychologist) return;
+    if (!psychologist?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       console.log('Fetching dashboard data for psychologist:', psychologist.id);
+      setLoading(true);
 
       // Fetch total patients
       const { data: patients, error: patientsError } = await supabase
@@ -37,34 +43,45 @@ export const Dashboard = () => {
         .select('*')
         .eq('psychologist_id', psychologist.id);
 
-      if (!patientsError) {
-        console.log('Found patients:', patients?.length || 0);
-        setStats(prev => ({ ...prev, totalPatients: patients?.length || 0 }));
-        setRecentPatients(patients?.slice(-5) || []);
+      if (patientsError) {
+        console.error('Error fetching patients:', patientsError);
+        throw new Error('Error al cargar pacientes');
       }
 
+      console.log('Found patients:', patients?.length || 0);
+      setStats(prev => ({ ...prev, totalPatients: patients?.length || 0 }));
+      setRecentPatients(patients?.slice(-5) || []);
+
       // Fetch today's appointments
-      const today = new Date().toISOString().split('T')[0];
-      const { data: todayAppts } = await supabase
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+      const { data: todayAppts, error: apptsError } = await supabase
         .from('appointments')
         .select('*')
         .eq('psychologist_id', psychologist.id)
-        .gte('appointment_date', today)
-        .lt('appointment_date', `${today}T23:59:59`);
+        .gte('appointment_date', todayStart.toISOString())
+        .lte('appointment_date', todayEnd.toISOString())
+        .in('status', ['scheduled', 'confirmed', 'accepted']);
 
-      if (todayAppts) {
-        setStats(prev => ({ ...prev, todayAppointments: todayAppts.length }));
+      if (apptsError) {
+        console.error('Error fetching appointments:', apptsError);
+      } else {
+        setStats(prev => ({ ...prev, todayAppointments: todayAppts?.length || 0 }));
       }
 
       // Fetch unread messages
-      const { data: messages } = await supabase
+      const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select('*')
         .eq('receiver_id', psychologist.id)
         .is('read_at', null);
 
-      if (messages) {
-        setStats(prev => ({ ...prev, unreadMessages: messages.length }));
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+      } else {
+        setStats(prev => ({ ...prev, unreadMessages: messages?.length || 0 }));
       }
 
       // Fetch pending appointment requests
@@ -74,20 +91,68 @@ export const Dashboard = () => {
         .eq('psychologist_id', psychologist.id)
         .eq('status', 'pending');
 
-      if (!requestsError) {
+      if (requestsError) {
+        console.error('Error fetching pending requests:', requestsError);
+      } else {
         console.log('Found pending requests:', pendingRequests?.length || 0);
         setStats(prev => ({ ...prev, pendingRequests: pendingRequests?.length || 0 }));
+      }
+
+      // Fetch this week's sessions
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const { data: weekSessions, error: weekError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('psychologist_id', psychologist.id)
+        .gte('appointment_date', weekStart.toISOString())
+        .lte('appointment_date', weekEnd.toISOString())
+        .in('status', ['completed']);
+
+      if (weekError) {
+        console.error('Error fetching week sessions:', weekError);
       } else {
-        console.error('Error fetching pending requests:', requestsError);
+        setStats(prev => ({ ...prev, thisWeekSessions: weekSessions?.length || 0 }));
       }
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos del dashboard",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   if (!psychologist) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando datos del dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -160,7 +225,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Appointment Requests Section */}
-      <AppointmentRequests />
+      <AppointmentRequests onRequestProcessed={fetchDashboardData} />
 
       {/* Professional Code and Recent Patients */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -177,9 +242,9 @@ export const Dashboard = () => {
             <div className="space-y-3">
               {recentPatients.length > 0 ? (
                 recentPatients.map((patient, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div key={patient.id || index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {patient.first_name[0]}{patient.last_name[0]}
+                      {patient.first_name?.[0]}{patient.last_name?.[0]}
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-slate-800">{patient.first_name} {patient.last_name}</p>
