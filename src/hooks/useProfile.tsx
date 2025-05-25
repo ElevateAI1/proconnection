@@ -58,6 +58,7 @@ export const useProfile = () => {
 
     try {
       console.log('Fetching profile for user:', user.id);
+      setLoading(true);
       
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -75,44 +76,30 @@ export const useProfile = () => {
       };
       setProfile(typedProfile);
 
-      // Fetch specific role data with retry logic
+      // Fetch specific role data with more reliable approach
       if (typedProfile.user_type === 'psychologist') {
-        let attempts = 0;
-        const maxAttempts = 3;
+        const { data: psychData, error: psychError } = await supabase
+          .from('psychologists')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
         
-        while (attempts < maxAttempts) {
-          const { data: psychData } = await supabase
-            .from('psychologists')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (psychData || attempts === maxAttempts - 1) {
-            setPsychologist(psychData);
-            break;
-          }
-          
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        if (psychError) {
+          console.error('Error fetching psychologist data:', psychError);
+        } else {
+          setPsychologist(psychData);
         }
       } else if (typedProfile.user_type === 'patient') {
-        let attempts = 0;
-        const maxAttempts = 3;
+        const { data: patientData, error: patientError } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
         
-        while (attempts < maxAttempts) {
-          const { data: patientData } = await supabase
-            .from('patients')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (patientData || attempts === maxAttempts - 1) {
-            setPatient(patientData);
-            break;
-          }
-          
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        if (patientError) {
+          console.error('Error fetching patient data:', patientError);
+        } else {
+          setPatient(patientData);
         }
       }
     } catch (error) {

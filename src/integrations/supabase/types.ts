@@ -64,7 +64,29 @@ export type Database = {
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_appointment_requests_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_requests_psychologist"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_requests_psychologist"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       appointments: {
         Row: {
@@ -204,6 +226,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_patients_psychologist"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_patients_psychologist"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "patients_id_fkey"
             columns: ["id"]

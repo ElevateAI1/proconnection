@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,6 +21,7 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const [checkingTrial, setCheckingTrial] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Check trial status for psychologists
   useEffect(() => {
@@ -28,16 +30,16 @@ const Index = () => {
     }
   }, [psychologist, profile]);
 
-  // Refetch profile data when user changes (for email confirmation flows)
+  // Mark initial load as complete only when we have all necessary data
   useEffect(() => {
-    if (user && profile) {
+    if (!authLoading && !profileLoading) {
+      // Add a small delay to prevent flashing
       const timer = setTimeout(() => {
-        console.log('Auto-refetching profile after user change');
-        refetch();
-      }, 2000);
+        setInitialLoadComplete(true);
+      }, 200);
       return () => clearTimeout(timer);
     }
-  }, [user?.id, profile?.user_type]);
+  }, [authLoading, profileLoading]);
 
   const checkTrialStatus = async () => {
     if (!psychologist) return;
@@ -60,14 +62,12 @@ const Index = () => {
   };
 
   const handleUpgrade = () => {
-    // Aquí iría la lógica para redirigir al sistema de pagos
     console.log('Redirecting to payment system...');
-    // Por ahora, solo mostramos un alert
     alert('Redirección al sistema de pagos (función pendiente de implementar)');
   };
 
   // Show loading while checking authentication and profile
-  if (authLoading || profileLoading || checkingTrial) {
+  if (!initialLoadComplete || authLoading || profileLoading || checkingTrial) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
