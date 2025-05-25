@@ -5,6 +5,7 @@ import { Calendar, Users, MessageCircle, Clock } from "lucide-react";
 import { ProfessionalCodeDisplay } from "./ProfessionalCodeDisplay";
 import { TrialStatus } from "./TrialStatus";
 import { AppointmentRequests } from "./AppointmentRequests";
+import { MeetingLinksCard } from "./MeetingLinksCard";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -164,6 +165,9 @@ export const Dashboard = () => {
 
       {/* Trial Status - Prominente en la parte superior */}
       <TrialStatus />
+
+      {/* Meeting Links Card */}
+      <MeetingLinksCard />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

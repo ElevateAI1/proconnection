@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MessageCircle, FileText, Clock } from "lucide-react";
+import { Calendar, MessageCircle, FileText, Clock, Video } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { AppointmentRequestForm } from "./AppointmentRequestForm";
+import { MeetingLinksCard } from "./MeetingLinksCard";
 import { toast } from "@/hooks/use-toast";
 
 interface Appointment {
@@ -256,6 +256,9 @@ export const PatientPortal = () => {
           Bienvenida, {patient.first_name} {patient.last_name}
         </p>
       </div>
+
+      {/* Meeting Links Card */}
+      <MeetingLinksCard />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

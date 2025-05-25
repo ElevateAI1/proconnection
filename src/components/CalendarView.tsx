@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, ExternalLink } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ interface Appointment {
   duration_minutes: number;
   status: string;
   notes?: string;
+  meeting_url?: string;
   patient?: {
     first_name: string;
     last_name: string;
@@ -179,6 +180,10 @@ export const Calendar = () => {
     });
   };
 
+  const handleJoinMeeting = (meetingUrl: string) => {
+    window.open(meetingUrl, '_blank');
+  };
+
   const days = getDaysInMonth(currentMonth);
 
   return (
@@ -287,11 +292,28 @@ export const Calendar = () => {
                                   }
                                 </p>
                                 <p className="text-sm text-slate-600">{getTypeLabel(appointment.type)}</p>
+                                {appointment.meeting_url && (
+                                  <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                                    <Video className="w-3 h-3" />
+                                    <span>Reunión virtual disponible</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            <span className="text-sm text-slate-500">
-                              {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-slate-500">
+                                {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
+                              </span>
+                              {appointment.meeting_url && (
+                                <button
+                                  onClick={() => handleJoinMeeting(appointment.meeting_url!)}
+                                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                                >
+                                  <Video className="w-3 h-3" />
+                                  Unirse
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <div className="flex-1 text-slate-400 text-sm">
