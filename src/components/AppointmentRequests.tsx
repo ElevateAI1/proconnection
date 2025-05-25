@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Check, X, FileText, RefreshCw } from "lucide-react";
+import { Calendar, Clock, User, Check, X, FileText, RefreshCw, Video } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -99,6 +99,32 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
     await fetchRequests();
   };
 
+  const createJitsiMeeting = async (appointmentId: string, patientName: string, psychologistName: string, appointmentDate: string) => {
+    try {
+      console.log('Creating Jitsi meeting for appointment:', appointmentId);
+      
+      const { data, error } = await supabase.functions.invoke('create-jitsi-meeting', {
+        body: {
+          appointmentId,
+          patientName,
+          psychologistName,
+          appointmentDate
+        }
+      });
+
+      if (error) {
+        console.error('Error creating Jitsi meeting:', error);
+        throw new Error('No se pudo crear la reunión virtual');
+      }
+
+      console.log('Jitsi meeting created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in createJitsiMeeting:', error);
+      throw error;
+    }
+  };
+
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     if (!requestId) {
       toast({
@@ -173,6 +199,31 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         }
 
         console.log('Appointment created successfully:', appointmentData);
+
+        // Create Jitsi meeting for the appointment
+        try {
+          const patientName = request.patient 
+            ? `${request.patient.first_name} ${request.patient.last_name}`
+            : 'Paciente';
+          const psychologistName = `${psychologist.first_name} ${psychologist.last_name}`;
+          
+          await createJitsiMeeting(
+            appointmentData.id,
+            patientName,
+            psychologistName,
+            appointmentDate.toISOString()
+          );
+
+          console.log('Jitsi meeting created and linked to appointment');
+        } catch (meetingError) {
+          console.error('Error creating Jitsi meeting:', meetingError);
+          // Don't fail the whole process if meeting creation fails
+          toast({
+            title: "Advertencia",
+            description: "La cita se creó pero hubo un problema al crear la reunión virtual. Puedes crear el enlace manualmente.",
+            variant: "destructive"
+          });
+        }
       }
 
       // Update the request status
@@ -193,7 +244,7 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
       toast({
         title: `Solicitud ${actionLabel}`,
         description: action === 'approved' 
-          ? 'La cita ha sido creada y confirmada exitosamente.'
+          ? 'La cita ha sido creada con reunión virtual incluida.'
           : 'La solicitud de cita ha sido rechazada.',
       });
 
@@ -326,10 +377,14 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
                       </div>
                     </div>
 
-                    <div className="mb-3">
+                    <div className="mb-3 flex items-center gap-3">
                       <Badge variant="outline" className="text-blue-700 border-blue-200">
                         {getTypeLabel(request.type)}
                       </Badge>
+                      <div className="flex items-center gap-1 text-sm text-green-600">
+                        <Video className="w-4 h-4" />
+                        <span>Incluye reunión virtual</span>
+                      </div>
                     </div>
 
                     {request.notes && (
