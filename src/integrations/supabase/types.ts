@@ -94,6 +94,7 @@ export type Database = {
           created_at: string
           duration_minutes: number | null
           id: string
+          meeting_url: string | null
           notes: string | null
           patient_id: string
           psychologist_id: string
@@ -106,6 +107,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number | null
           id?: string
+          meeting_url?: string | null
           notes?: string | null
           patient_id: string
           psychologist_id: string
@@ -118,6 +120,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number | null
           id?: string
+          meeting_url?: string | null
           notes?: string | null
           patient_id?: string
           psychologist_id?: string
