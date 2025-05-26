@@ -1,16 +1,28 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, CreditCard } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { SubscriptionPlans } from './SubscriptionPlans';
+import { useMercadoPago } from '@/hooks/useMercadoPago';
 
 interface TrialExpiredModalProps {
   onUpgrade: () => void;
 }
 
 export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
+  const { createSubscription } = useMercadoPago();
+
+  const handlePlanSelect = async (planId: string) => {
+    try {
+      await createSubscription(planId);
+      onUpgrade(); // Ejecutar callback original si es necesario
+    } catch (error) {
+      console.error('Error selecting plan:', error);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md border-0 shadow-xl">
+      <Card className="w-full max-w-6xl border-0 shadow-xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-8 h-8 text-red-600" />
@@ -20,40 +32,15 @@ export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          <div className="text-center">
+        <CardContent>
+          <div className="text-center mb-6">
             <p className="text-slate-600 mb-4">
               Tu período de prueba de 7 días ha terminado. Para continuar usando 
-              PsiConnect y acceder a todas las funciones, necesitas activar una suscripción.
+              PsiConnect y acceder a todas las funciones, selecciona un plan de suscripción.
             </p>
-            
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-              <h3 className="font-semibold text-blue-800 mb-2">¿Qué incluye la suscripción?</h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Gestión ilimitada de pacientes</li>
-                <li>• Sistema de citas y recordatorios</li>
-                <li>• Mensajería segura con pacientes</li>
-                <li>• Reportes y estadísticas</li>
-                <li>• Soporte técnico prioritario</li>
-              </ul>
-            </div>
           </div>
 
-          <div className="space-y-3">
-            <Button 
-              onClick={onUpgrade}
-              className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:shadow-lg"
-              size="lg"
-            >
-              <CreditCard className="w-5 h-5 mr-2" />
-              Activar Suscripción
-            </Button>
-            
-            <p className="text-xs text-center text-slate-500">
-              Al activar tu suscripción, podrás continuar usando todas las funciones 
-              de PsiConnect sin interrupciones.
-            </p>
-          </div>
+          <SubscriptionPlans onPlanSelect={handlePlanSelect} />
         </CardContent>
       </Card>
     </div>
