@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { TreatmentPlanModal } from "./forms/TreatmentPlanModal";
 import { ProgressReportModal } from "./forms/ProgressReportModal";
 import { DocumentViewer } from "./DocumentViewer";
 
-interface Document {
+interface PatientDocument {
   id: string;
   title: string;
   type: string;
@@ -24,10 +23,10 @@ interface Document {
 
 export const DocumentsSection = () => {
   const { profile, patient, psychologist } = useProfile();
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<PatientDocument | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   useEffect(() => {
@@ -115,21 +114,21 @@ export const DocumentsSection = () => {
     fetchDocuments();
   };
 
-  const handleViewDocument = (document: Document) => {
+  const handleViewDocument = (document: PatientDocument) => {
     setSelectedDocument(document);
     setIsViewerOpen(true);
   };
 
-  const handleDownloadDocument = (document: Document) => {
+  const handleDownloadDocument = (document: PatientDocument) => {
     const content = JSON.stringify(document.content, null, 2);
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${document.title}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const link = window.document.createElement('a');
+    link.href = url;
+    link.download = `${document.title}.json`;
+    window.document.body.appendChild(link);
+    link.click();
+    window.document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
     toast({

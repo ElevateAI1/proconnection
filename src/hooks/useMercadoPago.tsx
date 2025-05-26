@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 
 export const useMercadoPago = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { psychologist } = useProfile();
+  const { psychologist, profile } = useProfile();
 
   const createSubscription = async (planId: string) => {
     if (!psychologist) {
@@ -21,7 +21,7 @@ export const useMercadoPago = () => {
         body: {
           planId,
           psychologistId: psychologist.id,
-          psychologistEmail: psychologist.email || '',
+          psychologistEmail: profile?.email || '',
           psychologistName: `${psychologist.first_name} ${psychologist.last_name}`
         }
       });
