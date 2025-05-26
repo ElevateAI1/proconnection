@@ -434,6 +434,51 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          features: string[]
+          id: string
+          is_recommended: boolean
+          original_price_display: string | null
+          period: string
+          plan_key: string
+          price_cents: number
+          price_display: string
+          savings_text: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          features: string[]
+          id?: string
+          is_recommended?: boolean
+          original_price_display?: string | null
+          period: string
+          plan_key: string
+          price_cents: number
+          price_display: string
+          savings_text?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          features?: string[]
+          id?: string
+          is_recommended?: boolean
+          original_price_display?: string | null
+          period?: string
+          plan_key?: string
+          price_cents?: number
+          price_display?: string
+          savings_text?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       psychologist_stats: {
