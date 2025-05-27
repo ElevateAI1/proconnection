@@ -50,26 +50,36 @@ export const useEmailVerification = () => {
           return;
         }
 
-        // Verificar directamente el usuario usando la función admin
-        console.log('Attempting to verify user via admin function...');
+        // Verificar el usuario manualmente
+        console.log('Attempting to verify user manually...');
         
-        // Usar función de Supabase para confirmar el email del usuario
-        const { error: confirmError } = await supabase.auth.admin.updateUserById(
-          verificationData.userId,
-          { 
-            email_confirm: true,
-            user_metadata: {
-              email_verified: true,
-              verification_completed_at: new Date().toISOString()
-            }
-          }
-        );
+        // Primero intentar hacer login con el email para obtener el usuario
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', verificationData.userId)
+          .single();
 
-        if (confirmError) {
-          console.error('Error confirming user email:', confirmError);
+        if (userError || !userData) {
+          console.error('User not found:', userError);
+          toast({
+            title: "Usuario no encontrado",
+            description: "No se pudo verificar la cuenta. El usuario puede no existir.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Marcar el email como verificado usando una función RPC personalizada
+        const { error: verifyError } = await supabase.rpc('verify_user_email', {
+          user_id: verificationData.userId
+        });
+
+        if (verifyError) {
+          console.error('Error verifying user:', verifyError);
           toast({
             title: "Error de verificación",
-            description: "No se pudo completar la verificación. El enlace puede haber expirado o ser inválido.",
+            description: "No se pudo completar la verificación. Intenta nuevamente o contacta con soporte.",
             variant: "destructive"
           });
         } else {

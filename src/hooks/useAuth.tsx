@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,14 +190,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Additional data:', additionalData);
     
     try {
-      // CRÍTICO: Usar la API admin directamente para crear el usuario SIN confirmación automática
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Usar signUp normal pero SIN confirmación automática por email
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        email_confirm: false, // CRÍTICO: No confirmar automáticamente
-        user_metadata: {
-          user_type: userType,
-          ...additionalData
+        options: {
+          data: {
+            user_type: userType,
+            ...additionalData
+          },
+          emailRedirectTo: undefined // No redirect automático
         }
       });
       
@@ -211,6 +214,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       console.log('User created successfully:', data.user?.id);
+      
+      // Cerrar sesión inmediatamente para evitar auto-login
+      await supabase.auth.signOut();
       
       // Enviar SOLO nuestro email personalizado de verificación
       if (data.user) {
