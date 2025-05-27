@@ -94,16 +94,25 @@ const Index = () => {
   }
 
   // Only show profile setup if we have a profile but are missing required role-specific data
-  // and we're not currently loading
+  // and we're not currently loading. IMPORTANT: Don't show profile setup for expired accounts
+  // that already have complete profiles.
   const needsProfileSetup = () => {
     if (!profile || profileLoading) return false;
     
     if (profile.user_type === 'psychologist') {
       // Check if psychologist profile exists and has required fields
-      return !psychologist || !psychologist.first_name || !psychologist.last_name;
+      const hasCompleteProfile = psychologist && psychologist.first_name && psychologist.last_name;
+      
+      // If profile is complete but trial is expired, don't ask for profile setup
+      if (hasCompleteProfile && (psychologist?.subscription_status === 'trial' || psychologist?.subscription_status === 'expired')) {
+        return false;
+      }
+      
+      return !hasCompleteProfile;
     } else {
       // Check if patient profile exists and has required fields
-      return !patient || !patient.first_name || !patient.last_name || !patient.psychologist_id;
+      const hasCompleteProfile = patient && patient.first_name && patient.last_name && patient.psychologist_id;
+      return !hasCompleteProfile;
     }
   };
   
