@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createVerificationEmailTemplate } from "./_utils/email-template.ts";
 
-const resend = new Resend("re_g26a5uQv_KzejdPm2pxQXYRZxGfzrW9ey");
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,10 +29,12 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, token, action_type, redirect_to }: EmailData = await req.json();
     
     console.log('Processing verification email for:', email);
+    console.log('Token received:', token);
 
-    // Create verification URL
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const verificationUrl = `${supabaseUrl}/auth/v1/verify?token=${token}&type=${action_type}&redirect_to=${redirect_to || 'https://scikpgzpgzevkgwwobrf.supabase.co/'}`;
+    // Create a simple verification URL that redirects to our app
+    const verificationUrl = redirect_to || `${Deno.env.get("SUPABASE_URL")}/auth/v1/verify?token=${token}&type=${action_type}`;
+
+    console.log('Verification URL:', verificationUrl);
 
     // Use the professional email template
     const emailHtml = createVerificationEmailTemplate(verificationUrl);

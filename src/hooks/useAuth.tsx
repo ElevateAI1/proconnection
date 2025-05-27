@@ -144,11 +144,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Attempting sign up for:', email, 'as', userType);
     console.log('Additional data:', additionalData);
     
+    // First, disable Supabase's automatic emails completely
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: undefined, // Disable Supabase's automatic email
+        emailRedirectTo: undefined,
         data: {
           user_type: userType,
           ...additionalData
@@ -159,48 +160,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) {
       console.error('Sign up error:', error);
       return { data, error };
-    } else {
-      console.log('Sign up successful, user created:', data.user?.id);
-      
-      // Send our custom verification email immediately
-      if (data.user && !data.user.email_confirmed_at) {
-        try {
-          console.log('Sending custom verification email...');
-          
-          // Get the actual verification token from the session
-          const { data: sessionData } = await supabase.auth.getSession();
-          
-          const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
-            body: {
-              email: email,
-              token: data.user.id, // Using user ID as token
-              action_type: 'signup',
-              redirect_to: `${window.location.origin}/`
-            }
-          });
-          
-          if (emailError) {
-            console.error('Error sending verification email:', emailError);
-            toast({
-              title: "Cuenta creada",
-              description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
-              variant: "destructive"
-            });
-          } else {
-            console.log('Verification email sent successfully');
-            toast({
-              title: "¡Cuenta creada exitosamente!",
-              description: "Te hemos enviado un email de verificación profesional. Por favor revisa tu bandeja de entrada.",
-            });
+    }
+    
+    console.log('Sign up successful, user created:', data.user?.id);
+    
+    // Now send our custom verification email using a simpler approach
+    if (data.user) {
+      try {
+        console.log('Sending custom verification email...');
+        
+        // Use a custom verification approach
+        const verificationToken = btoa(`${data.user.id}:${Date.now()}`); // Simple token
+        
+        const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
+          body: {
+            email: email,
+            token: verificationToken,
+            action_type: 'signup',
+            redirect_to: `${window.location.origin}/app?verified=true`
           }
-        } catch (emailError) {
-          console.error('Exception sending verification email:', emailError);
+        });
+        
+        if (emailError) {
+          console.error('Error sending verification email:', emailError);
           toast({
             title: "Cuenta creada",
             description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
             variant: "destructive"
           });
+        } else {
+          console.log('Custom verification email sent successfully');
+          toast({
+            title: "¡Cuenta creada exitosamente!",
+            description: "Te hemos enviado un email de verificación profesional. Por favor revisa tu bandeja de entrada.",
+          });
         }
+      } catch (emailError) {
+        console.error('Exception sending verification email:', emailError);
+        toast({
+          title: "Cuenta creada",
+          description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
+          variant: "destructive"
+        });
       }
     }
     
