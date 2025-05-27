@@ -148,6 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password,
       options: {
+        emailRedirectTo: undefined, // Disable Supabase's automatic email
         data: {
           user_type: userType,
           ...additionalData
@@ -161,30 +162,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       console.log('Sign up successful, user created:', data.user?.id);
       
-      // Send custom verification email
+      // Send our custom verification email immediately
       if (data.user && !data.user.email_confirmed_at) {
         try {
           console.log('Sending custom verification email...');
+          
+          // Get the actual verification token from the session
+          const { data: sessionData } = await supabase.auth.getSession();
+          
           const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
             body: {
               email: email,
-              token: data.user.id, // Using user ID as token for now
+              token: data.user.id, // Using user ID as token
               action_type: 'signup',
-              redirect_to: `${window.location.origin}/app`
+              redirect_to: `${window.location.origin}/`
             }
           });
           
           if (emailError) {
             console.error('Error sending verification email:', emailError);
+            toast({
+              title: "Cuenta creada",
+              description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
+              variant: "destructive"
+            });
           } else {
             console.log('Verification email sent successfully');
             toast({
               title: "¡Cuenta creada exitosamente!",
-              description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada.",
+              description: "Te hemos enviado un email de verificación profesional. Por favor revisa tu bandeja de entrada.",
             });
           }
         } catch (emailError) {
           console.error('Exception sending verification email:', emailError);
+          toast({
+            title: "Cuenta creada",
+            description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
+            variant: "destructive"
+          });
         }
       }
     }
