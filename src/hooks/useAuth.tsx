@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,6 +163,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (error) {
       console.error('Sign in error:', error);
+      toast({
+        title: "Error al iniciar sesión",
+        description: error.message,
+        variant: "destructive"
+      });
     } else {
       console.log('Sign in successful');
     }
@@ -173,84 +179,114 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Attempting sign up for:', email, 'as', userType);
     console.log('Additional data:', additionalData);
     
-    // Disable Supabase's automatic email confirmation by not providing emailRedirectTo
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: undefined, // This disables Supabase's automatic confirmation email
-        data: {
-          user_type: userType,
-          ...additionalData
-        }
-      }
-    });
-    
-    if (error) {
-      console.error('Sign up error:', error);
-      return { data, error };
-    }
-    
-    console.log('Sign up successful, user created:', data.user?.id);
-    
-    // Send ONLY our custom verification email
-    if (data.user) {
-      try {
-        console.log('Sending custom verification email...');
-        
-        // Create a secure verification token with user info
-        const verificationData = {
-          userId: data.user.id,
-          email: data.user.email,
-          userType: userType,
-          firstName: additionalData?.first_name || '',
-          timestamp: Date.now()
-        };
-        
-        // Encode the verification data
-        const verificationToken = btoa(JSON.stringify(verificationData));
-        
-        const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
-          body: {
-            email: email,
-            token: verificationToken,
-            action_type: 'signup',
+    try {
+      // Completely disable Supabase's automatic email confirmations
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+          data: {
             user_type: userType,
-            first_name: additionalData?.first_name || '',
-            redirect_to: `https://psico.mattyeh.com/app?verify=${verificationToken}`
+            ...additionalData
           }
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        toast({
+          title: "Error al crear cuenta",
+          description: error.message,
+          variant: "destructive"
         });
-        
-        if (emailError) {
-          console.error('Error sending verification email:', emailError);
+        return { data, error };
+      }
+      
+      console.log('Sign up successful, user created:', data.user?.id);
+      
+      // Send ONLY our custom verification email
+      if (data.user) {
+        try {
+          console.log('Sending custom verification email...');
+          
+          // Create a secure verification token with user info
+          const verificationData = {
+            userId: data.user.id,
+            email: data.user.email,
+            userType: userType,
+            firstName: additionalData?.first_name || '',
+            timestamp: Date.now()
+          };
+          
+          // Encode the verification data
+          const verificationToken = btoa(JSON.stringify(verificationData));
+          
+          // Create a verification URL with the token
+          const redirectUrl = `https://psico.mattyeh.com/app?verify=${verificationToken}`;
+          
+          const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
+            body: {
+              email: email,
+              token: verificationToken,
+              action_type: 'signup',
+              user_type: userType,
+              first_name: additionalData?.first_name || '',
+              redirect_to: redirectUrl
+            }
+          });
+          
+          if (emailError) {
+            console.error('Error sending verification email:', emailError);
+            toast({
+              title: "Cuenta creada",
+              description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
+              variant: "destructive"
+            });
+          } else {
+            console.log('Custom verification email sent successfully');
+            toast({
+              title: "¡Cuenta creada exitosamente!",
+              description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta.",
+            });
+          }
+        } catch (emailError) {
+          console.error('Exception sending verification email:', emailError);
           toast({
             title: "Cuenta creada",
             description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
             variant: "destructive"
           });
-        } else {
-          console.log('Custom verification email sent successfully');
-          toast({
-            title: "¡Cuenta creada exitosamente!",
-            description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta.",
-          });
         }
-      } catch (emailError) {
-        console.error('Exception sending verification email:', emailError);
-        toast({
-          title: "Cuenta creada",
-          description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Intenta iniciar sesión.",
-          variant: "destructive"
-        });
       }
+      
+      return { data, error };
+    } catch (error: any) {
+      console.error('Exception in sign up:', error);
+      toast({
+        title: "Error al crear cuenta",
+        description: error.message || "Ocurrió un error inesperado",
+        variant: "destructive"
+      });
+      return { data: null, error };
     }
-    
-    return { data, error };
   };
 
   const signOut = async () => {
     console.log('Signing out');
-    await supabase.auth.signOut();
+    
+    try {
+      // Clear browser storage to prevent auth limbo states
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
   };
 
   const value = {

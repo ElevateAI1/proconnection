@@ -31,15 +31,11 @@ export const useEmailVerification = () => {
           return;
         }
 
-        // Since we're using custom verification emails, we'll directly update the user's email_verified status
-        // instead of trying to use Supabase's OTP verification which expects a different token format
-        console.log('Attempting to verify email for user:', verificationData.userId);
-        
-        // Try to sign in the user first to get a session
+        // Try to get current session first
         const { data: sessionData } = await supabase.auth.getSession();
         
         if (!sessionData.session) {
-          // If no session, we need to tell the user to login first
+          // If no active session, we need to update the URL and tell the user to login
           toast({
             title: "Verificación pendiente",
             description: "Por favor inicia sesión para completar la verificación de tu email",
@@ -50,16 +46,6 @@ export const useEmailVerification = () => {
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('verify');
           window.history.replaceState({}, '', newUrl.toString());
-          return;
-        }
-
-        // Check if the token is for the current user
-        if (sessionData.session.user.id !== verificationData.userId) {
-          toast({
-            title: "Error de verificación",
-            description: "Este enlace de verificación no corresponde al usuario actual",
-            variant: "destructive"
-          });
           return;
         }
 
@@ -82,7 +68,7 @@ export const useEmailVerification = () => {
           console.log('Email verified successfully for user:', verificationData.userId);
           toast({
             title: "¡Email verificado!",
-            description: `¡Hola ${verificationData.firstName}! Tu cuenta ha sido verificada exitosamente`,
+            description: `¡Hola ${verificationData.firstName || ''}! Tu cuenta ha sido verificada exitosamente`,
           });
           
           // Remove the verify parameter from URL
@@ -95,9 +81,14 @@ export const useEmailVerification = () => {
         console.error('Error processing email verification:', error);
         toast({
           title: "Error de verificación",
-          description: "Ocurrió un error al verificar tu email",
+          description: "Ocurrió un error al verificar tu email. Intenta iniciar sesión normalmente.",
           variant: "destructive"
         });
+        
+        // Clean up URL even on error
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('verify');
+        window.history.replaceState({}, '', newUrl.toString());
       }
     };
 
