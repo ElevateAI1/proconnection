@@ -143,7 +143,7 @@ const Index = () => {
   if (!profileLoading && needsProfileSetup()) {
     return (
       <ProfileSetup 
-        userType={profile.user_type} 
+        userType={profile.user_type as 'psychologist' | 'patient'} 
         onComplete={() => {
           console.log('Profile setup completed, refetching data');
           refetch();

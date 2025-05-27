@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -73,6 +74,20 @@ export const useProfile = () => {
         userId: null,
         dataFetched: false
       };
+      return;
+    }
+
+    // IMPORTANTE: Si el usuario cambió, limpiar cache y hacer fetch nuevo
+    if (profileCache.userId !== user.id) {
+      console.log('User ID changed, clearing cache and fetching new profile');
+      profileCache = {
+        profile: null,
+        psychologist: null,
+        patient: null,
+        userId: null,
+        dataFetched: false
+      };
+      fetchProfile();
       return;
     }
 
