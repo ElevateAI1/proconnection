@@ -94,8 +94,8 @@ const Index = () => {
   }
 
   // Only show profile setup if we have a profile but are missing required role-specific data
-  // and we're not currently loading. IMPORTANT: Don't show profile setup for expired accounts
-  // that already have complete profiles.
+  // IMPORTANT: For psychologists, if they have a complete profile, NEVER show profile setup
+  // even if their trial is expired or account is cancelled
   const needsProfileSetup = () => {
     if (!profile || profileLoading) return false;
     
@@ -103,21 +103,17 @@ const Index = () => {
       // Check if psychologist profile exists and has required fields
       const hasCompleteProfile = psychologist && psychologist.first_name && psychologist.last_name;
       
-      // If profile is complete and account has expired status, don't ask for profile setup
-      if (hasCompleteProfile && psychologist?.subscription_status && 
-          ['expired', 'cancelled'].includes(psychologist.subscription_status)) {
-        console.log('Psychologist has complete profile but subscription is expired/cancelled, skipping profile setup');
-        return false;
-      }
+      console.log('Checking psychologist profile setup:', {
+        hasCompleteProfile,
+        psychologist,
+        subscription_status: psychologist?.subscription_status
+      });
       
-      // If profile is complete and it's a trial, check if trial end date has passed
-      if (hasCompleteProfile && psychologist?.subscription_status === 'trial' && psychologist?.trial_end_date) {
-        const trialEndDate = new Date(psychologist.trial_end_date);
-        const now = new Date();
-        if (trialEndDate < now) {
-          console.log('Psychologist has complete profile but trial has expired, skipping profile setup');
-          return false;
-        }
+      // If psychologist has complete profile data, NEVER ask for profile setup again
+      // regardless of subscription status
+      if (hasCompleteProfile) {
+        console.log('Psychologist has complete profile, skipping profile setup');
+        return false;
       }
       
       return !hasCompleteProfile;
