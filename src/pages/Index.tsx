@@ -59,7 +59,7 @@ const Index = () => {
     console.log('Navigating to messages for patient:', patientId);
   };
 
-  // Only show loading during initial authentication check
+  // Show loading during initial authentication check
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -76,8 +76,8 @@ const Index = () => {
     return <AuthPage />;
   }
 
-  // Show loading only if we're still loading profile data for the first time
-  if (!profile && profileLoading) {
+  // Show loading while profile is being fetched (but only if we don't have any profile data yet)
+  if (profileLoading && !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -88,13 +88,16 @@ const Index = () => {
     );
   }
 
-  // If no profile exists, show auth page
-  if (!profile) {
+  // If no profile exists after loading is complete, show auth page
+  if (!profileLoading && !profile) {
     return <AuthPage />;
   }
 
-  // Check if user needs profile setup with more specific logic
+  // Only show profile setup if we have a profile but are missing required role-specific data
+  // and we're not currently loading
   const needsProfileSetup = () => {
+    if (!profile || profileLoading) return false;
+    
     if (profile.user_type === 'psychologist') {
       // Check if psychologist profile exists and has required fields
       return !psychologist || !psychologist.first_name || !psychologist.last_name;
@@ -104,7 +107,8 @@ const Index = () => {
     }
   };
   
-  if (needsProfileSetup()) {
+  // Only show profile setup if we're not loading and actually need setup
+  if (!profileLoading && needsProfileSetup()) {
     return (
       <ProfileSetup 
         userType={profile.user_type} 
@@ -113,6 +117,18 @@ const Index = () => {
           refetch();
         }} 
       />
+    );
+  }
+
+  // If we're still loading profile but have a profile, show loading state
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando perfil...</p>
+        </div>
+      </div>
     );
   }
 
