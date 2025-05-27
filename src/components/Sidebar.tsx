@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Calendar, MessageCircle, Users, BarChart3, Settings, Home, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SettingsModal } from "@/components/SettingsModal";
 
 interface SidebarProps {
   currentView: string;
@@ -110,41 +110,10 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
       </div>
 
       {/* Settings Modal */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Configuración</DialogTitle>
-            <DialogDescription>
-              Ajusta las preferencias de tu cuenta y aplicación.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Perfil</h4>
-              <p className="text-sm text-slate-600">
-                Gestiona tu información personal y profesional.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Notificaciones</h4>
-              <p className="text-sm text-slate-600">
-                Configura cómo y cuándo recibes notificaciones.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Privacidad</h4>
-              <p className="text-sm text-slate-600">
-                Controla la privacidad de tus datos y sesiones.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={() => setShowSettings(false)}>
-              Cerrar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SettingsModal 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
+      />
     </>
   );
 };
