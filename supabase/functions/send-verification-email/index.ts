@@ -14,6 +14,8 @@ interface EmailData {
   email: string;
   token: string;
   action_type: string;
+  user_type: string;
+  first_name: string;
   redirect_to?: string;
 }
 
@@ -26,23 +28,37 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, token, action_type, redirect_to }: EmailData = await req.json();
+    const { email, token, action_type, user_type, first_name, redirect_to }: EmailData = await req.json();
     
     console.log('Processing verification email for:', email);
-    console.log('Token received:', token);
+    console.log('User type:', user_type);
+    console.log('First name:', first_name);
 
-    // Create a simple verification URL that redirects to our app
+    // Decode the verification token to get user data
+    let verificationData;
+    try {
+      verificationData = JSON.parse(atob(token));
+    } catch (e) {
+      console.log('Could not decode token, using simple verification');
+      verificationData = { email, userType: user_type, firstName: first_name };
+    }
+
+    // Create verification URL with detailed information
     const verificationUrl = redirect_to || `${Deno.env.get("SUPABASE_URL")}/auth/v1/verify?token=${token}&type=${action_type}`;
 
     console.log('Verification URL:', verificationUrl);
 
-    // Use the professional email template
-    const emailHtml = createVerificationEmailTemplate(verificationUrl);
+    // Use the professional email template with user-specific data
+    const emailHtml = createVerificationEmailTemplate(verificationUrl, {
+      firstName: first_name,
+      userType: user_type,
+      email: email
+    });
 
     const emailResponse = await resend.emails.send({
       from: "PsiConnect <lord@mattyeh.com>",
       to: [email],
-      subject: "🔐 Verifica tu cuenta en PsiConnect",
+      subject: `🔐 Verifica tu cuenta en PsiConnect - ${first_name}`,
       html: emailHtml,
     });
 

@@ -144,7 +144,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Attempting sign up for:', email, 'as', userType);
     console.log('Additional data:', additionalData);
     
-    // First, disable Supabase's automatic emails completely
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -164,20 +163,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log('Sign up successful, user created:', data.user?.id);
     
-    // Now send our custom verification email using a simpler approach
+    // Send custom verification email with user-specific information
     if (data.user) {
       try {
         console.log('Sending custom verification email...');
         
-        // Use a custom verification approach
-        const verificationToken = btoa(`${data.user.id}:${Date.now()}`); // Simple token
+        // Create a secure verification token with user info
+        const verificationData = {
+          userId: data.user.id,
+          email: data.user.email,
+          userType: userType,
+          firstName: additionalData?.first_name || '',
+          timestamp: Date.now()
+        };
+        
+        // Encode the verification data
+        const verificationToken = btoa(JSON.stringify(verificationData));
         
         const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
           body: {
             email: email,
             token: verificationToken,
             action_type: 'signup',
-            redirect_to: `${window.location.origin}/app?verified=true`
+            user_type: userType,
+            first_name: additionalData?.first_name || '',
+            redirect_to: `${window.location.origin}/app?verify=${verificationToken}`
           }
         });
         

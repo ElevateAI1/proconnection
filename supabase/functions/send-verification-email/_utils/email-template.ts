@@ -1,5 +1,11 @@
 
-export const createVerificationEmailTemplate = (verificationUrl: string) => `
+interface UserData {
+  firstName: string;
+  userType: string;
+  email: string;
+}
+
+export const createVerificationEmailTemplate = (verificationUrl: string, userData?: UserData) => `
 <!DOCTYPE html>
 <html>
   <head>
@@ -18,11 +24,31 @@ export const createVerificationEmailTemplate = (verificationUrl: string) => `
       <!-- Main content -->
       <div style="padding: 40px 30px;">
         <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-          ¡Bienvenido a PsiConnect! 🎉
+          ${userData?.firstName ? `¡Hola ${userData.firstName}!` : '¡Bienvenido!'} 🎉
         </h2>
         
+        ${userData?.userType === 'psychologist' ? `
+        <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+          <p style="color: #1e40af; margin: 0; font-weight: 600;">
+            👨‍⚕️ Registro como Psicólogo Profesional
+          </p>
+          <p style="color: #3730a3; margin: 5px 0 0 0; font-size: 14px;">
+            Te has registrado como profesional en nuestra plataforma.
+          </p>
+        </div>
+        ` : userData?.userType === 'patient' ? `
+        <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+          <p style="color: #059669; margin: 0; font-weight: 600;">
+            🧑‍🤝‍🧑 Registro como Paciente
+          </p>
+          <p style="color: #047857; margin: 5px 0 0 0; font-size: 14px;">
+            Te has registrado como paciente en nuestra plataforma.
+          </p>
+        </div>
+        ` : ''}
+        
         <p style="color: #4b5563; line-height: 1.6; margin: 0 0 25px 0; font-size: 16px;">
-          Nos complace que te hayas unido a nuestra plataforma. Para completar tu registro y activar tu cuenta, 
+          ${userData?.email ? `Para completar tu registro con la cuenta <strong>${userData.email}</strong>` : 'Para completar tu registro'}, 
           necesitamos verificar tu dirección de email.
         </p>
         
@@ -32,7 +58,7 @@ export const createVerificationEmailTemplate = (verificationUrl: string) => `
              style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); 
                     color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; 
                     font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            ✓ Verificar mi cuenta
+            ✓ Verificar mi cuenta${userData?.firstName ? ` (${userData.firstName})` : ''}
           </a>
         </div>
         
@@ -51,7 +77,7 @@ export const createVerificationEmailTemplate = (verificationUrl: string) => `
         <div style="border-top: 1px solid #e2e8f0; padding-top: 25px; margin-top: 30px;">
           <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 0;">
             <strong>¿Por qué recibes este email?</strong><br>
-            Te enviamos este mensaje porque alguien se registró en PsiConnect con esta dirección de email. 
+            ${userData?.email ? `Alguien se registró en PsiConnect con la dirección ${userData.email}` : 'Alguien se registró en PsiConnect con esta dirección de email'}${userData?.userType ? ` como ${userData.userType === 'psychologist' ? 'psicólogo profesional' : 'paciente'}` : ''}. 
             Si no fuiste tú, puedes ignorar este mensaje de forma segura.
           </p>
         </div>
