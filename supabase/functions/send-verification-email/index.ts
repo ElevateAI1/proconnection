@@ -38,7 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = createVerificationEmailTemplate(verificationUrl);
 
     const emailResponse = await resend.emails.send({
-      from: "PsiConnect <noreply@tudominio.com>", // ← CAMBIA AQUÍ: Reemplaza "tudominio.com" con tu dominio de Hostinger
+      from: "PsiConnect <lord@mattyeh.com>",
       to: [email],
       subject: "🔐 Verifica tu cuenta en PsiConnect",
       html: emailHtml,
