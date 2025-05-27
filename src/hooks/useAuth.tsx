@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('Creating psychologist profile from metadata');
             const { data: codeData } = await supabase.rpc('generate_professional_code');
             
-            await supabase.from('psychologists').insert({
+            const { error: psychError } = await supabase.from('psychologists').insert({
               id: user.id,
               first_name: user.user_metadata.first_name,
               last_name: user.user_metadata.last_name,
@@ -90,6 +89,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               specialization: user.user_metadata.specialization,
               license_number: user.user_metadata.license_number
             });
+            
+            if (psychError) {
+              console.error('Error creating psychologist profile:', psychError);
+            } else {
+              console.log('Psychologist profile created successfully');
+            }
           }
         } else if (userType === 'patient') {
           const { data: existingPatient } = await supabase
@@ -99,21 +104,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .single();
             
           if (!existingPatient && user.user_metadata.first_name && user.user_metadata.professional_code) {
-            console.log('Creating patient profile from metadata');
+            console.log('Creating patient profile from metadata with code:', user.user_metadata.professional_code);
             
             // Validate professional code and get psychologist ID
-            const { data: psychologistId } = await supabase.rpc('validate_professional_code', { 
+            const { data: psychologistId, error: validateError } = await supabase.rpc('validate_professional_code', { 
               code: user.user_metadata.professional_code 
             });
             
+            if (validateError) {
+              console.error('Error validating professional code:', validateError);
+              return;
+            }
+            
             if (psychologistId) {
-              await supabase.from('patients').insert({
+              console.log('Professional code validated, psychologist ID:', psychologistId);
+              
+              const { error: patientError } = await supabase.from('patients').insert({
                 id: user.id,
                 first_name: user.user_metadata.first_name,
                 last_name: user.user_metadata.last_name,
                 psychologist_id: psychologistId,
                 phone: user.user_metadata.phone,
                 age: user.user_metadata.age
+              });
+              
+              if (patientError) {
+                console.error('Error creating patient profile:', patientError);
+              } else {
+                console.log('Patient profile created successfully');
+                toast({
+                  title: "Registro completado",
+                  description: "Tu perfil de paciente ha sido creado exitosamente",
+                });
+              }
+            } else {
+              console.error('Invalid professional code:', user.user_metadata.professional_code);
+              toast({
+                title: "Error",
+                description: "Código profesional inválido",
+                variant: "destructive"
               });
             }
           }
