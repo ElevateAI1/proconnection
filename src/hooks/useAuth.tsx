@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -190,18 +189,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Additional data:', additionalData);
     
     try {
-      // CRÍTICO: Deshabilitar COMPLETAMENTE las confirmaciones de Supabase
-      const { data, error } = await supabase.auth.signUp({
+      // CRÍTICO: Usar la API admin directamente para crear el usuario SIN confirmación automática
+      const { data, error } = await supabase.auth.admin.createUser({
         email,
         password,
-        options: {
-          // NO enviar email de confirmación de Supabase
-          emailRedirectTo: undefined,
-          data: {
-            user_type: userType,
-            // NO marcar como confirmado automáticamente
-            ...additionalData
-          }
+        email_confirm: false, // CRÍTICO: No confirmar automáticamente
+        user_metadata: {
+          user_type: userType,
+          ...additionalData
         }
       });
       
@@ -215,10 +210,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { data, error };
       }
       
-      console.log('Sign up successful, user created:', data.user?.id);
-      
-      // Cerrar sesión inmediatamente para prevenir auto-login
-      await supabase.auth.signOut();
+      console.log('User created successfully:', data.user?.id);
       
       // Enviar SOLO nuestro email personalizado de verificación
       if (data.user) {
@@ -237,7 +229,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Codificar los datos de verificación
           const verificationToken = btoa(JSON.stringify(verificationData));
           
-          // Crear URL de verificación con el token
+          // Crear URL de verificación con el token - USAR TU DOMINIO
           const redirectUrl = `https://psico.mattyeh.com/app?verify=${verificationToken}`;
           
           const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
@@ -262,7 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('Custom verification email sent successfully');
             toast({
               title: "¡Cuenta creada exitosamente!",
-              description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta antes de iniciar sesión.",
+              description: "Te hemos enviado UN SOLO email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta.",
             });
           }
         } catch (emailError) {

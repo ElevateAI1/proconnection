@@ -50,44 +50,33 @@ export const useEmailVerification = () => {
           return;
         }
 
-        // Verificar directamente en la base de datos usando el admin client
-        const { data: userData, error: userError } = await supabase
-          .from('auth.users')
-          .select('email_confirmed_at')
-          .eq('id', verificationData.userId)
-          .single();
-
-        if (userError) {
-          console.error('Error checking user:', userError);
-          // Intentar actualizar los metadatos del usuario directamente
-          const { error: updateError } = await supabase.auth.admin.updateUserById(
-            verificationData.userId,
-            { 
-              email_confirm: true,
-              user_metadata: {
-                email_verified: true,
-                verification_completed_at: new Date().toISOString()
-              }
+        // Verificar directamente el usuario usando la función admin
+        console.log('Attempting to verify user via admin function...');
+        
+        // Usar función de Supabase para confirmar el email del usuario
+        const { error: confirmError } = await supabase.auth.admin.updateUserById(
+          verificationData.userId,
+          { 
+            email_confirm: true,
+            user_metadata: {
+              email_verified: true,
+              verification_completed_at: new Date().toISOString()
             }
-          );
-
-          if (updateError) {
-            console.error('Error updating user verification:', updateError);
-            toast({
-              title: "Error de verificación",
-              description: "No se pudo completar la verificación. Intenta iniciar sesión normalmente.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "¡Email verificado!",
-              description: `¡Hola ${verificationData.firstName || ''}! Tu cuenta ha sido verificada exitosamente. Ya puedes iniciar sesión.`,
-            });
           }
-        } else {
+        );
+
+        if (confirmError) {
+          console.error('Error confirming user email:', confirmError);
           toast({
-            title: "¡Email verificado!",
-            description: `¡Hola ${verificationData.firstName || ''}! Tu cuenta ha sido verificada exitosamente. Ya puedes iniciar sesión.`,
+            title: "Error de verificación",
+            description: "No se pudo completar la verificación. El enlace puede haber expirado o ser inválido.",
+            variant: "destructive"
+          });
+        } else {
+          console.log('Email verification completed successfully');
+          toast({
+            title: "¡Email verificado exitosamente!",
+            description: `¡Hola ${verificationData.firstName || ''}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`,
           });
         }
 
@@ -95,7 +84,7 @@ export const useEmailVerification = () => {
         console.error('Error processing email verification:', error);
         toast({
           title: "Error de verificación",
-          description: "Ocurrió un error al verificar tu email. Intenta iniciar sesión normalmente.",
+          description: "Ocurrió un error al verificar tu email. Intenta iniciar sesión normalmente o contacta con soporte.",
           variant: "destructive"
         });
       }
