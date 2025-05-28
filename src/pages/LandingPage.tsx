@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Shield, Users, MessageCircle, Calendar, Star, CheckCircle, Award, TrendingUp, Clock, Globe, Zap } from "lucide-react";
@@ -68,9 +67,11 @@ export const LandingPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="px-8 py-3 text-lg hover:scale-105 hover:shadow-lg hover:bg-slate-50 transition-all duration-300">
-                Ver Demo
-              </Button>
+              <Link to="/demo">
+                <Button size="lg" variant="outline" className="px-8 py-3 text-lg hover:scale-105 hover:shadow-lg hover:bg-slate-50 transition-all duration-300">
+                  Ver Demo
+                </Button>
+              </Link>
             </div>
           </ScrollAnimationWrapper>
           
