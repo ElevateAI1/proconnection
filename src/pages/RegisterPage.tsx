@@ -34,25 +34,18 @@ export const RegisterPage = () => {
       setValidatingCode(true);
       console.log('Validating affiliate code:', code);
       
-      const { data: affiliateData, error } = await supabase
+      // First get the affiliate code
+      const { data: affiliateData, error: affiliateError } = await supabase
         .from('affiliate_codes')
-        .select(`
-          code,
-          discount_rate,
-          psychologist_id,
-          psychologists (
-            first_name,
-            last_name
-          )
-        `)
+        .select('code, discount_rate, psychologist_id')
         .eq('code', code)
         .eq('is_active', true)
         .maybeSingle();
 
-      console.log('Affiliate data response:', affiliateData, error);
+      console.log('Affiliate data response:', affiliateData, affiliateError);
 
-      if (error) {
-        console.error('Error validating affiliate code:', error);
+      if (affiliateError) {
+        console.error('Error fetching affiliate code:', affiliateError);
         setCodeValidationComplete(true);
         return;
       }
@@ -63,9 +56,19 @@ export const RegisterPage = () => {
         return;
       }
 
-      const psychologistName = affiliateData.psychologists 
-        ? `${affiliateData.psychologists.first_name} ${affiliateData.psychologists.last_name}`
-        : undefined;
+      // Then get the psychologist info separately
+      let psychologistName = undefined;
+      if (affiliateData.psychologist_id) {
+        const { data: psychologistData, error: psychologistError } = await supabase
+          .from('psychologists')
+          .select('first_name, last_name')
+          .eq('id', affiliateData.psychologist_id)
+          .maybeSingle();
+
+        if (!psychologistError && psychologistData) {
+          psychologistName = `${psychologistData.first_name} ${psychologistData.last_name}`;
+        }
+      }
 
       setAffiliateInfo({
         code: affiliateData.code,
