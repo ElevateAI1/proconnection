@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { PatientSelector } from "./forms/PatientSelector";
+import { useAvailableSlots } from "@/hooks/useAvailableSlots";
 
 interface NewAppointmentModalProps {
   onAppointmentCreated: () => void;
@@ -28,12 +29,12 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     notes: ""
   });
 
-  const timeSlots = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-    "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
-    "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"
-  ];
+  const { getAvailableSlots, loading: slotsLoading } = useAvailableSlots({
+    psychologistId: psychologist?.id || "",
+    selectedDate: formData.appointmentDate
+  });
+
+  const availableSlots = formData.appointmentDate ? getAvailableSlots() : [];
 
   const getMinDate = () => {
     const today = new Date();
@@ -45,6 +46,14 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
       ...prev,
       patientId,
       patientName
+    }));
+  };
+
+  const handleDateChange = (date: string) => {
+    setFormData(prev => ({
+      ...prev,
+      appointmentDate: date,
+      appointmentTime: "" // Reset time when date changes
     }));
   };
 
@@ -64,6 +73,16 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
       toast({
         title: "Error",
         description: "Por favor completa todos los campos requeridos",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar que el horario seleccionado esté disponible
+    if (!availableSlots.includes(formData.appointmentTime)) {
+      toast({
+        title: "Error",
+        description: "El horario seleccionado ya no está disponible",
         variant: "destructive"
       });
       return;
@@ -161,7 +180,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
               id="appointmentDate"
               type="date"
               value={formData.appointmentDate}
-              onChange={(e) => setFormData({...formData, appointmentDate: e.target.value})}
+              onChange={(e) => handleDateChange(e.target.value)}
               min={getMinDate()}
               required
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -178,11 +197,19 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
                 <SelectValue placeholder="Selecciona una hora" />
               </SelectTrigger>
               <SelectContent>
-                {timeSlots.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
+                {slotsLoading ? (
+                  <SelectItem value="" disabled>Cargando horarios...</SelectItem>
+                ) : availableSlots.length > 0 ? (
+                  availableSlots.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))
+                ) : formData.appointmentDate ? (
+                  <SelectItem value="" disabled>No hay horarios disponibles para esta fecha</SelectItem>
+                ) : (
+                  <SelectItem value="" disabled>Selecciona primero una fecha</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -239,7 +266,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || slotsLoading}
               className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500"
             >
               {loading ? "Creando..." : "Crear Cita"}
