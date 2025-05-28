@@ -17,18 +17,22 @@ export const RegisterPage = () => {
     psychologist_name?: string;
   } | null>(null);
   const [validatingCode, setValidatingCode] = useState(false);
+  const [codeValidationComplete, setCodeValidationComplete] = useState(false);
 
   const referralCode = searchParams.get('ref');
 
   useEffect(() => {
     if (referralCode) {
       validateAffiliateCode(referralCode);
+    } else {
+      setCodeValidationComplete(true);
     }
   }, [referralCode]);
 
   const validateAffiliateCode = async (code: string) => {
     try {
       setValidatingCode(true);
+      console.log('Validating affiliate code:', code);
       
       const { data: affiliateData, error } = await supabase
         .from('affiliate_codes')
@@ -45,19 +49,28 @@ export const RegisterPage = () => {
         .eq('is_active', true)
         .maybeSingle();
 
+      console.log('Affiliate data response:', affiliateData, error);
+
       if (error) {
         console.error('Error validating affiliate code:', error);
+        setCodeValidationComplete(true);
         return;
       }
 
       if (!affiliateData) {
+        console.log('No affiliate data found for code:', code);
+        setCodeValidationComplete(true);
         return;
       }
+
+      const psychologistName = affiliateData.psychologists 
+        ? `${affiliateData.psychologists.first_name} ${affiliateData.psychologists.last_name}`
+        : undefined;
 
       setAffiliateInfo({
         code: affiliateData.code,
         discount_rate: affiliateData.discount_rate,
-        psychologist_name: `${affiliateData.psychologists?.first_name} ${affiliateData.psychologists?.last_name}`
+        psychologist_name: psychologistName
       });
 
       toast({
@@ -69,6 +82,7 @@ export const RegisterPage = () => {
       console.error('Error validating affiliate code:', error);
     } finally {
       setValidatingCode(false);
+      setCodeValidationComplete(true);
     }
   };
 
@@ -105,7 +119,7 @@ export const RegisterPage = () => {
                         <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                         <span className="text-lg">Validando código...</span>
                       </div>
-                    ) : affiliateInfo ? (
+                    ) : codeValidationComplete && affiliateInfo ? (
                       <div className="space-y-6">
                         <div className="text-center">
                           <div className="inline-block">
@@ -164,26 +178,28 @@ export const RegisterPage = () => {
                           </span>
                         </div>
                       </div>
-                    ) : (
+                    ) : codeValidationComplete && !affiliateInfo && referralCode ? (
                       <div className="text-center py-8">
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                           <span className="text-2xl">❌</span>
                         </div>
                         <p className="text-red-600 font-medium text-lg">Código de referido inválido</p>
                         <p className="text-slate-600 mt-2">
-                          Este código no existe o ha expirado. Puedes continuar con el registro normal.
+                          El código "{referralCode}" no existe o ha expirado. Puedes continuar con el registro normal.
                         </p>
                       </div>
-                    )}
+                    ) : null}
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {/* Auth Component */}
-            <div className={`${referralCode ? 'lg:order-2' : 'mx-auto'}`}>
-              <AuthPage affiliateCode={referralCode} registrationOnly={true} />
-            </div>
+            {/* Auth Component - Solo mostrar cuando la validación esté completa */}
+            {(!referralCode || codeValidationComplete) && (
+              <div className={`${referralCode ? 'lg:order-2' : 'mx-auto'}`}>
+                <AuthPage affiliateCode={referralCode} registrationOnly={true} />
+              </div>
+            )}
           </div>
         </div>
 
