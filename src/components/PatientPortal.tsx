@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, MessageCircle, FileText, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, Clock, MessageSquare, User, Search, Phone } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +58,7 @@ export const PatientPortal = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [selectedPsychologist, setSelectedPsychologist] = useState<any>(null);
 
   useEffect(() => {
     if (patient?.id) {
@@ -475,6 +479,27 @@ export const PatientPortal = () => {
           </div>
         </CardContent>
       </Card>
+
+      {selectedPsychologist && (
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-800">
+              <Calendar className="w-5 h-5" />
+              Solicitar Cita con {selectedPsychologist.first_name} {selectedPsychologist.last_name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AppointmentRequestForm
+              psychologistId={selectedPsychologist.id}
+              patientId={patient?.id || ''}
+              onSuccess={async () => {
+                setSelectedPsychologist(null);
+                await fetchAppointments();
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { NewAppointmentModal } from "./NewAppointmentModal";
 
 interface Appointment {
   id: string;
@@ -231,9 +232,7 @@ export const Calendar = () => {
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Calendario</h2>
           <p className="text-slate-600">Gestiona tus citas y horarios</p>
         </div>
-        <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-emerald-500 text-white rounded-lg hover:shadow-lg transition-all duration-200 font-medium">
-          Nueva Cita
-        </button>
+        <NewAppointmentModal onAppointmentCreated={fetchAppointments} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
