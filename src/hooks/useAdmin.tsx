@@ -43,7 +43,6 @@ export const useAdmin = () => {
     try {
       console.log('Checking admin status for user:', user.id);
       
-      // Usar la nueva función is_admin_user para evitar recursión
       const { data: adminData, error: adminError } = await supabase
         .rpc('is_admin_user', { user_id: user.id });
 
@@ -71,8 +70,7 @@ export const useAdmin = () => {
     try {
       console.log('Fetching psychologist stats...');
       
-      // Intentar obtener datos directamente de las tablas
-      console.log('Querying psychologists table directly...');
+      // Consultar directamente la tabla psychologists con las nuevas políticas RLS
       const { data: psychologistData, error: psychologistError } = await supabase
         .from('psychologists')
         .select('*')
