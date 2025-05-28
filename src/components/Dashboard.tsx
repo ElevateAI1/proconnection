@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { CalendarView } from './CalendarView';
@@ -7,7 +8,7 @@ import { DocumentsSection } from './DocumentsSection';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { ProfileSetup } from './ProfileSetup';
 import { SettingsModal } from './SettingsModal';
-import { AdminDashboard } from './AdminDashboard';
+import { AdminDashboard } from '@/pages/AdminDashboard';
 import { Sidebar } from './Sidebar';
 import { DashboardOverview } from './DashboardOverview';
 import { AffiliateSystem } from './AffiliateSystem';
