@@ -8,19 +8,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, Users, TrendingUp, Clock, CheckCircle, CreditCard } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, Clock, CheckCircle, CreditCard, Plus, Eye, UserPlus } from 'lucide-react';
 import { useAffiliateAdmin } from '@/hooks/useAffiliateAdmin';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export const AffiliateAdminPanel = () => {
   const { 
     affiliateStats, 
     pendingPayments, 
+    affiliateReferrals,
     loading, 
     isAdmin, 
     approvePayment,
     processSubscriptionCommission,
+    createAffiliateCode,
     refetch 
   } = useAffiliateAdmin();
+
+  const { psychologistStats } = useAdmin();
 
   const [paymentDialog, setPaymentDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
@@ -77,16 +82,25 @@ export const AffiliateAdminPanel = () => {
     }
   };
 
+  const handleCreateAffiliateCode = async (psychologistId: string) => {
+    await createAffiliateCode(psychologistId);
+  };
+
   const totalPendingPayments = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalPaidAmount = affiliateStats.reduce((sum, stat) => sum + stat.paid_amount, 0);
   const totalActiveReferrals = affiliateStats.reduce((sum, stat) => sum + stat.active_referrals, 0);
+
+  // Psicólogos sin código de afiliado
+  const psychologistsWithoutAffiliate = psychologistStats.filter(p => 
+    !affiliateStats.some(a => a.id === p.id)
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Sistema de Afiliados</h2>
-          <p className="text-slate-600">Gestiona comisiones y pagos de afiliados</p>
+          <p className="text-slate-600">Gestiona comisiones, pagos y referidos</p>
         </div>
         <Button onClick={refetch} variant="outline">
           Actualizar
@@ -102,6 +116,7 @@ export const AffiliateAdminPanel = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalActiveReferrals}</div>
+            <p className="text-xs text-muted-foreground">Total de referidos activos</p>
           </CardContent>
         </Card>
 
@@ -114,6 +129,7 @@ export const AffiliateAdminPanel = () => {
             <div className="text-2xl font-bold text-orange-600">
               ${totalPendingPayments.toLocaleString('es-AR')}
             </div>
+            <p className="text-xs text-muted-foreground">{pendingPayments.length} pagos pendientes</p>
           </CardContent>
         </Card>
 
@@ -126,6 +142,7 @@ export const AffiliateAdminPanel = () => {
             <div className="text-2xl font-bold text-green-600">
               ${totalPaidAmount.toLocaleString('es-AR')}
             </div>
+            <p className="text-xs text-muted-foreground">Comisiones ya pagadas</p>
           </CardContent>
         </Card>
 
@@ -136,6 +153,7 @@ export const AffiliateAdminPanel = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{affiliateStats.length}</div>
+            <p className="text-xs text-muted-foreground">Con código de afiliado</p>
           </CardContent>
         </Card>
       </div>
@@ -149,6 +167,14 @@ export const AffiliateAdminPanel = () => {
               <Badge className="ml-2 bg-orange-500">{pendingPayments.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="referrals">
+            <Eye className="w-4 h-4 mr-1" />
+            Referidos
+          </TabsTrigger>
+          <TabsTrigger value="manage">
+            <UserPlus className="w-4 h-4 mr-1" />
+            Gestionar
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="stats">
@@ -161,10 +187,10 @@ export const AffiliateAdminPanel = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Psicólogo</TableHead>
-                    <TableHead>Código</TableHead>
+                    <TableHead>Código Profesional</TableHead>
+                    <TableHead>Código Afiliado</TableHead>
                     <TableHead>Referidos</TableHead>
                     <TableHead>Comisión %</TableHead>
-                    <TableHead>Descuento %</TableHead>
                     <TableHead>Ganancias Totales</TableHead>
                     <TableHead>Pendiente</TableHead>
                     <TableHead>Pagado</TableHead>
@@ -177,13 +203,13 @@ export const AffiliateAdminPanel = () => {
                       <TableCell className="font-medium">
                         {stat.first_name} {stat.last_name}
                       </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {stat.professional_code}
+                      </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-mono text-sm">{stat.professional_code}</div>
-                          {stat.affiliate_code && (
-                            <div className="font-mono text-xs text-blue-600">{stat.affiliate_code}</div>
-                          )}
-                        </div>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {stat.affiliate_code}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
@@ -191,7 +217,6 @@ export const AffiliateAdminPanel = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{stat.commission_rate}%</TableCell>
-                      <TableCell>{stat.discount_rate}%</TableCell>
                       <TableCell className="font-semibold">
                         ${stat.affiliate_earnings.toLocaleString('es-AR')}
                       </TableCell>
@@ -242,7 +267,8 @@ export const AffiliateAdminPanel = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Psicólogo</TableHead>
-                    <TableHead>Código</TableHead>
+                    <TableHead>Código Profesional</TableHead>
+                    <TableHead>Código Afiliado</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Fecha Creación</TableHead>
                     <TableHead>Estado</TableHead>
@@ -257,6 +283,13 @@ export const AffiliateAdminPanel = () => {
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {payment.psychologist.professional_code}
+                      </TableCell>
+                      <TableCell>
+                        {payment.psychologist.affiliate_code && (
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {payment.psychologist.affiliate_code}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="font-semibold">
                         ${payment.amount.toLocaleString('es-AR')}
@@ -289,6 +322,127 @@ export const AffiliateAdminPanel = () => {
               {pendingPayments.length === 0 && (
                 <div className="text-center py-8 text-slate-500">
                   No hay pagos pendientes
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="referrals">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial de Referidos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código Afiliado</TableHead>
+                    <TableHead>Referidor</TableHead>
+                    <TableHead>Referido</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Comisión Ganada</TableHead>
+                    <TableHead>Descuento Aplicado</TableHead>
+                    <TableHead>Fecha</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {affiliateReferrals.map((referral) => (
+                    <TableRow key={referral.id}>
+                      <TableCell className="font-mono text-sm">
+                        <Badge variant="outline">
+                          {referral.affiliate_code?.code || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {referral.referrer?.first_name} {referral.referrer?.last_name}
+                        <br />
+                        <span className="text-xs text-slate-500">
+                          {referral.referrer?.professional_code}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {referral.referred?.first_name} {referral.referred?.last_name}
+                        <br />
+                        <span className="text-xs text-slate-500">
+                          {referral.referred?.professional_code}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={referral.status === 'active' ? 'default' : 'secondary'}>
+                          {referral.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-green-600">
+                        ${referral.commission_earned?.toLocaleString('es-AR') || '0'}
+                      </TableCell>
+                      <TableCell>
+                        {referral.discount_applied}%
+                      </TableCell>
+                      <TableCell>
+                        {new Date(referral.created_at).toLocaleDateString('es-ES')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {affiliateReferrals.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  No hay referidos registrados
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="manage">
+          <Card>
+            <CardHeader>
+              <CardTitle>Crear Códigos de Afiliado</CardTitle>
+              <p className="text-sm text-slate-600">
+                Psicólogos registrados que aún no tienen código de afiliado
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Psicólogo</TableHead>
+                    <TableHead>Código Profesional</TableHead>
+                    <TableHead>Fecha Registro</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {psychologistsWithoutAffiliate.map((psychologist) => (
+                    <TableRow key={psychologist.id}>
+                      <TableCell className="font-medium">
+                        {psychologist.first_name} {psychologist.last_name}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {psychologist.professional_code}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(psychologist.created_at).toLocaleDateString('es-ES')}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => handleCreateAffiliateCode(psychologist.id)}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Crear Código
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {psychologistsWithoutAffiliate.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  Todos los psicólogos ya tienen código de afiliado
                 </div>
               )}
             </CardContent>
