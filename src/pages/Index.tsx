@@ -136,9 +136,6 @@ const Index = () => {
     );
   }
 
-  // ELIMINADO: ProfileSetup completamente
-  // Los perfiles se crean automáticamente al registrarse con los datos del metadata
-
   const renderContent = () => {
     if (profile.user_type === "patient") {
       return <PatientPortal />;

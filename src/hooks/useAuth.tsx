@@ -318,21 +318,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (emailError) {
             console.error('Error sending verification email:', emailError);
-            // Mostrar ventana de verificación aunque haya error en el envío
-            setVerificationEmail(email);
-            setShowEmailVerification(true);
           } else {
             console.log('Custom verification email sent successfully');
-            // Mostrar ventana de verificación
-            setVerificationEmail(email);
-            setShowEmailVerification(true);
           }
         } catch (emailError) {
           console.error('Exception sending verification email:', emailError);
-          // Mostrar ventana de verificación aunque haya error
-          setVerificationEmail(email);
-          setShowEmailVerification(true);
         }
+        
+        // MOSTRAR SIEMPRE la ventana de verificación sin importar si hubo error en el envío
+        setVerificationEmail(email);
+        setShowEmailVerification(true);
       }
       
       return { data, error };
