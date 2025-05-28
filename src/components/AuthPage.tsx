@@ -27,7 +27,7 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
     email: "",
     password: "",
     confirmPassword: "",
-    userType: "patient",
+    userType: "patient" as "patient" | "psychologist",
     firstName: "",
     lastName: "",
     phone: "",
@@ -49,7 +49,11 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
   };
 
   const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setSignUpData({ ...signUpData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setSignUpData({ 
+      ...signUpData, 
+      [name]: name === 'userType' ? value as "patient" | "psychologist" : value 
+    });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
