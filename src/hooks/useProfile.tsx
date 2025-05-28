@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -194,32 +193,72 @@ export const useProfile = () => {
   };
 
   const createPsychologistProfile = async (data: Omit<Psychologist, 'id' | 'professional_code'>) => {
-    if (!user) return { error: 'No user logged in' };
+    if (!user) {
+      console.error('No user logged in');
+      return { error: 'No user logged in' };
+    }
 
     try {
       setLoading(true);
+      console.log('Creating psychologist profile for user:', user.id);
+      console.log('Profile data:', data);
       
+      // First, generate professional code
+      console.log('Generating professional code...');
       const { data: codeData, error: codeError } = await supabase.rpc('generate_professional_code');
       
       if (codeError) {
-        console.error('Error generating code:', codeError);
-        return { error: 'No se pudo generar el código profesional' };
+        console.error('Error generating professional code:', codeError);
+        return { error: `Error al generar código profesional: ${codeError.message}` };
       }
 
-      const { data: result, error } = await supabase
+      console.log('Generated professional code:', codeData);
+
+      // Check if psychologist profile already exists
+      const { data: existingPsych, error: checkError } = await supabase
         .from('psychologists')
-        .insert({
-          id: user.id,
-          professional_code: codeData,
-          ...data
-        })
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing psychologist:', checkError);
+        return { error: `Error al verificar perfil existente: ${checkError.message}` };
+      }
+
+      if (existingPsych) {
+        console.log('Psychologist profile already exists:', existingPsych);
+        setPsychologist(existingPsych);
+        profileCache.psychologist = existingPsych;
+        return { data: existingPsych, error: null };
+      }
+
+      // Create the psychologist profile
+      console.log('Inserting new psychologist profile...');
+      const psychologistData = {
+        id: user.id,
+        professional_code: codeData,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone: data.phone || null,
+        specialization: data.specialization || null,
+        license_number: data.license_number || null
+      };
+
+      console.log('Psychologist data to insert:', psychologistData);
+
+      const { data: result, error: insertError } = await supabase
+        .from('psychologists')
+        .insert(psychologistData)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating psychologist:', error);
-        return { error: 'No se pudo crear el perfil de psicólogo' };
+      if (insertError) {
+        console.error('Error creating psychologist profile:', insertError);
+        return { error: `Error al crear perfil: ${insertError.message}` };
       }
+
+      console.log('Psychologist profile created successfully:', result);
 
       setPsychologist(result);
       profileCache.psychologist = result;
@@ -231,8 +270,8 @@ export const useProfile = () => {
       
       return { data: result, error: null };
     } catch (error: any) {
-      console.error('Error creating psychologist profile:', error);
-      const errorMessage = error.message || 'Error inesperado';
+      console.error('Exception creating psychologist profile:', error);
+      const errorMessage = error.message || 'Error inesperado al crear el perfil';
       toast({
         title: "Error",
         description: errorMessage,
