@@ -6,7 +6,7 @@ import { AuthPage } from "@/components/AuthPage";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { Sidebar } from "@/components/Sidebar";
-import { Dashboard } from "@/components/Dashboard";
+import Dashboard from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
 import { Calendar } from "@/components/CalendarView";
 import { MessagingHub } from "@/components/MessagingHub";
@@ -227,7 +227,7 @@ const Index = () => {
       )}
 
       {profile.user_type === "psychologist" && (
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+        <Sidebar activeTab={currentView} setActiveTab={setCurrentView} />
       )}
       
       <main className={`flex-1 ${profile.user_type === "psychologist" ? "ml-64" : ""}`}>

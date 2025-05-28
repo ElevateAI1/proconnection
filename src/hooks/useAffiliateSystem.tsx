@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
@@ -24,7 +23,7 @@ interface AffiliateReferral {
   referred_psychologist: {
     first_name: string;
     last_name: string;
-    email: string;
+    email?: string;
   };
 }
 
@@ -81,7 +80,22 @@ export const useAffiliateSystem = () => {
       if (referralsError) {
         console.error('Error fetching referrals:', referralsError);
       } else {
-        setReferrals(referralsData || []);
+        // Map the data to match our interface
+        const mappedReferrals: AffiliateReferral[] = (referralsData || []).map(item => ({
+          id: item.id,
+          referred_psychologist_id: item.referred_psychologist_id,
+          discount_applied: item.discount_applied || 0,
+          commission_earned: item.commission_earned || 0,
+          status: item.status,
+          subscription_start_date: item.subscription_start_date,
+          created_at: item.created_at,
+          referred_psychologist: {
+            first_name: item.referred_psychologist?.first_name || '',
+            last_name: item.referred_psychologist?.last_name || '',
+          }
+        }));
+        
+        setReferrals(mappedReferrals);
       }
 
       // Calcular estadísticas

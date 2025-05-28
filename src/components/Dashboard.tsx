@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
-import { CalendarView } from './CalendarView';
+import { Calendar } from './CalendarView';
 import { PatientManagement } from './PatientManagement';
 import { MessagingHub } from './MessagingHub';
 import { DocumentsSection } from './DocumentsSection';
@@ -12,10 +12,13 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { Sidebar } from './Sidebar';
 import { DashboardOverview } from './DashboardOverview';
 import { AffiliateSystem } from './AffiliateSystem';
+import { useMercadoPago } from '@/hooks/useMercadoPago';
 
 const Dashboard = () => {
   const { profile, psychologist } = useProfile();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showSettings, setShowSettings] = useState(false);
+  const { createPreference } = useMercadoPago();
 
   if (!profile) {
     return <div>Loading...</div>;
@@ -25,6 +28,22 @@ const Dashboard = () => {
     return <AdminDashboard />;
   }
 
+  const handlePlanSelect = async (planId: string) => {
+    try {
+      const preference = await createPreference(planId);
+      if (preference.init_point) {
+        window.open(preference.init_point, '_blank');
+      }
+    } catch (error) {
+      console.error('Error creating payment preference:', error);
+    }
+  };
+
+  const handleProfileComplete = () => {
+    // Refresh the page or refetch profile data
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -32,14 +51,24 @@ const Dashboard = () => {
       <div className="pl-64">
         <main className="p-6">
           {activeTab === 'dashboard' && <DashboardOverview />}
-          {activeTab === 'calendar' && <CalendarView />}
+          {activeTab === 'calendar' && <Calendar />}
           {activeTab === 'patients' && <PatientManagement />}
           {activeTab === 'messaging' && <MessagingHub />}
           {activeTab === 'documents' && <DocumentsSection />}
-          {activeTab === 'subscription' && <SubscriptionPlans />}
+          {activeTab === 'subscription' && <SubscriptionPlans onPlanSelect={handlePlanSelect} />}
           {activeTab === 'affiliates' && <AffiliateSystem />}
-          {activeTab === 'profile' && <ProfileSetup />}
-          {activeTab === 'settings' && <SettingsModal />}
+          {activeTab === 'profile' && (
+            <ProfileSetup 
+              userType="psychologist" 
+              onComplete={handleProfileComplete} 
+            />
+          )}
+          {activeTab === 'settings' && (
+            <SettingsModal 
+              isOpen={showSettings} 
+              onClose={() => setShowSettings(false)} 
+            />
+          )}
         </main>
       </div>
     </div>
