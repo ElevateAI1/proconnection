@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, X } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { NewAppointmentModal } from "./NewAppointmentModal";
+import { CancelAppointmentModal } from "./CancelAppointmentModal";
 
 interface Appointment {
   id: string;
@@ -223,6 +224,28 @@ export const Calendar = () => {
     window.open(meetingUrl, '_blank');
   };
 
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      "scheduled": "bg-blue-100 text-blue-700",
+      "confirmed": "bg-green-100 text-green-700",
+      "accepted": "bg-green-100 text-green-700",
+      "completed": "bg-gray-100 text-gray-700",
+      "cancelled": "bg-red-100 text-red-700"
+    };
+    return colors[status] || "bg-gray-100 text-gray-700";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      "scheduled": "Programada",
+      "confirmed": "Confirmada",
+      "accepted": "Confirmada",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    };
+    return labels[status] || status;
+  };
+
   const days = getDaysInMonth(currentMonth);
 
   return (
@@ -329,27 +352,46 @@ export const Calendar = () => {
                                   }
                                 </p>
                                 <p className="text-sm text-slate-600">{getTypeLabel(appointment.type)}</p>
-                                {appointment.meeting_url && (
-                                  <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
-                                    <Video className="w-3 h-3" />
-                                    <span>Reunión virtual disponible</span>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                                    {getStatusLabel(appointment.status)}
+                                  </span>
+                                  {appointment.meeting_url && appointment.status !== 'cancelled' && (
+                                    <div className="flex items-center gap-1 text-xs text-green-600">
+                                      <Video className="w-3 h-3" />
+                                      <span>Reunión virtual disponible</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-slate-500">
                                 {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
                               </span>
-                              {appointment.meeting_url && (
-                                <button
-                                  onClick={() => handleJoinMeeting(appointment.meeting_url!)}
-                                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
-                                >
-                                  <Video className="w-3 h-3" />
-                                  Unirse
-                                </button>
-                              )}
+                              <div className="flex gap-2">
+                                {appointment.meeting_url && appointment.status !== 'cancelled' && (
+                                  <button
+                                    onClick={() => handleJoinMeeting(appointment.meeting_url!)}
+                                    className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                                  >
+                                    <Video className="w-3 h-3" />
+                                    Unirse
+                                  </button>
+                                )}
+                                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                  <CancelAppointmentModal
+                                    appointmentId={appointment.id}
+                                    onCancelled={fetchAppointments}
+                                    trigger={
+                                      <button className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
+                                        <X className="w-3 h-3" />
+                                        Cancelar
+                                      </button>
+                                    }
+                                  />
+                                )}
+                              </div>
                             </div>
                           </div>
                         ) : (

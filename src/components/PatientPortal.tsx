@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, MessageSquare, User, Search, Phone, FileText } from "lucide-react";
+import { Calendar, Clock, MessageSquare, User, Search, Phone, FileText, X } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppointmentRequestForm } from "./AppointmentRequestForm";
 import { MeetingLinksCard } from "./MeetingLinksCard";
 import { PatientMessaging } from "./PatientMessaging";
+import { CancelAppointmentModal } from "./CancelAppointmentModal";
 import { toast } from "@/hooks/use-toast";
 
 interface Appointment {
@@ -83,13 +84,13 @@ export const PatientPortal = () => {
       const now = new Date();
       const currentDateTime = now.toISOString();
       
-      // Fetch upcoming appointments
+      // Fetch upcoming appointments (including cancelled ones to show status)
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
         .eq('patient_id', patient.id)
         .gte('appointment_date', currentDateTime)
-        .in('status', ['scheduled', 'confirmed', 'accepted'])
+        .in('status', ['scheduled', 'confirmed', 'accepted', 'cancelled'])
         .order('appointment_date', { ascending: true });
 
       if (appointmentsError) {
@@ -397,11 +398,31 @@ export const PatientPortal = () => {
                         <p className="text-sm text-slate-600">
                           {formatTime(appointment.appointment_date)} - {appointment.duration_minutes} min
                         </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                            {getStatusLabel(appointment.status)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                      {getStatusLabel(appointment.status)}
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                        <CancelAppointmentModal
+                          appointmentId={appointment.id}
+                          onCancelled={fetchPatientData}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancelar
+                            </Button>
+                          }
+                        />
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (

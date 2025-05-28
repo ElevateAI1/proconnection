@@ -303,6 +303,9 @@ export type Database = {
       appointments: {
         Row: {
           appointment_date: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           duration_minutes: number | null
           id: string
@@ -316,6 +319,9 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           duration_minutes?: number | null
           id?: string
@@ -329,6 +335,9 @@ export type Database = {
         }
         Update: {
           appointment_date?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           duration_minutes?: number | null
           id?: string
@@ -805,6 +814,10 @@ export type Database = {
       calculate_affiliate_commission: {
         Args: { affiliate_code_id: string; subscription_amount: number }
         Returns: number
+      }
+      cancel_appointment: {
+        Args: { appointment_id: string; cancellation_reason?: string }
+        Returns: undefined
       }
       generate_affiliate_code: {
         Args: Record<PropertyKey, never>
