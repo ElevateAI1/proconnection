@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -12,6 +11,7 @@ import { PatientManagement } from "@/components/PatientManagement";
 import { Calendar } from "@/components/CalendarView";
 import { MessagingHub } from "@/components/MessagingHub";
 import { PatientPortal } from "@/components/PatientPortal";
+import { AffiliateSystem } from "@/components/AffiliateSystem";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,6 +203,8 @@ const Index = () => {
         return <Calendar />;
       case "messages":
         return <MessagingHub />;
+      case "affiliates":
+        return <AffiliateSystem />;
       default:
         return <Dashboard />;
     }
