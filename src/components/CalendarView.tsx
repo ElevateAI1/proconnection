@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, ExternalLink } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -97,7 +97,11 @@ export const Calendar = () => {
           console.log(`Appointment ${apt.id}:`, {
             originalTime: apt.appointment_date,
             localTime: aptDate.toLocaleString(),
-            timeOnly: aptDate.toTimeString().substring(0, 5)
+            timeOnly: aptDate.toLocaleTimeString('en-GB', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })
           });
         });
       }
@@ -116,6 +120,24 @@ export const Calendar = () => {
     }
   };
 
+  // Memoize appointment mapping to prevent infinite re-calculations
+  const appointmentsByTime = useMemo(() => {
+    const mapping: Record<string, Appointment> = {};
+    
+    appointments.forEach(apt => {
+      const aptDate = new Date(apt.appointment_date);
+      const aptTime = aptDate.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      mapping[aptTime] = apt;
+    });
+    
+    console.log('Appointment mapping created:', mapping);
+    return mapping;
+  }, [appointments]);
+
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       individual: "Terapia Individual",
@@ -128,23 +150,7 @@ export const Calendar = () => {
   };
 
   const getAppointmentForTime = (time: string) => {
-    const appointment = appointments.find(apt => {
-      const aptDate = new Date(apt.appointment_date);
-      // Use local time for comparison
-      const aptTime = aptDate.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      });
-      console.log(`Comparing slot ${time} with appointment time ${aptTime} for appointment:`, apt.id);
-      return aptTime === time;
-    });
-    
-    if (appointment) {
-      console.log(`Found appointment for time ${time}:`, appointment.id);
-    }
-    
-    return appointment;
+    return appointmentsByTime[time] || null;
   };
 
   const getDaysInMonth = (date: Date) => {
