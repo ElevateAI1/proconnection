@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { AuthPage } from "@/components/AuthPage";
-import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
@@ -137,62 +136,8 @@ const Index = () => {
     );
   }
 
-  // Only show profile setup if we have a profile but are missing required role-specific data
-  const needsProfileSetup = () => {
-    if (!profile || profileLoading) return false;
-    
-    if (profile.user_type === 'psychologist') {
-      // Check if psychologist profile exists and has required fields
-      const hasCompleteProfile = psychologist && psychologist.first_name && psychologist.last_name;
-      
-      console.log('Checking psychologist profile setup:', {
-        hasCompleteProfile,
-        psychologist,
-        subscription_status: psychologist?.subscription_status
-      });
-      
-      // If psychologist has complete profile data, NEVER ask for profile setup again
-      // regardless of subscription status
-      if (hasCompleteProfile) {
-        console.log('Psychologist has complete profile, skipping profile setup');
-        return false;
-      }
-      
-      return !hasCompleteProfile;
-    } else if (profile.user_type === 'patient') {
-      // Check if patient profile exists and has required fields
-      const hasCompleteProfile = patient && patient.first_name && patient.last_name && patient.psychologist_id;
-      return !hasCompleteProfile;
-    }
-    
-    // For any other user type, don't show profile setup
-    return false;
-  };
-  
-  // Only show profile setup if we're not loading and actually need setup
-  if (!profileLoading && needsProfileSetup()) {
-    return (
-      <ProfileSetup 
-        userType={profile.user_type as 'psychologist' | 'patient'} 
-        onComplete={() => {
-          console.log('Profile setup completed, refetching data');
-          refetch();
-        }} 
-      />
-    );
-  }
-
-  // If we're still loading profile but have a profile, show loading state
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando perfil...</p>
-        </div>
-      </div>
-    );
-  }
+  // ELIMINADO: ProfileSetup completamente
+  // Los perfiles se crean automáticamente al registrarse con los datos del metadata
 
   const renderContent = () => {
     if (profile.user_type === "patient") {
