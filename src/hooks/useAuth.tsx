@@ -8,12 +8,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  showEmailVerification: boolean;
-  verificationEmail: string;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userType: 'psychologist' | 'patient', additionalData?: any) => Promise<any>;
   signOut: () => Promise<void>;
-  closeEmailVerification: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,8 +19,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
 
   useEffect(() => {
     console.log('Setting up auth state listener');
@@ -32,22 +27,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
-        
-        // BLOQUEAR completamente si el email no está verificado
-        if (session?.user && !session.user.email_confirmed_at) {
-          console.log('User email not confirmed, blocking access and signing out');
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-        
         setSession(session);
         setUser(session?.user ?? null);
         
         // When user confirms email, create their profile automatically
-        if (event === 'SIGNED_IN' && session?.user && session.user.user_metadata && session.user.email_confirmed_at) {
+        if (event === 'SIGNED_IN' && session?.user && session.user.user_metadata) {
           setTimeout(async () => {
             await handlePostSignInProfile(session.user);
           }, 100);
@@ -60,17 +44,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Initial session check:', session?.user?.id);
-      
-      // BLOQUEAR completamente si el email no está verificado
-      if (session?.user && !session.user.email_confirmed_at) {
-        console.log('Initial session: User email not confirmed, blocking access');
-        supabase.auth.signOut();
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -210,9 +183,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
     } else if (data.user) {
-      // VERIFICAR ESTRICTAMENTE si el email está confirmado
+      // Verificar si el email está confirmado
       if (!data.user.email_confirmed_at) {
-        console.log('User email not confirmed during login, blocking access');
+        console.log('User email not confirmed, signing out');
         await supabase.auth.signOut();
         toast({
           title: "Email no verificado",
@@ -237,7 +210,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Additional data:', additionalData);
     
     try {
-      // Crear el usuario SIN auto-confirmación
+      // Crear el usuario primero
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -283,7 +256,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Exception creating profile:', profileCreationError);
         }
         
-        // CERRAR SESIÓN INMEDIATAMENTE para prevenir acceso
+        // Cerrar sesión inmediatamente para evitar auto-login
         await supabase.auth.signOut();
         
         // Enviar SOLO nuestro email personalizado de verificación
@@ -318,16 +291,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (emailError) {
             console.error('Error sending verification email:', emailError);
+            toast({
+              title: "Cuenta creada",
+              description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Contacta con soporte.",
+              variant: "destructive"
+            });
           } else {
             console.log('Custom verification email sent successfully');
+            toast({
+              title: "¡Cuenta creada exitosamente!",
+              description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta.",
+            });
           }
         } catch (emailError) {
           console.error('Exception sending verification email:', emailError);
+          toast({
+            title: "Cuenta creada",
+            description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Contacta con soporte.",
+            variant: "destructive"
+          });
         }
-        
-        // MOSTRAR SIEMPRE la ventana de verificación
-        setVerificationEmail(email);
-        setShowEmailVerification(true);
       }
       
       return { data, error };
@@ -359,21 +342,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const closeEmailVerification = () => {
-    setShowEmailVerification(false);
-    setVerificationEmail('');
-  };
-
   const value = {
     user,
     session,
     loading,
-    showEmailVerification,
-    verificationEmail,
     signIn,
     signUp,
     signOut,
-    closeEmailVerification,
   };
 
   return (

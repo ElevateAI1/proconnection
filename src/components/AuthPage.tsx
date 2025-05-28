@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { EmailVerificationNotice } from "./EmailVerificationNotice";
 
 interface AuthPageProps {
   affiliateCode?: string | null;
@@ -16,7 +15,7 @@ interface AuthPageProps {
 }
 
 export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPageProps) => {
-  const { signIn, signUp, loading, showEmailVerification, verificationEmail, closeEmailVerification } = useAuth();
+  const { signIn, signUp, loading } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(registrationOnly);
   const [showPassword, setShowPassword] = useState(false);
@@ -37,18 +36,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
     specialization: "",
     professionalCode: ""
   });
-
-  // Si se muestra la ventana de verificación, mostrar SOLO eso
-  if (showEmailVerification) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <EmailVerificationNotice 
-          email={verificationEmail} 
-          onClose={closeEmailVerification} 
-        />
-      </div>
-    );
-  }
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -111,8 +98,12 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
 
       const result = await signUp(signUpData.email, signUpData.password, signUpData.userType, metadata);
       
-      // La ventana de verificación se maneja automáticamente en useAuth
-      // NO necesitamos hacer nada más aquí - NO redirigir a ningún lado
+      if (result?.data?.user) {
+        toast({
+          title: "Cuenta creada",
+          description: "Tu cuenta ha sido creada exitosamente. Revisa tu email para verificar tu cuenta antes de iniciar sesión.",
+        });
+      }
     } catch (error: any) {
       console.error('Error during sign up:', error);
       toast({
@@ -143,7 +134,7 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
       // Check if we have a user and email is confirmed
       if (result.data?.user && result.data.user.email_confirmed_at) {
         console.log('Sign in successful, user:', result.data.user.id);
-        // NO redirigir aquí - el useEffect en Index.tsx se encargará
+        navigate("/app");
       } else if (result.data?.user && !result.data.user.email_confirmed_at) {
         console.log('User email not confirmed');
         // Error is already handled in signIn function
