@@ -99,19 +99,25 @@ export const AffiliateSystem = () => {
 
     try {
       setGeneratingCode(true);
+      console.log('Generando código de afiliado para:', psychologist.id);
 
-      const { data: code, error: codeError } = await supabase
+      // First call the function to generate a unique code
+      const { data: generatedCode, error: codeError } = await supabase
         .rpc('generate_affiliate_code');
 
       if (codeError) {
-        throw codeError;
+        console.error('Error generating code:', codeError);
+        throw new Error(`Error al generar código: ${codeError.message}`);
       }
 
+      console.log('Código generado:', generatedCode);
+
+      // Then insert the new affiliate code
       const { data: newCode, error: insertError } = await supabase
         .from('affiliate_codes')
         .insert({
           psychologist_id: psychologist.id,
-          code: code,
+          code: generatedCode,
           commission_rate: 10,
           discount_rate: 15,
           is_active: true
@@ -120,7 +126,8 @@ export const AffiliateSystem = () => {
         .single();
 
       if (insertError) {
-        throw insertError;
+        console.error('Error inserting affiliate code:', insertError);
+        throw new Error(`Error al guardar código: ${insertError.message}`);
       }
 
       setAffiliateCode(newCode);
@@ -132,7 +139,7 @@ export const AffiliateSystem = () => {
       console.error('Error generating affiliate code:', error);
       toast({
         title: "Error",
-        description: "No se pudo generar el código de afiliado",
+        description: error instanceof Error ? error.message : "No se pudo generar el código de afiliado",
         variant: "destructive"
       });
     } finally {
