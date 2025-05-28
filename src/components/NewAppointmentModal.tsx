@@ -29,7 +29,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     notes: ""
   });
 
-  const { getAvailableSlots, loading: slotsLoading } = useAvailableSlots({
+  const { getAvailableSlots, loading: slotsLoading, refreshAvailability } = useAvailableSlots({
     psychologistId: psychologist?.id || "",
     selectedDate: formData.appointmentDate
   });
@@ -50,11 +50,17 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
   };
 
   const handleDateChange = (date: string) => {
+    console.log('Date changed to:', date);
     setFormData(prev => ({
       ...prev,
       appointmentDate: date,
       appointmentTime: "" // Reset time when date changes
     }));
+    
+    // Force refresh of available slots after a brief delay
+    setTimeout(() => {
+      refreshAvailability();
+    }, 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +99,8 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     try {
       // Crear la fecha y hora del appointment
       const appointmentDateTime = new Date(`${formData.appointmentDate}T${formData.appointmentTime}:00`);
+
+      console.log('Creating appointment with datetime:', appointmentDateTime.toISOString());
 
       // Crear la cita directamente con el paciente seleccionado
       const { error: appointmentError } = await supabase
@@ -151,6 +159,10 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     };
     return labels[type] || type;
   };
+
+  // Log available slots for debugging
+  console.log('Modal render - Available slots:', availableSlots);
+  console.log('Modal render - Selected date:', formData.appointmentDate);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

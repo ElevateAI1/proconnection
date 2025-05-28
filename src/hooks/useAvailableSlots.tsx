@@ -21,6 +21,8 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
   useEffect(() => {
     if (psychologistId && selectedDate) {
       fetchBookedSlots();
+    } else {
+      setBookedSlots([]);
     }
   }, [psychologistId, selectedDate]);
 
@@ -29,12 +31,18 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
       setLoading(true);
       console.log('Fetching booked slots for:', { psychologistId, selectedDate });
 
-      // Create date range for the selected date
-      const startOfDay = new Date(selectedDate);
+      // Create date range for the selected date in local timezone
+      const selectedDay = new Date(selectedDate + 'T00:00:00');
+      const startOfDay = new Date(selectedDay);
       startOfDay.setHours(0, 0, 0, 0);
       
-      const endOfDay = new Date(selectedDate);
+      const endOfDay = new Date(selectedDay);
       endOfDay.setHours(23, 59, 59, 999);
+
+      console.log('Date range for query:', {
+        start: startOfDay.toISOString(),
+        end: endOfDay.toISOString()
+      });
 
       const { data, error } = await supabase
         .from('appointments')
@@ -46,33 +54,46 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
 
       if (error) {
         console.error('Error fetching booked slots:', error);
+        setBookedSlots([]);
         return;
       }
 
       const bookedTimes = (data || []).map(apt => {
         const aptDate = new Date(apt.appointment_date);
-        return aptDate.toLocaleTimeString('en-GB', { 
+        const timeString = aptDate.toLocaleTimeString('en-GB', { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: false 
         });
+        console.log('Booked appointment:', {
+          original: apt.appointment_date,
+          parsed: aptDate.toISOString(),
+          timeString
+        });
+        return timeString;
       });
 
-      console.log('Booked slots:', bookedTimes);
+      console.log('Final booked slots:', bookedTimes);
       setBookedSlots(bookedTimes);
     } catch (error) {
       console.error('Error fetching booked slots:', error);
+      setBookedSlots([]);
     } finally {
       setLoading(false);
     }
   };
 
   const isSlotAvailable = (time: string) => {
-    return !bookedSlots.includes(time);
+    const isBooked = bookedSlots.includes(time);
+    console.log(`Checking slot ${time}: booked=${isBooked}`);
+    return !isBooked;
   };
 
   const getAvailableSlots = () => {
-    return timeSlots.filter(slot => isSlotAvailable(slot));
+    const available = timeSlots.filter(slot => isSlotAvailable(slot));
+    console.log('Available slots:', available);
+    console.log('Booked slots:', bookedSlots);
+    return available;
   };
 
   return {
