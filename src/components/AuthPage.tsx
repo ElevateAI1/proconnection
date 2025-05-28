@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,8 @@ export const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [professionalCode, setProfessionalCode] = useState('');
   const [codeValidation, setCodeValidation] = useState<{ valid: boolean; message: string } | null>(null);
+  const [affiliateCode, setAffiliateCode] = useState('');
+  const [affiliateValidation, setAffiliateValidation] = useState<{ valid: boolean; message: string } | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -62,6 +63,39 @@ export const AuthPage = () => {
     validateCode(value);
   };
 
+  const validateAffiliateCode = async (code: string) => {
+    if (!code) {
+      setAffiliateValidation(null);
+      return;
+    }
+
+    try {
+      console.log('Validating affiliate code:', code);
+      const { data, error } = await supabase.rpc('validate_affiliate_code', { input_code: code });
+      
+      if (error) {
+        console.error('Error validating affiliate code:', error);
+        setAffiliateValidation({ valid: false, message: 'Error validating code' });
+        return;
+      }
+
+      console.log('Affiliate validation result:', data);
+      if (data) {
+        setAffiliateValidation({ valid: true, message: 'Código de afiliado válido - ¡Recibirás descuento!' });
+      } else {
+        setAffiliateValidation({ valid: false, message: 'Código de afiliado inválido' });
+      }
+    } catch (error) {
+      console.error('Exception validating affiliate code:', error);
+      setAffiliateValidation({ valid: false, message: 'Error validating code' });
+    }
+  };
+
+  const handleAffiliateCodeChange = (value: string) => {
+    setAffiliateCode(value);
+    validateAffiliateCode(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -101,6 +135,11 @@ export const AuthPage = () => {
         } else if (userType === 'psychologist') {
           userData.specialization = formData.specialization || null;
           userData.license_number = formData.licenseNumber || null;
+          
+          // Add affiliate code if provided and valid
+          if (affiliateCode && affiliateValidation?.valid) {
+            userData.affiliate_code = affiliateCode;
+          }
         }
 
         console.log('Signup data being sent:', userData);
@@ -265,6 +304,21 @@ export const AuthPage = () => {
 
                 {userType === 'psychologist' && (
                   <>
+                    <div className="space-y-2">
+                      <Label htmlFor="affiliateCode">Código de Afiliado (Opcional)</Label>
+                      <Input
+                        id="affiliateCode"
+                        value={affiliateCode}
+                        onChange={(e) => handleAffiliateCodeChange(e.target.value)}
+                        placeholder="AF-ABC123"
+                      />
+                      {affiliateValidation && (
+                        <p className={`text-sm ${affiliateValidation.valid ? 'text-green-600' : 'text-red-600'}`}>
+                          {affiliateValidation.message}
+                        </p>
+                      )}
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="specialization">Especialización</Label>
                       <Input

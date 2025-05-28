@@ -27,6 +27,183 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_codes: {
+        Row: {
+          code: string
+          commission_rate: number
+          created_at: string
+          discount_rate: number
+          id: string
+          is_active: boolean
+          psychologist_id: string
+          secondary_commission_rate: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          commission_rate?: number
+          created_at?: string
+          discount_rate?: number
+          id?: string
+          is_active?: boolean
+          psychologist_id: string
+          secondary_commission_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          commission_rate?: number
+          created_at?: string
+          discount_rate?: number
+          id?: string
+          is_active?: boolean
+          psychologist_id?: string
+          secondary_commission_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_codes_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_codes_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          psychologist_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          psychologist_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          psychologist_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payments_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_payments_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_referrals: {
+        Row: {
+          affiliate_code_id: string
+          commission_earned: number | null
+          created_at: string
+          discount_applied: number | null
+          id: string
+          referred_psychologist_id: string
+          referrer_psychologist_id: string
+          status: string
+          subscription_start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_code_id: string
+          commission_earned?: number | null
+          created_at?: string
+          discount_applied?: number | null
+          id?: string
+          referred_psychologist_id: string
+          referrer_psychologist_id: string
+          status?: string
+          subscription_start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_code_id?: string
+          commission_earned?: number | null
+          created_at?: string
+          discount_applied?: number | null
+          id?: string
+          referred_psychologist_id?: string
+          referrer_psychologist_id?: string
+          status?: string
+          subscription_start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_referrals_affiliate_code_id_fkey"
+            columns: ["affiliate_code_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referred_psychologist_id_fkey"
+            columns: ["referred_psychologist_id"]
+            isOneToOne: true
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referred_psychologist_id_fkey"
+            columns: ["referred_psychologist_id"]
+            isOneToOne: true
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referrer_psychologist_id_fkey"
+            columns: ["referrer_psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referrer_psychologist_id_fkey"
+            columns: ["referrer_psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_requests: {
         Row: {
           created_at: string
@@ -380,6 +557,8 @@ export type Database = {
       }
       psychologists: {
         Row: {
+          affiliate_code_id: string | null
+          affiliate_earnings: number | null
           created_at: string
           first_name: string
           id: string
@@ -390,11 +569,14 @@ export type Database = {
           specialization: string | null
           subscription_end_date: string | null
           subscription_status: string | null
+          total_referrals: number | null
           trial_end_date: string | null
           trial_start_date: string | null
           updated_at: string
         }
         Insert: {
+          affiliate_code_id?: string | null
+          affiliate_earnings?: number | null
           created_at?: string
           first_name: string
           id: string
@@ -405,11 +587,14 @@ export type Database = {
           specialization?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
+          total_referrals?: number | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
         }
         Update: {
+          affiliate_code_id?: string | null
+          affiliate_earnings?: number | null
           created_at?: string
           first_name?: string
           id?: string
@@ -420,11 +605,19 @@ export type Database = {
           specialization?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
+          total_referrals?: number | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "psychologists_affiliate_code_id_fkey"
+            columns: ["affiliate_code_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_codes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "psychologists_id_fkey"
             columns: ["id"]
@@ -521,6 +714,14 @@ export type Database = {
         Args: { psychologist_id: string; additional_days: number }
         Returns: undefined
       }
+      calculate_affiliate_commission: {
+        Args: { affiliate_code_id: string; subscription_amount: number }
+        Returns: number
+      }
+      generate_affiliate_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_professional_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -536,6 +737,10 @@ export type Database = {
       is_trial_expired: {
         Args: { psychologist_id: string }
         Returns: boolean
+      }
+      validate_affiliate_code: {
+        Args: { input_code: string }
+        Returns: string
       }
       validate_professional_code: {
         Args: { code: string }

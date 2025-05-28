@@ -93,6 +93,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.error('Error creating psychologist profile:', psychError);
             } else {
               console.log('Psychologist profile created successfully');
+              
+              // Handle affiliate code if provided
+              if (user.user_metadata.affiliate_code) {
+                try {
+                  console.log('Processing affiliate code:', user.user_metadata.affiliate_code);
+                  
+                  // Validate the affiliate code
+                  const { data: affiliateCodeId } = await supabase.rpc('validate_affiliate_code', { 
+                    input_code: user.user_metadata.affiliate_code 
+                  });
+                  
+                  if (affiliateCodeId) {
+                    // Get the affiliate code details
+                    const { data: affiliateCode } = await supabase
+                      .from('affiliate_codes')
+                      .select('psychologist_id, discount_rate')
+                      .eq('id', affiliateCodeId)
+                      .single();
+                    
+                    if (affiliateCode) {
+                      // Create the referral record
+                      const { error: referralError } = await supabase
+                        .from('affiliate_referrals')
+                        .insert({
+                          affiliate_code_id: affiliateCodeId,
+                          referred_psychologist_id: user.id,
+                          referrer_psychologist_id: affiliateCode.psychologist_id,
+                          status: 'pending'
+                        });
+                      
+                      if (!referralError) {
+                        console.log('Affiliate referral created successfully');
+                        toast({
+                          title: "¡Código de afiliado aplicado!",
+                          description: `Recibirás un ${affiliateCode.discount_rate}% de descuento en tu primera suscripción.`,
+                        });
+                      }
+                    }
+                  }
+                } catch (affiliateError) {
+                  console.error('Error processing affiliate code:', affiliateError);
+                }
+              }
             }
           }
         } else if (userType === 'patient') {
