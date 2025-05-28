@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,11 +163,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) {
       console.error('Sign in error:', error);
       
-      // Manejar específicamente el error de email no confirmado
       if (error.message.includes('Email not confirmed')) {
         toast({
           title: "Email no verificado",
-          description: "Tu email aún no ha sido verificado. Por favor revisa tu bandeja de entrada y haz clic en el enlace de verificación que te enviamos.",
+          description: "Tu email aún no ha sido verificado. Por favor revisa tu bandeja de entrada y haz clic en el enlace de verificación.",
+          variant: "destructive"
+        });
+      } else if (error.message.includes('Invalid login credentials')) {
+        toast({
+          title: "Credenciales inválidas",
+          description: "El email o la contraseña son incorrectos",
           variant: "destructive"
         });
       } else {
@@ -176,8 +182,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive"
         });
       }
-    } else {
-      console.log('Sign in successful');
+    } else if (data.user) {
+      // Verificar si el email está confirmado
+      if (!data.user.email_confirmed_at) {
+        console.log('User email not confirmed, signing out');
+        await supabase.auth.signOut();
+        toast({
+          title: "Email no verificado",
+          description: "Debes verificar tu email antes de poder iniciar sesión. Revisa tu bandeja de entrada.",
+          variant: "destructive"
+        });
+        return { data: null, error: { message: "Email not confirmed" } };
+      }
+      
+      console.log('Sign in successful and email confirmed');
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: "Bienvenido a PsiConnect",
+      });
     }
     
     return { data, error };

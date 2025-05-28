@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,7 +101,7 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
       if (result?.data?.user) {
         toast({
           title: "Cuenta creada",
-          description: "Tu cuenta ha sido creada exitosamente. Revisa tu email para verificar tu cuenta.",
+          description: "Tu cuenta ha sido creada exitosamente. Revisa tu email para verificar tu cuenta antes de iniciar sesión.",
         });
       }
     } catch (error: any) {
@@ -128,22 +127,17 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
       // Check if there was an error in the result
       if (result.error) {
         console.error('Sign in failed:', result.error);
-        toast({
-          title: "Error al iniciar sesión",
-          description: result.error.message || "Credenciales inválidas",
-          variant: "destructive"
-        });
+        // Error handling is now done in the signIn function
         return;
       }
       
-      // Check if we have a user
-      if (result.data?.user) {
+      // Check if we have a user and email is confirmed
+      if (result.data?.user && result.data.user.email_confirmed_at) {
         console.log('Sign in successful, user:', result.data.user.id);
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: "Bienvenido a PsiConnect",
-        });
         navigate("/app");
+      } else if (result.data?.user && !result.data.user.email_confirmed_at) {
+        console.log('User email not confirmed');
+        // Error is already handled in signIn function
       } else {
         console.error('No user data received');
         toast({

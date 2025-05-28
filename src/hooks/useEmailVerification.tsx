@@ -50,11 +50,10 @@ export const useEmailVerification = () => {
           return;
         }
 
-        // Verificar el usuario manualmente
+        // Verificar el usuario manualmente usando nuestra función RPC
         console.log('Attempting to verify user manually...');
         
-        // Marcar el email como verificado usando nuestra función RPC personalizada
-        const { error: verifyError } = await supabase.rpc('verify_user_email' as any, {
+        const { error: verifyError } = await supabase.rpc('verify_user_email', {
           user_id: verificationData.userId
         });
 
