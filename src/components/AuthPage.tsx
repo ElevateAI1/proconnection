@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,16 +117,43 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Attempting sign in with:', { email: signInData.email });
 
     try {
-      await signIn(signInData.email, signInData.password);
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: "Bienvenido a PsiConnect",
-      });
-      navigate("/app");
+      const result = await signIn(signInData.email, signInData.password);
+      
+      console.log('Sign in result:', result);
+      
+      // Check if there was an error in the result
+      if (result.error) {
+        console.error('Sign in failed:', result.error);
+        toast({
+          title: "Error al iniciar sesión",
+          description: result.error.message || "Credenciales inválidas",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Check if we have a user
+      if (result.data?.user) {
+        console.log('Sign in successful, user:', result.data.user.id);
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: "Bienvenido a PsiConnect",
+        });
+        navigate("/app");
+      } else {
+        console.error('No user data received');
+        toast({
+          title: "Error",
+          description: "No se pudo obtener la información del usuario",
+          variant: "destructive"
+        });
+      }
     } catch (error: any) {
-      console.error('Error during sign in:', error);
+      console.error('Exception during sign in:', error);
       toast({
         title: "Error",
         description: error.message || "Error al iniciar sesión",
