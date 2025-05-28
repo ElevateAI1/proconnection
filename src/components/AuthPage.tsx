@@ -38,6 +38,18 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
     professionalCode: ""
   });
 
+  // Si se muestra la ventana de verificación, mostrar SOLO eso
+  if (showEmailVerification) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <EmailVerificationNotice 
+          email={verificationEmail} 
+          onClose={closeEmailVerification} 
+        />
+      </div>
+    );
+  }
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -131,7 +143,7 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
       // Check if we have a user and email is confirmed
       if (result.data?.user && result.data.user.email_confirmed_at) {
         console.log('Sign in successful, user:', result.data.user.id);
-        navigate("/app");
+        // NO redirigir aquí - el useEffect en Index.tsx se encargará
       } else if (result.data?.user && !result.data.user.email_confirmed_at) {
         console.log('User email not confirmed');
         // Error is already handled in signIn function
@@ -153,18 +165,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
     }
   };
 
-  // Si se muestra la ventana de verificación, mostrar SOLO eso
-  if (showEmailVerification) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <EmailVerificationNotice 
-          email={verificationEmail} 
-          onClose={closeEmailVerification} 
-        />
-      </div>
-    );
-  }
-
   if (registrationOnly) {
     return (
       <Card className="w-full max-w-lg border-0 shadow-xl bg-white/95 backdrop-blur-sm">
@@ -178,7 +178,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-slate-700 font-medium">Nombre</Label>
@@ -404,7 +403,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
         <CardContent>
           {!isSignUp ? (
             <form onSubmit={handleSignIn} className="space-y-4">
-              
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-slate-700 font-medium">Correo Electrónico</Label>
                 <div className="relative">
@@ -469,7 +467,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
             </form>
           ) : (
             <form onSubmit={handleSignUp} className="space-y-4">
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="text-slate-700 font-medium">Nombre</Label>

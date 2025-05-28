@@ -20,7 +20,7 @@ import { toast } from "@/hooks/use-toast";
 type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "portal" | "affiliates";
 
 const Index = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, showEmailVerification } = useAuth();
   const { profile, psychologist, patient, loading: profileLoading, refetch } = useProfile();
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [isTrialExpired, setIsTrialExpired] = useState(false);
@@ -29,6 +29,11 @@ const Index = () => {
 
   // Handle email verification from URL
   useEmailVerification();
+
+  // SI SE ESTÁ MOSTRANDO LA VENTANA DE VERIFICACIÓN, MOSTRAR SOLO ESO
+  if (showEmailVerification) {
+    return <AuthPage />;
+  }
 
   // Check trial status for psychologists only once
   useEffect(() => {

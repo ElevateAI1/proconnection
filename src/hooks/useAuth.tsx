@@ -283,8 +283,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Exception creating profile:', profileCreationError);
         }
         
-        // IMPORTANTE: NO cerrar sesión automáticamente y NO iniciar sesión
-        // El usuario debe verificar su email primero
+        // CERRAR SESIÓN INMEDIATAMENTE para prevenir acceso
+        await supabase.auth.signOut();
         
         // Enviar SOLO nuestro email personalizado de verificación
         try {
@@ -325,7 +325,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Exception sending verification email:', emailError);
         }
         
-        // MOSTRAR SIEMPRE la ventana de verificación sin importar si hubo error en el envío
+        // MOSTRAR SIEMPRE la ventana de verificación
         setVerificationEmail(email);
         setShowEmailVerification(true);
       }
