@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UseAvailableSlotsProps {
@@ -25,34 +25,18 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
     return uuidRegex.test(uuid);
   };
 
-  useEffect(() => {
-    // Solo hacer fetch si tenemos datos válidos
-    if (psychologistId && 
-        psychologistId.trim() !== '' && 
-        selectedDate && 
-        selectedDate.trim() !== '' &&
-        isValidUUID(psychologistId)) {
-      console.log('Valid parameters, fetching slots for:', { psychologistId, selectedDate });
-      fetchBookedSlots();
-    } else {
-      console.log('Invalid or missing parameters, clearing slots:', { 
-        psychologistId: psychologistId || 'missing', 
-        selectedDate: selectedDate || 'missing',
-        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
-      });
-      setBookedSlots([]);
-      setLoading(false);
-    }
-  }, [psychologistId, selectedDate]);
-
-  const fetchBookedSlots = async () => {
-    // Doble validación antes de hacer la consulta
+  const fetchBookedSlots = useCallback(async () => {
+    // Validar parámetros antes de hacer la consulta
     if (!psychologistId || 
         psychologistId.trim() === '' || 
         !selectedDate || 
         selectedDate.trim() === '' ||
         !isValidUUID(psychologistId)) {
-      console.log('Aborting fetch due to invalid parameters');
+      console.log('Invalid parameters, skipping fetch:', { 
+        psychologistId: psychologistId || 'missing', 
+        selectedDate: selectedDate || 'missing',
+        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
+      });
       setBookedSlots([]);
       setLoading(false);
       return;
@@ -107,7 +91,27 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
     } finally {
       setLoading(false);
     }
-  };
+  }, [psychologistId, selectedDate]); // Memoize with dependencies
+
+  useEffect(() => {
+    // Solo hacer fetch si tenemos datos válidos
+    if (psychologistId && 
+        psychologistId.trim() !== '' && 
+        selectedDate && 
+        selectedDate.trim() !== '' &&
+        isValidUUID(psychologistId)) {
+      console.log('Valid parameters, fetching slots for:', { psychologistId, selectedDate });
+      fetchBookedSlots();
+    } else {
+      console.log('Invalid or missing parameters, clearing slots:', { 
+        psychologistId: psychologistId || 'missing', 
+        selectedDate: selectedDate || 'missing',
+        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
+      });
+      setBookedSlots([]);
+      setLoading(false);
+    }
+  }, [fetchBookedSlots]); // Only depend on the memoized function
 
   const isSlotAvailable = (time: string) => {
     return !bookedSlots.includes(time);

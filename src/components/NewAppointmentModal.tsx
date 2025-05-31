@@ -29,15 +29,13 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     notes: ""
   });
 
-  // Solo usar el hook si tenemos un psychologist ID válido
-  const shouldFetchSlots = psychologist?.id && formData.appointmentDate;
-  
+  // Solo usar el hook si tenemos un psychologist ID válido y fecha seleccionada
   const { getAvailableSlots, loading: slotsLoading, refreshAvailability } = useAvailableSlots({
     psychologistId: psychologist?.id || "",
     selectedDate: formData.appointmentDate
   });
 
-  const availableSlots = shouldFetchSlots ? getAvailableSlots() : [];
+  const availableSlots = getAvailableSlots();
 
   const getMinDate = () => {
     const today = new Date();
@@ -60,12 +58,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
       appointmentTime: "" // Reset time when date changes
     }));
     
-    // Force refresh of available slots after a brief delay
-    if (psychologist?.id && date) {
-      setTimeout(() => {
-        refreshAvailability();
-      }, 100);
-    }
+    // No need to manually call refreshAvailability - the hook will handle it automatically
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,7 +83,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     }
 
     // Verificar que el horario seleccionado esté disponible
-    if (shouldFetchSlots && !availableSlots.includes(formData.appointmentTime)) {
+    if (formData.appointmentDate && !availableSlots.includes(formData.appointmentTime)) {
       toast({
         title: "Error",
         description: "El horario seleccionado ya no está disponible",
@@ -221,7 +214,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
               <SelectContent>
                 {slotsLoading ? (
                   <div className="p-2 text-sm text-muted-foreground">Cargando horarios...</div>
-                ) : shouldFetchSlots && availableSlots.length > 0 ? (
+                ) : formData.appointmentDate && availableSlots.length > 0 ? (
                   availableSlots.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
@@ -288,7 +281,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
             </Button>
             <Button
               type="submit"
-              disabled={loading || slotsLoading || availableSlots.length === 0}
+              disabled={loading || slotsLoading}
               className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500"
             >
               {loading ? "Creando..." : "Crear Cita"}
