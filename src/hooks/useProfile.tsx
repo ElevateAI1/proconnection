@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -119,6 +118,25 @@ export const useProfile = () => {
       fetchProfile();
     }
   }, [user?.id]); // Solo depender del ID del usuario
+
+  // Escuchar eventos de actualización de plan
+  useEffect(() => {
+    const handlePlanUpdate = (event: CustomEvent) => {
+      const { psychologistId, newPlan } = event.detail;
+      if (psychologist?.id === psychologistId) {
+        console.log('Plan updated event received, refreshing profile data');
+        // Limpiar cache y refrescar
+        profileCache.dataFetched = false;
+        fetchProfile();
+      }
+    };
+
+    window.addEventListener('planUpdated', handlePlanUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('planUpdated', handlePlanUpdate as EventListener);
+    };
+  }, [psychologist?.id]);
 
   const fetchProfile = async () => {
     if (!user) {
@@ -366,6 +384,15 @@ export const useProfile = () => {
     fetchProfile();
   };
 
+  const forceRefresh = () => {
+    console.log('Force refreshing profile data');
+    clearCache();
+    if (user) {
+      profileCache.userId = user.id;
+      fetchProfile();
+    }
+  };
+
   return {
     profile,
     psychologist,
@@ -375,6 +402,7 @@ export const useProfile = () => {
     createPsychologistProfile,
     createPatientProfile,
     refetch,
-    clearCache
+    clearCache,
+    forceRefresh
   };
 };

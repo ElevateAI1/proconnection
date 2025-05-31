@@ -17,7 +17,7 @@ interface PsychologistStats {
   trial_days_remaining: number;
   subscription_days_remaining: number;
   is_expired: boolean;
-  plan_type: string; // Agregado para soportar cambio de plan
+  plan_type: string;
 }
 
 export const useAdmin = () => {
@@ -146,7 +146,7 @@ export const useAdmin = () => {
           trial_days_remaining: trialDaysRemaining,
           subscription_days_remaining: subscriptionDaysRemaining,
           is_expired: isExpired,
-          plan_type: psychologist.plan_type || 'plus' // Incluir plan_type
+          plan_type: psychologist.plan_type || 'plus'
         };
       });
 
@@ -159,10 +159,17 @@ export const useAdmin = () => {
     }
   };
 
+  // Función para forzar actualización después de cambios
+  const forceRefresh = async () => {
+    console.log('Forcing admin data refresh...');
+    await fetchPsychologistStats();
+  };
+
   return {
     isAdmin,
     psychologistStats,
     loading,
-    refetch: fetchPsychologistStats
+    refetch: fetchPsychologistStats,
+    forceRefresh
   };
 };

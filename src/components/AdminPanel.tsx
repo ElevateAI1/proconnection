@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AffiliateAdminPanel } from './AffiliateAdminPanel';
 
 export const AdminPanel = () => {
-  const { isAdmin, psychologistStats, loading, refetch } = useAdmin();
+  const { isAdmin, psychologistStats, loading, refetch, forceRefresh } = useAdmin();
   const { toast } = useToast();
   const [selectedPsychologist, setSelectedPsychologist] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,12 +102,22 @@ export const AdminPanel = () => {
 
     setIsProcessing(true);
     try {
+      console.log('Updating plan type for:', selectedPsychologist.id, 'to:', newPlanType);
+      
       const { error } = await supabase
         .from('psychologists')
-        .update({ plan_type: newPlanType, updated_at: new Date().toISOString() })
+        .update({ 
+          plan_type: newPlanType, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', selectedPsychologist.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating plan type:', error);
+        throw error;
+      }
+
+      console.log('Plan type updated successfully');
 
       toast({
         title: "Plan actualizado",
@@ -116,8 +126,20 @@ export const AdminPanel = () => {
 
       setDialogOpen(false);
       setNewPlanType('');
-      refetch();
+      
+      // Forzar actualización de datos
+      await forceRefresh();
+      
+      // También notificar a otros hooks que necesitan actualizarse
+      window.dispatchEvent(new CustomEvent('planUpdated', { 
+        detail: { 
+          psychologistId: selectedPsychologist.id, 
+          newPlan: newPlanType 
+        } 
+      }));
+      
     } catch (error: any) {
+      console.error('Error in handleUpdatePlanType:', error);
       toast({
         title: "Error",
         description: error.message || "No se pudo actualizar el plan",
