@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useEmailVerification } from "@/hooks/useEmailVerification";
+import { useNavigate } from "react-router-dom";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
 import { Calendar } from "@/components/CalendarView";
@@ -23,8 +25,18 @@ export default function Index() {
   const { psychologist, patient, loading: profileLoading } = useProfile();
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
+  const navigate = useNavigate();
+
+  // Manejar verificación de email desde URL
+  useEmailVerification();
 
   useEffect(() => {
+    // Si ya terminó de cargar y no hay usuario, redirigir al login
+    if (!authLoading && !user) {
+      navigate("/");
+      return;
+    }
+
     if (psychologist && psychologist.trial_end_date) {
       const trialEndDate = new Date(psychologist.trial_end_date);
       const now = new Date();
@@ -32,7 +44,7 @@ export default function Index() {
         setShowTrialModal(true);
       }
     }
-  }, [psychologist]);
+  }, [user, authLoading, navigate, psychologist]);
 
   if (authLoading || profileLoading) {
     return (
@@ -45,8 +57,9 @@ export default function Index() {
     );
   }
 
+  // Si no hay usuario después de cargar, no mostrar nada (ya se redirigió)
   if (!user) {
-    return <div>No autorizado</div>;
+    return null;
   }
 
   // Show profile setup if psychologist exists but profile is incomplete
