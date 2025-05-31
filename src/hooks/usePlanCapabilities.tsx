@@ -39,7 +39,12 @@ export const usePlanCapabilities = () => {
         }
 
         console.log('Plan capabilities:', data);
-        setCapabilities(data);
+        // Convertir la respuesta JSON a PlanCapabilities
+        if (data && typeof data === 'object') {
+          setCapabilities(data as PlanCapabilities);
+        } else {
+          setCapabilities(null);
+        }
       } catch (err) {
         console.error('Error in fetchCapabilities:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');

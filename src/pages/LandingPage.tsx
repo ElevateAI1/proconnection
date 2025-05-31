@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Shield, Users, MessageCircle, Calendar, Star, CheckCircle, Award, TrendingUp, Clock, Globe, Zap } from "lucide-react";
+import { Heart, Shield, Users, MessageCircle, Calendar, Star, CheckCircle, Award, TrendingUp, Clock, Globe, Zap, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollAnimationWrapper } from "@/components/ScrollAnimationWrapper";
 
@@ -436,112 +436,105 @@ export const LandingPage = () => {
             </h3>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Elige el plan que mejor se adapte a tu práctica profesional. 
-              Todos incluyen soporte 24/7 y actualizaciones gratuitas.
+              Todos incluyen soporte técnico y actualizaciones gratuitas.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Plan Plus */}
             <Card className="border-2 border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2">
               <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl mb-2 group-hover:text-blue-600 transition-colors duration-300">Básico</CardTitle>
-                <div className="text-4xl font-bold text-slate-800 group-hover:scale-110 transition-transform duration-300">$49</div>
+                <CardTitle className="text-2xl mb-2 group-hover:text-blue-600 transition-colors duration-300 flex items-center justify-center gap-2">
+                  <Star className="w-6 h-6 text-blue-500" />
+                  Plan Plus
+                </CardTitle>
+                <div className="text-4xl font-bold text-slate-800 group-hover:scale-110 transition-transform duration-300">$100.000</div>
                 <div className="text-slate-600">/mes</div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300">
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Hasta 50 pacientes</span>
+                    <span>Acceso completo al portal web</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.1s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Agenda básica</span>
+                    <span>Gestión ilimitada de pacientes</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.2s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Mensajería segura</span>
+                    <span>Sistema de citas y calendario</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.3s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Soporte por email</span>
-                  </li>
-                </ul>
-                <Button className="w-full hover:scale-105 transition-all duration-300" variant="outline">
-                  Empezar Prueba Gratuita
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-blue-500 shadow-lg hover:shadow-2xl transition-all duration-500 relative group hover:scale-105 hover:-translate-y-4 bg-gradient-to-br from-white to-blue-50">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 group-hover:scale-110 transition-transform duration-300">
-                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500 transition-all duration-300">
-                  Más Popular
-                </span>
-              </div>
-              <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl mb-2 group-hover:text-blue-600 transition-colors duration-300">Profesional</CardTitle>
-                <div className="text-4xl font-bold text-slate-800 group-hover:scale-110 transition-transform duration-300">$99</div>
-                <div className="text-slate-600">/mes</div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300">
-                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Pacientes ilimitados</span>
-                  </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.1s'}}>
-                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Agenda avanzada</span>
-                  </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.2s'}}>
-                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Videollamadas HD</span>
-                  </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.3s'}}>
-                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Reportes y analytics</span>
+                    <span>Código profesional y referidos</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.4s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Soporte prioritario</span>
+                    <span>Hub de mensajería básico</span>
                   </li>
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-purple-500 hover:to-pink-500 hover:scale-105 transition-all duration-300 group-hover:shadow-xl">
+                <Button className="w-full hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600">
                   Empezar Prueba Gratuita
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2">
+            {/* Plan Pro */}
+            <Card className="border-2 border-purple-500 shadow-lg hover:shadow-2xl transition-all duration-500 relative group hover:scale-105 hover:-translate-y-4 bg-gradient-to-br from-white to-purple-50">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 group-hover:scale-110 transition-transform duration-300">
+                <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold group-hover:from-purple-600 group-hover:to-blue-600 transition-all duration-300 flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Máxima Productividad
+                </span>
+              </div>
               <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl mb-2 group-hover:text-purple-600 transition-colors duration-300">Empresa</CardTitle>
-                <div className="text-4xl font-bold text-slate-800 group-hover:scale-110 transition-transform duration-300">$199</div>
+                <CardTitle className="text-2xl mb-2 group-hover:text-purple-600 transition-colors duration-300 flex items-center justify-center gap-2">
+                  <Crown className="w-6 h-6 text-purple-500" />
+                  Plan Pro
+                </CardTitle>
+                <div className="text-4xl font-bold text-slate-800 group-hover:scale-110 transition-transform duration-300">$150.000</div>
                 <div className="text-slate-600">/mes</div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300">
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Equipos ilimitados</span>
+                    <span className="font-medium">Todo lo incluido en Plan Plus</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.1s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>API personalizada</span>
+                    <span>SEO de perfil profesional</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.2s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Integraciones avanzadas</span>
+                    <span>Reportes avanzados de pacientes</span>
                   </li>
                   <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.3s'}}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
-                    <span>Soporte dedicado</span>
+                    <span>Prioridad en nuevas funciones</span>
+                  </li>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.4s'}}>
+                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
+                    <span>Soporte técnico preferencial</span>
+                  </li>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.5s'}}>
+                    <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
+                    <span>Consultoría de visibilidad</span>
                   </li>
                 </ul>
-                <Button className="w-full hover:scale-105 transition-all duration-300" variant="outline">
-                  Contactar Ventas
+                <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 hover:scale-105 transition-all duration-300 group-hover:shadow-xl">
+                  <Crown className="w-4 h-4 mr-2" />
+                  Suscribirse a Pro
                 </Button>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-sm text-slate-500 max-w-md mx-auto">
+              Pago seguro procesado por MercadoPago. Puedes cambiar de plan en cualquier momento.
+            </p>
           </div>
         </section>
       </ScrollAnimationWrapper>
