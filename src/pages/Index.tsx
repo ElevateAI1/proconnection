@@ -6,7 +6,6 @@ import { AuthPage } from "@/components/AuthPage";
 import { PatientPortal } from "@/components/PatientPortal";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
-import { CalendarView } from "@/components/CalendarView";
 import { MessagingHub } from "@/components/MessagingHub";
 import { AffiliateSystem } from "@/components/AffiliateSystem";
 import { Sidebar } from "@/components/Sidebar";
@@ -62,7 +61,7 @@ const Index = () => {
         case "patients":
           return <PatientManagement />;
         case "calendar":
-          return <CalendarView />;
+          return <div className="text-center py-8"><p className="text-slate-600">Vista de calendario próximamente</p></div>;
         case "messages":
           return <MessagingHub />;
         case "affiliates":

@@ -285,7 +285,11 @@ export const Dashboard = ({ onViewChange }: DashboardProps) => {
         {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-6">
           {/* Appointment Requests */}
-          <AppointmentRequests onRequestProcessed={handleRequestProcessed} />
+          <AppointmentRequests 
+            onRequestProcessed={handleRequestProcessed} 
+            maxDisplayItems={3}
+            isDashboardView={true}
+          />
           
           {/* Meeting Links */}
           <MeetingLinksCard />

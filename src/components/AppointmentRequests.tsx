@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,14 @@ interface AppointmentRequest {
 interface AppointmentRequestsProps {
   onRequestProcessed?: () => void;
   maxDisplayItems?: number;
+  isDashboardView?: boolean;
 }
 
-export const AppointmentRequests = ({ onRequestProcessed, maxDisplayItems = 3 }: AppointmentRequestsProps) => {
+export const AppointmentRequests = ({ 
+  onRequestProcessed, 
+  maxDisplayItems = 3, 
+  isDashboardView = false 
+}: AppointmentRequestsProps) => {
   const { psychologist } = useProfile();
   const [requests, setRequests] = useState<AppointmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -262,10 +268,11 @@ export const AppointmentRequests = ({ onRequestProcessed, maxDisplayItems = 3 }:
 
   console.log('AppointmentRequests: Rendering component. Loading:', loading, 'Requests count:', requests.length);
 
-  // Filter requests to show only pending ones and limit to maxDisplayItems
+  // Filter requests to show only pending ones and limit based on view
   const pendingRequests = requests.filter(r => r.status === 'pending');
-  const displayedRequests = pendingRequests.slice(0, maxDisplayItems);
-  const hasMoreRequests = pendingRequests.length > maxDisplayItems;
+  const displayLimit = isDashboardView ? 3 : maxDisplayItems;
+  const displayedRequests = pendingRequests.slice(0, displayLimit);
+  const hasMoreRequests = pendingRequests.length > displayLimit;
 
   if (loading) {
     console.log('AppointmentRequests: Rendering loading state');
@@ -401,7 +408,7 @@ export const AppointmentRequests = ({ onRequestProcessed, maxDisplayItems = 3 }:
               </div>
             ))}
             
-            {hasMoreRequests && (
+            {hasMoreRequests && isDashboardView && (
               <div className="text-center py-4 border-t border-slate-200">
                 <p className="text-sm text-slate-600 mb-2">
                   Mostrando {displayedRequests.length} de {pendingRequests.length} solicitudes pendientes
