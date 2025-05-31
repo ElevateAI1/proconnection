@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,79 +37,46 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  console.log('AppointmentRequests: Component mounted/updated, psychologist:', psychologist?.id);
+
   useEffect(() => {
     if (psychologist?.id) {
-      console.log('Setting up appointment requests for psychologist:', psychologist.id);
+      console.log('AppointmentRequests: Setting up for psychologist:', psychologist.id);
       fetchRequests();
-      
-      // Set up real-time subscription for new appointment requests
-      const channel = supabase
-        .channel('appointment-requests-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'appointment_requests',
-            filter: `psychologist_id=eq.${psychologist.id}`
-          },
-          (payload) => {
-            console.log('New appointment request received:', payload);
-            fetchRequests(); // Refresh the list when a new request comes in
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'appointment_requests',
-            filter: `psychologist_id=eq.${psychologist.id}`
-          },
-          (payload) => {
-            console.log('Appointment request updated:', payload);
-            fetchRequests(); // Refresh when status changes
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     } else {
-      console.log('No psychologist ID available for appointment requests');
+      console.log('AppointmentRequests: No psychologist ID available');
+      setLoading(false);
     }
-  }, [psychologist]);
+  }, [psychologist?.id]);
 
   const fetchRequests = async () => {
     if (!psychologist?.id) {
-      console.log('No psychologist ID, skipping fetch');
+      console.log('AppointmentRequests: No psychologist ID, skipping fetch');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('=== FETCHING APPOINTMENT REQUESTS ===');
-      console.log('Psychologist ID:', psychologist.id);
+      console.log('AppointmentRequests: === FETCHING APPOINTMENT REQUESTS ===');
+      console.log('AppointmentRequests: Psychologist ID:', psychologist.id);
       
       setLoading(true);
 
-      // First check ALL requests in the database
-      const { data: allData, error: allError } = await supabase
+      // First, let's see ALL requests in the database for debugging
+      const { data: allRequests, error: allError } = await supabase
         .from('appointment_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
-      console.log('ALL appointment requests in database:', allData);
-      console.log('Number of total requests:', allData?.length || 0);
+      console.log('AppointmentRequests: ALL requests in database:', allRequests);
+      console.log('AppointmentRequests: Total requests in DB:', allRequests?.length || 0);
 
-      if (allData) {
-        const myRequests = allData.filter(r => r.psychologist_id === psychologist.id);
-        console.log('Requests for my psychologist ID:', myRequests);
-        console.log('Number of my requests:', myRequests.length);
+      if (allRequests) {
+        const myRequests = allRequests.filter(r => r.psychologist_id === psychologist.id);
+        console.log('AppointmentRequests: My requests (filtered):', myRequests);
+        console.log('AppointmentRequests: Number of my requests:', myRequests.length);
       }
 
-      // Now fetch with patient data
+      // Now fetch properly with patient data
       const { data, error } = await supabase
         .from('appointment_requests')
         .select(`
@@ -118,35 +86,45 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         .eq('psychologist_id', psychologist.id)
         .order('created_at', { ascending: false });
 
-      console.log('Query result for psychologist requests:', data);
-      console.log('Query error:', error);
+      console.log('AppointmentRequests: Query executed');
+      console.log('AppointmentRequests: Raw query result:', data);
+      console.log('AppointmentRequests: Query error:', error);
 
       if (error) {
-        console.error('Error fetching appointment requests:', error);
+        console.error('AppointmentRequests: Error fetching appointment requests:', error);
         toast({
           title: "Error",
           description: "No se pudieron cargar las solicitudes de citas",
           variant: "destructive"
         });
+        setRequests([]);
         return;
       }
 
-      const typedRequests = (data || []).map(request => ({
-        ...request,
-        patient: request.patient && typeof request.patient === 'object' && 'first_name' in request.patient 
-          ? request.patient as Patient
-          : null
-      }));
+      // Process the data
+      const processedRequests = (data || []).map(request => {
+        console.log('AppointmentRequests: Processing request:', request);
+        return {
+          ...request,
+          patient: request.patient && typeof request.patient === 'object' && 'first_name' in request.patient 
+            ? request.patient as Patient
+            : null
+        };
+      });
 
-      console.log('Final typed requests:', typedRequests);
-      setRequests(typedRequests);
+      console.log('AppointmentRequests: Processed requests:', processedRequests);
+      console.log('AppointmentRequests: Setting requests state with', processedRequests.length, 'items');
+      
+      setRequests(processedRequests);
+
     } catch (error) {
-      console.error('Exception fetching appointment requests:', error);
+      console.error('AppointmentRequests: Exception fetching appointment requests:', error);
       toast({
         title: "Error",
         description: "Error inesperado al cargar las solicitudes",
         variant: "destructive"
       });
+      setRequests([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -154,37 +132,14 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
   };
 
   const handleRefresh = async () => {
+    console.log('AppointmentRequests: Manual refresh triggered');
     setRefreshing(true);
     await fetchRequests();
   };
 
-  const createJitsiMeeting = async (appointmentId: string, patientName: string, psychologistName: string, appointmentDate: string) => {
-    try {
-      console.log('Creating Jitsi meeting for appointment:', appointmentId);
-      
-      const { data, error } = await supabase.functions.invoke('create-jitsi-meeting', {
-        body: {
-          appointmentId,
-          patientName,
-          psychologistName,
-          appointmentDate
-        }
-      });
-
-      if (error) {
-        console.error('Error creating Jitsi meeting:', error);
-        throw new Error('No se pudo crear la reunión virtual');
-      }
-
-      console.log('Jitsi meeting created successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('Error in createJitsiMeeting:', error);
-      throw error;
-    }
-  };
-
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
+    console.log(`AppointmentRequests: ${action === 'approved' ? 'Approving' : 'Rejecting'} request:`, requestId);
+    
     if (!requestId) {
       toast({
         title: "Error",
@@ -197,14 +152,14 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
     setProcessingId(requestId);
     
     try {
-      console.log(`${action === 'approved' ? 'Approving' : 'Rejecting'} request:`, requestId);
-      
       if (action === 'approved') {
         // Find the request to get details for creating the appointment
         const request = requests.find(r => r.id === requestId);
         if (!request) {
           throw new Error('Solicitud no encontrada');
         }
+
+        console.log('AppointmentRequests: Creating appointment for request:', request);
 
         // Create appointment date by combining date and time
         const [year, month, day] = request.preferred_date.split('-');
@@ -214,7 +169,7 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         appointmentDate.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
         appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         
-        console.log('Creating appointment with data:', {
+        console.log('AppointmentRequests: Creating appointment with data:', {
           patient_id: request.patient_id,
           psychologist_id: psychologist.id,
           appointment_date: appointmentDate.toISOString(),
@@ -223,7 +178,7 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
           status: 'confirmed'
         });
 
-        // Create the actual appointment with all required fields
+        // Create the actual appointment
         const { data: appointmentData, error: appointmentError } = await supabase
           .from('appointments')
           .insert({
@@ -239,44 +194,11 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
           .single();
 
         if (appointmentError) {
-          console.error('Error creating appointment:', appointmentError);
-          
-          // Provide more specific error messages
-          if (appointmentError.message.includes('check constraint')) {
-            throw new Error('Error de validación: Verifica que el estado y tipo de cita sean válidos');
-          } else if (appointmentError.message.includes('foreign key')) {
-            throw new Error('Error de referencia: Paciente o psicólogo no válido');
-          } else {
-            throw new Error(`No se pudo crear la cita: ${appointmentError.message}`);
-          }
+          console.error('AppointmentRequests: Error creating appointment:', appointmentError);
+          throw new Error(`No se pudo crear la cita: ${appointmentError.message}`);
         }
 
-        console.log('Appointment created successfully:', appointmentData);
-
-        // Create Jitsi meeting for the appointment
-        try {
-          const patientName = request.patient 
-            ? `${request.patient.first_name} ${request.patient.last_name}`
-            : 'Paciente';
-          const psychologistName = `${psychologist.first_name} ${psychologist.last_name}`;
-          
-          await createJitsiMeeting(
-            appointmentData.id,
-            patientName,
-            psychologistName,
-            appointmentDate.toISOString()
-          );
-
-          console.log('Jitsi meeting created and linked to appointment');
-        } catch (meetingError) {
-          console.error('Error creating Jitsi meeting:', meetingError);
-          // Don't fail the whole process if meeting creation fails
-          toast({
-            title: "Advertencia",
-            description: "La cita se creó pero hubo un problema al crear la reunión virtual. Puedes crear el enlace manualmente.",
-            variant: "destructive"
-          });
-        }
+        console.log('AppointmentRequests: Appointment created successfully:', appointmentData);
       }
 
       // Update the request status
@@ -289,23 +211,26 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         .eq('id', requestId);
 
       if (updateError) {
-        console.error('Error updating request:', updateError);
+        console.error('AppointmentRequests: Error updating request:', updateError);
         throw new Error('No se pudo actualizar la solicitud');
       }
+
+      console.log('AppointmentRequests: Request status updated successfully');
 
       const actionLabel = action === 'approved' ? 'aprobada y programada' : 'rechazada';
       toast({
         title: `Solicitud ${actionLabel}`,
         description: action === 'approved' 
-          ? 'La cita ha sido creada con reunión virtual incluida. El horario ahora está bloqueado para otros pacientes.'
+          ? 'La cita ha sido creada exitosamente.'
           : 'La solicitud de cita ha sido rechazada.',
       });
 
       // Refresh the requests list and notify parent component
       await fetchRequests();
       onRequestProcessed?.();
+      
     } catch (error) {
-      console.error('Error processing request:', error);
+      console.error('AppointmentRequests: Error processing request:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       toast({
         title: "Error",
@@ -349,7 +274,10 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
     }
   };
 
+  console.log('AppointmentRequests: Rendering component. Loading:', loading, 'Requests count:', requests.length);
+
   if (loading) {
+    console.log('AppointmentRequests: Rendering loading state');
     return (
       <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
@@ -361,6 +289,8 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
       </Card>
     );
   }
+
+  console.log('AppointmentRequests: Rendering main content with', requests.length, 'requests');
 
   return (
     <Card className="border-0 shadow-lg">
@@ -390,9 +320,13 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         </div>
       </CardHeader>
       <CardContent>
+        {/* Debug info */}
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
             <strong>Debug info:</strong> Mostrando {requests.length} solicitudes para psicólogo ID: {psychologist?.id}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            Estado: {loading ? 'Cargando' : 'Cargado'} | Refreshing: {refreshing ? 'Sí' : 'No'}
           </p>
         </div>
         
