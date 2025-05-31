@@ -181,8 +181,11 @@ export const AdminPanel = () => {
 
     try {
       setUpdating(true);
-      console.log('Updating plan type:', { selectedPsychologist, newPlanType });
+      console.log('=== UPDATING PLAN TYPE ===');
+      console.log('Psychologist ID:', selectedPsychologist);
+      console.log('New plan type:', newPlanType);
 
+      // Actualizar en la base de datos
       const { error } = await supabase
         .from('psychologists')
         .update({ 
@@ -196,30 +199,44 @@ export const AdminPanel = () => {
         throw error;
       }
 
-      // Disparar múltiples eventos para asegurar sincronización
-      const eventDetail = { psychologistId: selectedPsychologist, newPlan: newPlanType };
+      console.log('Plan type updated successfully in database');
+
+      // Crear el evento con todos los detalles necesarios
+      const eventDetail = { 
+        psychologistId: selectedPsychologist, 
+        newPlan: newPlanType,
+        timestamp: Date.now()
+      };
       
-      // Disparar eventos inmediatamente
+      console.log('Dispatching events with detail:', eventDetail);
+
+      // Disparar MÚLTIPLES eventos para asegurar que se capture
       window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
       window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
+      window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
       
-      // Disparar eventos con delay para asegurar propagación
+      // Disparar eventos adicionales con diferentes delays para asegurar propagación
       setTimeout(() => {
+        console.log('Dispatching delayed events...');
         window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
         window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
-      }, 100);
+        window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
+      }, 50);
       
       setTimeout(() => {
+        console.log('Dispatching final delayed events...');
         window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
         window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
-      }, 500);
+        window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
+      }, 200);
 
       toast({
         title: "Plan actualizado",
         description: `El plan ha sido cambiado a ${newPlanType.toUpperCase()}`,
       });
 
-      // Forzar refresh agresivo
+      // Forzar refresh inmediato y agresivo
+      console.log('Forcing immediate refresh...');
       await forceRefresh();
       
       // Limpiar formulario
@@ -452,7 +469,7 @@ export const AdminPanel = () => {
                 disabled={updating || !selectedPsychologist || !newPlanType}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               >
-                {updating ? 'Actualizando...' : 'Cambiar Plan'}
+                {updating ? 'Actualizando...' : 'Cambiar Plan ⚡'}
               </Button>
             </CardContent>
           </Card>

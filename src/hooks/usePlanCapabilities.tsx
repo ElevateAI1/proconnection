@@ -26,13 +26,14 @@ export const usePlanCapabilities = () => {
     }
 
     try {
-      console.log('=== FETCHING PLAN CAPABILITIES ===');
+      console.log('=== FETCHING PLAN CAPABILITIES (FORCED) ===');
       console.log('Psychologist ID:', psychologist.id);
       console.log('Force refresh:', forceRefresh);
       
       setLoading(true);
       setError(null);
       
+      // SIEMPRE hacer una consulta fresca - no cache
       const { data, error } = await supabase.rpc('get_plan_capabilities', {
         psychologist_id: psychologist.id
       });
@@ -83,54 +84,63 @@ export const usePlanCapabilities = () => {
     fetchCapabilities();
   }, [fetchCapabilities]);
 
-  // Escuchar cambios de plan
+  // Escuchar cambios de plan con refresco INMEDIATO
   useEffect(() => {
     const handlePlanUpdate = () => {
-      console.log('Plan update event received, refreshing capabilities...');
-      refreshProfile(); // Refrescar perfil primero
-      setTimeout(() => {
-        fetchCapabilities(true); // Luego refrescar capacidades
-      }, 500);
+      console.log('=== PLAN UPDATE EVENT - IMMEDIATE REFRESH ===');
+      // Refrescar perfil INMEDIATAMENTE
+      refreshProfile();
+      // Refrescar capacidades INMEDIATAMENTE
+      fetchCapabilities(true);
     };
 
     const handleAdminPlanUpdate = (event: CustomEvent) => {
       const { psychologistId } = event.detail;
       if (psychologist?.id === psychologistId) {
-        console.log('Admin plan update event for this psychologist, refreshing...');
-        refreshProfile(); // Refrescar perfil primero
-        setTimeout(() => {
-          fetchCapabilities(true); // Luego refrescar capacidades
-        }, 500);
+        console.log('=== ADMIN PLAN UPDATE - IMMEDIATE REFRESH ===');
+        console.log('Target psychologist:', psychologistId);
+        console.log('Current psychologist:', psychologist.id);
+        
+        // Refrescar INMEDIATAMENTE sin delays
+        refreshProfile();
+        fetchCapabilities(true);
       }
     };
 
+    // Escuchar múltiples eventos
     window.addEventListener('planUpdated', handlePlanUpdate);
     window.addEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+    window.addEventListener('forceRefreshCapabilities', handlePlanUpdate);
     
     return () => {
       window.removeEventListener('planUpdated', handlePlanUpdate);
       window.removeEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+      window.removeEventListener('forceRefreshCapabilities', handlePlanUpdate);
     };
   }, [psychologist?.id, fetchCapabilities, refreshProfile]);
 
   const refreshCapabilities = useCallback(() => {
-    console.log('Manually refreshing plan capabilities...');
-    refreshProfile(); // Refrescar perfil primero
-    setTimeout(() => {
-      fetchCapabilities(true); // Luego refrescar capacidades
-    }, 500);
+    console.log('=== MANUAL REFRESH CAPABILITIES ===');
+    refreshProfile();
+    fetchCapabilities(true);
   }, [fetchCapabilities, refreshProfile]);
 
   const hasCapability = useCallback((capability: keyof PlanCapabilities): boolean => {
-    return capabilities?.[capability] ?? false;
+    const result = capabilities?.[capability] ?? false;
+    console.log(`Checking capability ${capability}:`, result);
+    return result;
   }, [capabilities]);
 
   const isPlusUser = useCallback(() => {
-    return capabilities?.basic_features && !capabilities?.seo_profile;
+    const result = capabilities?.basic_features && !capabilities?.seo_profile;
+    console.log('isPlusUser check:', result, capabilities);
+    return result;
   }, [capabilities]);
 
   const isProUser = useCallback(() => {
-    return capabilities?.seo_profile && capabilities?.advanced_reports;
+    const result = capabilities?.seo_profile && capabilities?.advanced_reports;
+    console.log('isProUser check:', result, capabilities);
+    return result;
   }, [capabilities]);
 
   return {

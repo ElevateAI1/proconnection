@@ -38,29 +38,42 @@ export const Dashboard = ({ onViewChange }: DashboardProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Escuchar eventos de actualización de plan
+  // Escuchar eventos de actualización de plan CON REFRESH INMEDIATO
   useEffect(() => {
     const handlePlanUpdate = () => {
-      console.log('Dashboard: Plan update event received, refreshing data...');
+      console.log('Dashboard: Plan update event received - IMMEDIATE REFRESH');
       refreshProfile();
       refreshCapabilities();
     };
 
     const handleAdminPlanUpdate = (event: CustomEvent) => {
       const { psychologistId } = event.detail;
+      console.log('Dashboard: Admin plan update event:', event.detail);
+      console.log('Current psychologist ID:', psychologist?.id);
+      console.log('Target psychologist ID:', psychologistId);
+      
       if (psychologist?.id === psychologistId) {
-        console.log('Dashboard: Admin plan update for this psychologist, refreshing...');
+        console.log('Dashboard: MATCH! Refreshing immediately...');
         refreshProfile();
         refreshCapabilities();
       }
     };
 
+    const handleForceRefresh = () => {
+      console.log('Dashboard: Force refresh event received');
+      refreshProfile();
+      refreshCapabilities();
+    };
+
+    // Escuchar múltiples tipos de eventos
     window.addEventListener('planUpdated', handlePlanUpdate);
     window.addEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+    window.addEventListener('forceRefreshCapabilities', handleForceRefresh);
     
     return () => {
       window.removeEventListener('planUpdated', handlePlanUpdate);
       window.removeEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+      window.removeEventListener('forceRefreshCapabilities', handleForceRefresh);
     };
   }, [psychologist?.id, refreshProfile, refreshCapabilities]);
 
@@ -170,19 +183,26 @@ export const Dashboard = ({ onViewChange }: DashboardProps) => {
   }
 
   const getPlanIcon = () => {
-    console.log('Dashboard: Getting plan icon - isProUser:', isProUser(), 'isPlusUser:', isPlusUser());
-    if (isProUser()) {
+    const isProUserValue = isProUser();
+    const isPlusUserValue = isPlusUser();
+    console.log('Dashboard: Getting plan icon - isProUser:', isProUserValue, 'isPlusUser:', isPlusUserValue);
+    console.log('Dashboard: Current capabilities:', capabilities);
+    
+    if (isProUserValue) {
       return <Crown className="w-5 h-5 text-purple-500" />;
-    } else if (isPlusUser()) {
+    } else if (isPlusUserValue) {
       return <Zap className="w-5 h-5 text-blue-500" />;
     }
     return <Users className="w-5 h-5 text-gray-500" />;
   };
 
   const getPlanName = () => {
-    console.log('Dashboard: Getting plan name - isProUser:', isProUser(), 'isPlusUser:', isPlusUser());
-    if (isProUser()) return "PRO";
-    if (isPlusUser()) return "PLUS";
+    const isProUserValue = isProUser();
+    const isPlusUserValue = isPlusUser();
+    console.log('Dashboard: Getting plan name - isProUser:', isProUserValue, 'isPlusUser:', isPlusUserValue);
+    
+    if (isProUserValue) return "PRO";
+    if (isPlusUserValue) return "PLUS";
     return "BASIC";
   };
 
