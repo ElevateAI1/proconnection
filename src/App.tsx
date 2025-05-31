@@ -1,50 +1,73 @@
+import React, { useState, useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom';
+import { AuthPage } from '@/components/AuthPage';
+import { Index } from '@/pages/Index';
+import { RegisterPage } from '@/pages/RegisterPage';
+import { DemoPage } from '@/pages/DemoPage';
+import { AdminLogin } from '@/pages/AdminLogin';
+import { AdminDashboard } from '@/pages/AdminDashboard';
+import { NotFound } from '@/pages/NotFound';
+import { Toaster } from '@/components/ui/toaster';
+import { useAuth } from '@/hooks/useAuth';
+import { AdminRoute } from '@/components/AdminRoute';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LandingPage } from './pages/LandingPage';
+import { HelmetProvider } from 'react-helmet-async';
+import { PublicProfilePage } from "@/pages/PublicProfilePage";
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import { LandingPage } from "./pages/LandingPage";
-import { DemoPage } from "./pages/DemoPage";
-import { AuthPage } from "./pages/AuthPage";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import { AdminLogin } from "./pages/AdminLogin";
-import { AdminDashboard } from "./pages/AdminDashboard";
-import { AdminRoute } from "./components/AdminRoute";
-import { RegisterPage } from "./pages/RegisterPage";
+function App() {
+  const [queryClient] = useState(() => new QueryClient());
+  const { session } = useAuth();
+  const location = useLocation();
 
-const queryClient = new QueryClient();
+  useEffect(() => {
+    // Track page view in Supabase
+    // Disabled for now to avoid spamming
+    // if (session?.user) {
+    //   supabase.from('page_views').insert({
+    //     user_id: session.user.id,
+    //     path: location.pathname,
+    //   }).then(() => {
+    //     console.log('Page view tracked');
+    //   });
+    // }
+  }, [location, session]);
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/app" element={<Index />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route 
-              path="/admin/dashboard" 
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } 
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/perfil/:profileUrl" element={<PublicProfilePage />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } 
+              />
+              <Route path="/404" element={<NotFound />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+          <Toaster />
+        </Router>
+      </HelmetProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

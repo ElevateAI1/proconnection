@@ -888,6 +888,73 @@ export type Database = {
           },
         ]
       }
+      public_psychologist_profiles: {
+        Row: {
+          created_at: string
+          custom_url: string
+          id: string
+          is_active: boolean
+          last_viewed_at: string | null
+          profile_data: Json
+          psychologist_id: string
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          custom_url: string
+          id?: string
+          is_active?: boolean
+          last_viewed_at?: string | null
+          profile_data?: Json
+          psychologist_id: string
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          custom_url?: string
+          id?: string
+          is_active?: boolean
+          last_viewed_at?: string | null
+          profile_data?: Json
+          psychologist_id?: string
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_psychologist_profiles_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_admin_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_psychologist_profiles_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologist_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_psychologist_profiles_psychologist_id_fkey"
+            columns: ["psychologist_id"]
+            isOneToOne: false
+            referencedRelation: "psychologists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string
@@ -1044,6 +1111,28 @@ export type Database = {
           },
         ]
       }
+      public_profile_view: {
+        Row: {
+          config_custom_url: string | null
+          config_description: string | null
+          config_keywords: string | null
+          config_title: string | null
+          custom_url: string | null
+          first_name: string | null
+          id: string | null
+          is_active: boolean | null
+          last_name: string | null
+          last_viewed_at: string | null
+          professional_code: string | null
+          profile_data: Json | null
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
+          specialization: string | null
+          view_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_update_plan_type: {
@@ -1085,6 +1174,10 @@ export type Database = {
       get_trial_days_remaining: {
         Args: { psychologist_id: string }
         Returns: number
+      }
+      increment_profile_view: {
+        Args: { profile_url: string }
+        Returns: undefined
       }
       is_admin_user: {
         Args: { user_id: string }
