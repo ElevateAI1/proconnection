@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +87,7 @@ export const PatientPortal = () => {
       if (requestsError) {
         console.error('Error fetching appointment requests:', requestsError);
       } else {
+        console.log('Fetched appointment requests:', requestsData);
         setAppointmentRequests(requestsData || []);
       }
 
@@ -403,7 +403,7 @@ export const PatientPortal = () => {
           </TabsContent>
 
           <TabsContent value="messages">
-            <PatientMessaging />
+            <PatientMessaging onBack={() => setActiveTab("overview")} />
           </TabsContent>
 
           <TabsContent value="documents">
