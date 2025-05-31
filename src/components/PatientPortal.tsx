@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MessageSquare, FileText, User, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, MessageSquare, FileText, User, CheckCircle, XCircle, AlertCircle, LogOut } from "lucide-react";
 import { PatientMessaging } from "./PatientMessaging";
 import { DocumentsSection } from "./DocumentsSection";
 import { PatientAppointmentRequestForm } from "./PatientAppointmentRequestForm";
@@ -32,12 +33,14 @@ interface AppointmentRequest {
 
 export const PatientPortal = () => {
   const { patient, loading: profileLoading } = useProfile();
+  const { signOut } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [appointmentRequests, setAppointmentRequests] = useState<AppointmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (patient?.id) {
@@ -177,6 +180,18 @@ export const PatientPortal = () => {
     );
   };
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      console.log('Logging out patient');
+      await signOut();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   if (profileLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center">
@@ -203,13 +218,25 @@ export const PatientPortal = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800">
-            Hola, {patient.first_name}
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Bienvenido a tu portal personal
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">
+              Hola, {patient.first_name}
+            </h1>
+            <p className="text-slate-600 mt-1">
+              Bienvenido a tu portal personal
+            </p>
+          </div>
+          
+          <Button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            variant="outline"
+            className="flex items-center gap-2 text-slate-600 hover:text-red-700 hover:border-red-300"
+          >
+            <LogOut size={16} />
+            {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
