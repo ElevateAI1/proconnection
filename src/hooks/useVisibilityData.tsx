@@ -143,7 +143,19 @@ export const useVisibilityData = () => {
         return;
       }
 
-      setDirectories(data || []);
+      // Mapear los datos de la DB a nuestro tipo con validación de status
+      const mappedDirectories: DirectoryEntry[] = (data || []).map(item => ({
+        directory_id: item.directory_id,
+        directory_name: item.directory_name,
+        status: ['not_registered', 'pending', 'registered'].includes(item.status) 
+          ? item.status as 'not_registered' | 'pending' | 'registered'
+          : 'not_registered',
+        registration_date: item.registration_date,
+        profile_url: item.profile_url,
+        notes: item.notes
+      }));
+
+      setDirectories(mappedDirectories);
     } catch (error) {
       console.error('Exception loading directories:', error);
     }
@@ -204,7 +216,20 @@ export const useVisibilityData = () => {
         return;
       }
 
-      setSocialPlatforms(data || []);
+      // Mapear los datos de la DB a nuestro tipo con validación de status
+      const mappedPlatforms: SocialPlatform[] = (data || []).map(item => ({
+        platform_id: item.platform_id,
+        platform_name: item.platform_name,
+        status: ['inactive', 'planned', 'active'].includes(item.status)
+          ? item.status as 'inactive' | 'planned' | 'active'
+          : 'inactive',
+        profile_url: item.profile_url,
+        content_strategy: item.content_strategy,
+        posting_frequency: item.posting_frequency,
+        target_audience: item.target_audience
+      }));
+
+      setSocialPlatforms(mappedPlatforms);
     } catch (error) {
       console.error('Exception loading social platforms:', error);
     }
@@ -298,7 +323,17 @@ export const useVisibilityData = () => {
         return;
       }
 
-      setModuleScores(data || []);
+      // Mapear los datos de la DB a nuestro tipo con validación de module_type
+      const mappedScores: ModuleScore[] = (data || []).map(item => ({
+        module_type: ['profile', 'seo', 'presence', 'social'].includes(item.module_type)
+          ? item.module_type as 'profile' | 'seo' | 'presence' | 'social'
+          : 'profile',
+        score: item.score,
+        completed: item.completed,
+        module_data: item.module_data
+      }));
+
+      setModuleScores(mappedScores);
     } catch (error) {
       console.error('Exception loading module scores:', error);
     }

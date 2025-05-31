@@ -10,6 +10,7 @@ import { ProfileAuditModule } from './visibility/ProfileAuditModule';
 import { SeoConfigModule } from './visibility/SeoConfigModule';
 import { OnlinePresenceModule } from './visibility/OnlinePresenceModule';
 import { SocialStrategyModule } from './visibility/SocialStrategyModule';
+import { useVisibilityData } from '@/hooks/useVisibilityData';
 
 type ModuleType = 'profile' | 'seo' | 'presence' | 'social' | null;
 
