@@ -12,11 +12,14 @@ import { Sidebar } from "@/components/Sidebar";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const { profile, psychologist, patient, loading: profileLoading } = useProfile();
   const [currentView, setCurrentView] = useState<"dashboard" | "patients" | "calendar" | "messages" | "affiliates">("dashboard");
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [checkingTrial, setCheckingTrial] = useState(false);
 
   useEffect(() => {
     if (!user && !loading) {
@@ -30,7 +33,34 @@ const Index = () => {
     }
   }, [user, profile, loading, profileLoading]);
 
-  if (loading || profileLoading) {
+  useEffect(() => {
+    const checkTrialStatus = async () => {
+      if (psychologist && psychologist.subscription_status === 'trial') {
+        setCheckingTrial(true);
+        try {
+          const { data, error } = await supabase.rpc('is_trial_expired', {
+            psychologist_id: psychologist.id
+          });
+          
+          if (error) {
+            console.error('Error checking trial status:', error);
+          } else {
+            setIsTrialExpired(data === true);
+          }
+        } catch (error) {
+          console.error('Error checking trial expiration:', error);
+        } finally {
+          setCheckingTrial(false);
+        }
+      } else {
+        setIsTrialExpired(false);
+      }
+    };
+
+    checkTrialStatus();
+  }, [psychologist]);
+
+  if (loading || profileLoading || checkingTrial) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -79,7 +109,9 @@ const Index = () => {
             {renderPsychologistContent()}
           </div>
         </div>
-        <TrialExpiredModal onUpgrade={() => console.log('Upgrade triggered')} />
+        {isTrialExpired && (
+          <TrialExpiredModal onUpgrade={() => console.log('Upgrade triggered')} />
+        )}
       </div>
     );
   }
