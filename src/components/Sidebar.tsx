@@ -17,7 +17,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 
 interface SidebarProps {
   currentView: string;
-  onViewChange: (view: "dashboard" | "patients" | "calendar" | "messages") => void;
+  onViewChange: (view: "dashboard" | "patients" | "calendar" | "messages" | "affiliates") => void;
 }
 
 export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
@@ -65,7 +65,7 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
 
   return (
     <>
-      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl border-r border-slate-200 z-50">
+      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl border-r border-slate-200 z-50 flex flex-col">
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
@@ -80,7 +80,7 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 flex-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -101,7 +101,7 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-4 right-4 space-y-2">
+        <div className="p-4 border-t border-slate-200 space-y-2">
           <Link to="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
             <Home size={20} />
             <span className="font-medium">Inicio</span>
