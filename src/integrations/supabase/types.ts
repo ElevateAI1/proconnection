@@ -802,6 +802,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_update_plan_type: {
+        Args: { psychologist_id: string; new_plan_type: string }
+        Returns: undefined
+      }
       admin_update_subscription_status: {
         Args: {
           psychologist_id: string

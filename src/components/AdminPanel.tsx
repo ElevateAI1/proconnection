@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -190,25 +189,41 @@ export const AdminPanel = () => {
 
     try {
       setUpdating(true);
-      console.log('=== ACTUALIZANDO PLAN SIMPLIFICADO ===');
+      console.log('=== USANDO FUNCIÓN RPC PARA ACTUALIZAR PLAN ===');
       console.log('Psychologist ID:', selectedPsychologist);
       console.log('New plan type:', newPlanType);
 
-      // Actualizar directamente la tabla psychologists
-      const { error: updateError } = await supabase
-        .from('psychologists')
-        .update({ 
-          plan_type: newPlanType,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedPsychologist);
+      // Usar la función RPC para actualizar el plan de manera confiable
+      const { error: rpcError } = await supabase.rpc('admin_update_plan_type', {
+        psychologist_id: selectedPsychologist,
+        new_plan_type: newPlanType
+      });
 
-      if (updateError) {
-        console.error('Error updating plan type:', updateError);
-        throw updateError;
+      if (rpcError) {
+        console.error('Error updating plan with RPC:', rpcError);
+        throw rpcError;
       }
 
-      console.log('Plan actualizado exitosamente en la base de datos');
+      console.log('✅ Plan actualizado exitosamente usando función RPC');
+
+      // Verificar que la actualización se realizó
+      const { data: verification, error: verifyError } = await supabase
+        .from('psychologists')
+        .select('plan_type')
+        .eq('id', selectedPsychologist)
+        .single();
+
+      if (verifyError) {
+        console.error('Error verifying update:', verifyError);
+      } else {
+        console.log('✅ VERIFICACIÓN: Plan type en DB es:', verification?.plan_type);
+        
+        if (verification?.plan_type === newPlanType) {
+          console.log('✅ CONFIRMADO: El plan se actualizó correctamente en la base de datos');
+        } else {
+          console.warn('⚠️ WARNING: Plan en DB no coincide con el esperado');
+        }
+      }
 
       // Disparar eventos de actualización
       window.dispatchEvent(new CustomEvent('planUpdated'));
@@ -217,14 +232,15 @@ export const AdminPanel = () => {
       }));
       window.dispatchEvent(new CustomEvent('forceRefreshCapabilities'));
 
-      // Forzar múltiples refreshes
+      // Forzar múltiples refreshes para asegurar UI actualizada
       forceRefresh();
       setTimeout(() => forceRefresh(), 1000);
       setTimeout(() => forceRefresh(), 3000);
+      setTimeout(() => forceRefresh(), 5000);
 
       toast({
-        title: "¡Plan actualizado!",
-        description: `El plan ${newPlanType.toUpperCase()} ha sido aplicado exitosamente`,
+        title: "¡Plan actualizado exitosamente!",
+        description: `El plan ${newPlanType.toUpperCase()} ha sido aplicado y verificado en la base de datos`,
       });
       
       // Limpiar formulario
