@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -46,7 +47,7 @@ const Index = () => {
   }
 
   if (!profile) {
-    return <ProfileSetup />;
+    return <ProfileSetup userType="psychologist" onComplete={() => window.location.reload()} />;
   }
 
   if (profile?.user_type === 'patient' && patient) {
@@ -79,7 +80,7 @@ const Index = () => {
             {renderPsychologistContent()}
           </div>
         </div>
-        <TrialExpiredModal />
+        <TrialExpiredModal onUpgrade={() => console.log('Upgrade triggered')} />
       </div>
     );
   }

@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Check, X, FileText, RefreshCw, Video } from "lucide-react";
+import { Calendar, Clock, User, Check, X, FileText, RefreshCw, Video, ChevronRight } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -28,9 +27,10 @@ interface AppointmentRequest {
 
 interface AppointmentRequestsProps {
   onRequestProcessed?: () => void;
+  maxDisplayItems?: number;
 }
 
-export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsProps) => {
+export const AppointmentRequests = ({ onRequestProcessed, maxDisplayItems = 3 }: AppointmentRequestsProps) => {
   const { psychologist } = useProfile();
   const [requests, setRequests] = useState<AppointmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,21 +62,7 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
       
       setLoading(true);
 
-      // First, let's see ALL requests in the database for debugging
-      const { data: allRequests, error: allError } = await supabase
-        .from('appointment_requests')
-        .select('*');
-
-      console.log('AppointmentRequests: ALL requests in database:', allRequests);
-      console.log('AppointmentRequests: Total requests in DB:', allRequests?.length || 0);
-
-      if (allRequests) {
-        const myRequests = allRequests.filter(r => r.psychologist_id === psychologist.id);
-        console.log('AppointmentRequests: My requests (filtered):', myRequests);
-        console.log('AppointmentRequests: Number of my requests:', myRequests.length);
-      }
-
-      // Now fetch properly with patient data
+      // Fetch properly with patient data
       const { data, error } = await supabase
         .from('appointment_requests')
         .select(`
@@ -276,6 +262,11 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
 
   console.log('AppointmentRequests: Rendering component. Loading:', loading, 'Requests count:', requests.length);
 
+  // Filter requests to show only pending ones and limit to maxDisplayItems
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const displayedRequests = pendingRequests.slice(0, maxDisplayItems);
+  const hasMoreRequests = pendingRequests.length > maxDisplayItems;
+
   if (loading) {
     console.log('AppointmentRequests: Rendering loading state');
     return (
@@ -290,7 +281,7 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
     );
   }
 
-  console.log('AppointmentRequests: Rendering main content with', requests.length, 'requests');
+  console.log('AppointmentRequests: Rendering main content with', displayedRequests.length, 'requests');
 
   return (
     <Card className="border-0 shadow-lg">
@@ -301,9 +292,9 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
             <CardTitle className="text-slate-800">
               Solicitudes de Citas
             </CardTitle>
-            {requests.length > 0 && (
+            {pendingRequests.length > 0 && (
               <Badge variant="secondary" className="ml-2">
-                {requests.length}
+                {pendingRequests.length}
               </Badge>
             )}
           </div>
@@ -320,25 +311,15 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
         </div>
       </CardHeader>
       <CardContent>
-        {/* Debug info */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Debug info:</strong> Mostrando {requests.length} solicitudes para psicólogo ID: {psychologist?.id}
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            Estado: {loading ? 'Cargando' : 'Cargado'} | Refreshing: {refreshing ? 'Sí' : 'No'}
-          </p>
-        </div>
-        
-        {requests.length === 0 ? (
+        {displayedRequests.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No hay solicitudes de citas</p>
+            <p>No hay solicitudes de citas pendientes</p>
             <p className="text-sm">Las nuevas solicitudes aparecerán aquí automáticamente</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {requests.map((request) => (
+            {displayedRequests.map((request) => (
               <div key={request.id} className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -355,9 +336,6 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
                         </h4>
                         <p className="text-sm text-slate-600">
                           Solicitud enviada el {formatCreatedDate(request.created_at)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Status: {request.status} | ID: {request.id}
                         </p>
                       </div>
                     </div>
@@ -422,6 +400,22 @@ export const AppointmentRequests = ({ onRequestProcessed }: AppointmentRequestsP
                 </div>
               </div>
             ))}
+            
+            {hasMoreRequests && (
+              <div className="text-center py-4 border-t border-slate-200">
+                <p className="text-sm text-slate-600 mb-2">
+                  Mostrando {displayedRequests.length} de {pendingRequests.length} solicitudes pendientes
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  <span>Ver todas las solicitudes</span>
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
