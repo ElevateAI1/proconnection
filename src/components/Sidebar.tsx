@@ -1,138 +1,199 @@
 
-import { cn } from "@/lib/utils";
-import { Calendar, MessageCircle, Users, BarChart3, Settings, Home, LogOut, UserCheck } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { LogOut, Calendar, Users, MessageCircle, DollarSign, Settings, Crown, Zap, BarChart3, Headphones, Rocket, Eye, TrendingUp, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { usePlanCapabilities } from "@/hooks/usePlanCapabilities";
 import { SettingsModal } from "@/components/SettingsModal";
+import { PlanBadge } from "@/components/PlanBadge";
+
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
 
 interface SidebarProps {
-  currentView: string;
-  onViewChange: (view: "dashboard" | "patients" | "calendar" | "messages" | "affiliates") => void;
+  currentView: ViewType;
+  onViewChange: (view: ViewType) => void;
 }
 
 export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
   const { signOut } = useAuth();
   const { psychologist } = useProfile();
+  const { isPlusUser, isProUser } = usePlanCapabilities();
   const [showSettings, setShowSettings] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "patients", label: "Pacientes", icon: Users },
-    { id: "calendar", label: "Calendario", icon: Calendar },
-    { id: "messages", label: "Mensajes", icon: MessageCircle },
-    { id: "affiliates", label: "Afiliados", icon: UserCheck },
+    { 
+      id: "dashboard" as ViewType, 
+      label: "Dashboard", 
+      icon: Home,
+      available: true
+    },
+    { 
+      id: "patients" as ViewType, 
+      label: "Pacientes", 
+      icon: Users,
+      available: true
+    },
+    { 
+      id: "calendar" as ViewType, 
+      label: "Calendario", 
+      icon: Calendar,
+      available: true
+    },
+    { 
+      id: "messages" as ViewType, 
+      label: "Mensajes", 
+      icon: MessageCircle,
+      available: true
+    },
+    { 
+      id: "affiliates" as ViewType, 
+      label: "Afiliados", 
+      icon: DollarSign,
+      available: true
+    },
   ];
 
-  const handleLogout = async () => {
-    try {
-      setIsLoggingOut(true);
-      console.log('Logging out user');
-      await signOut();
-    } catch (error) {
-      console.error('Error logging out:', error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  const handleSettingsClick = () => {
-    setShowSettings(true);
-  };
-
-  // Obtener el nombre del psicólogo o mostrar un fallback
-  const psychologistName = psychologist 
-    ? `Dr. ${psychologist.first_name} ${psychologist.last_name}`
-    : "Dr. Usuario";
-
-  // Obtener las iniciales para el avatar
-  const getInitials = () => {
-    if (psychologist && psychologist.first_name && psychologist.last_name) {
-      return `${psychologist.first_name.charAt(0)}${psychologist.last_name.charAt(0)}`;
-    }
-    return "Dr";
-  };
+  const proMenuItems = [
+    { 
+      id: "seo" as ViewType, 
+      label: "Perfil SEO", 
+      icon: TrendingUp,
+      available: isProUser()
+    },
+    { 
+      id: "reports" as ViewType, 
+      label: "Reportes", 
+      icon: BarChart3,
+      available: isProUser()
+    },
+    { 
+      id: "support" as ViewType, 
+      label: "Soporte", 
+      icon: Headphones,
+      available: isProUser()
+    },
+    { 
+      id: "early-access" as ViewType, 
+      label: "Acceso Anticipado", 
+      icon: Rocket,
+      available: isProUser()
+    },
+    { 
+      id: "visibility" as ViewType, 
+      label: "Consultoría", 
+      icon: Eye,
+      available: isProUser()
+    },
+  ];
 
   return (
-    <>
-      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl border-r border-slate-200 z-50 flex flex-col">
-        <div className="p-6 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">{getInitials()}</span>
-            </div>
-            <div>
-              <h2 className="font-semibold text-slate-800">{psychologistName}</h2>
-              <p className="text-sm text-slate-600">
-                {psychologist?.specialization || "Psicólogo Clínico"}
-              </p>
-            </div>
+    <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r border-slate-200 flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-slate-200">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold">
+            {psychologist?.first_name?.charAt(0) || 'P'}
+          </div>
+          <div className="flex-1">
+            <h2 className="font-semibold text-slate-800 truncate">
+              Dr. {psychologist?.first_name}
+            </h2>
+            <p className="text-sm text-slate-500 truncate">
+              {psychologist?.professional_code}
+            </p>
           </div>
         </div>
+        <PlanBadge />
+      </div>
 
-        <nav className="p-4 space-y-2 flex-1">
+      {/* Navigation Menu */}
+      <nav className="flex-1 p-4 space-y-1">
+        <div className="mb-4">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            Principal
+          </h3>
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
-                onClick={() => onViewChange(item.id as any)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
+                onClick={() => onViewChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                   currentView === item.id
-                    ? "bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                )}
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
               >
-                <Icon size={20} />
+                <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
               </button>
             );
           })}
-        </nav>
-
-        <div className="p-4 border-t border-slate-200 space-y-2">
-          <Link to="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
-            <Home size={20} />
-            <span className="font-medium">Inicio</span>
-          </Link>
-          
-          <button 
-            onClick={handleSettingsClick}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <Settings size={20} />
-            <span className="font-medium">Configuración</span>
-          </button>
-
-          <button 
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <LogOut size={20} />
-            <span className="font-medium">
-              {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
-            </span>
-          </button>
         </div>
+
+        {/* Pro Features */}
+        {isProUser() && (
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Crown className="w-3 h-3 text-purple-500" />
+              Pro Features
+            </h3>
+            {proMenuItems.map((item) => {
+              if (!item.available) return null;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onViewChange(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                    currentView === item.id
+                      ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                      : 'text-slate-600 hover:bg-purple-50'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-slate-200 space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowSettings(true)}
+          className="w-full justify-start"
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Configuración
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSignOut}
+          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Cerrar Sesión
+        </Button>
       </div>
 
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
-      />
-    </>
+      {showSettings && (
+        <SettingsModal 
+          isOpen={showSettings} 
+          onClose={() => setShowSettings(false)} 
+        />
+      )}
+    </div>
   );
 };

@@ -1,67 +1,39 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { AuthPage } from "@/components/AuthPage";
-import { PatientPortal } from "@/components/PatientPortal";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
+import { CalendarView } from "@/components/CalendarView";
 import { MessagingHub } from "@/components/MessagingHub";
 import { AffiliateSystem } from "@/components/AffiliateSystem";
+import { SeoProfileManager } from "@/components/SeoProfileManager";
+import { AdvancedReports } from "@/components/AdvancedReports";
+import { PrioritySupport } from "@/components/PrioritySupport";
+import { EarlyAccess } from "@/components/EarlyAccess";
+import { VisibilityConsulting } from "@/components/VisibilityConsulting";
 import { Sidebar } from "@/components/Sidebar";
-import { DashboardOverview } from "@/components/DashboardOverview";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
-import { Calendar } from "@/components/CalendarView";
-import { supabase } from "@/integrations/supabase/client";
 
-const Index = () => {
-  const { user, loading } = useAuth();
-  const { profile, psychologist, patient, loading: profileLoading } = useProfile();
-  const [currentView, setCurrentView] = useState<"dashboard" | "patients" | "calendar" | "messages" | "affiliates">("dashboard");
-  const [isTrialExpired, setIsTrialExpired] = useState(false);
-  const [checkingTrial, setCheckingTrial] = useState(false);
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
 
-  useEffect(() => {
-    if (!user && !loading) {
-      console.log('No user, redirecting to auth page');
-      return;
-    }
-
-    if (user && !profile && !profileLoading) {
-      console.log('User logged in, but no profile found. Redirecting to profile setup.');
-      return;
-    }
-  }, [user, profile, loading, profileLoading]);
+export default function Index() {
+  const { user, isLoading: authLoading } = useAuth();
+  const { psychologist, patient, loading: profileLoading } = useProfile();
+  const [currentView, setCurrentView] = useState<ViewType>("dashboard");
+  const [showTrialModal, setShowTrialModal] = useState(false);
 
   useEffect(() => {
-    const checkTrialStatus = async () => {
-      if (psychologist && psychologist.subscription_status === 'trial') {
-        setCheckingTrial(true);
-        try {
-          const { data, error } = await supabase.rpc('is_trial_expired', {
-            psychologist_id: psychologist.id
-          });
-          
-          if (error) {
-            console.error('Error checking trial status:', error);
-          } else {
-            setIsTrialExpired(data === true);
-          }
-        } catch (error) {
-          console.error('Error checking trial expiration:', error);
-        } finally {
-          setCheckingTrial(false);
-        }
-      } else {
-        setIsTrialExpired(false);
+    if (psychologist && psychologist.trial_end_date) {
+      const trialEndDate = new Date(psychologist.trial_end_date);
+      const now = new Date();
+      if (trialEndDate < now) {
+        setShowTrialModal(true);
       }
-    };
-
-    checkTrialStatus();
+    }
   }, [psychologist]);
 
-  if (loading || profileLoading || checkingTrial) {
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -73,57 +45,63 @@ const Index = () => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    return <div>No autorizado</div>;
   }
 
-  if (!profile) {
-    return <ProfileSetup userType="psychologist" onComplete={() => window.location.reload()} />;
+  // Show profile setup if psychologist exists but profile is incomplete
+  if (psychologist && (!psychologist.first_name || !psychologist.last_name)) {
+    return <ProfileSetup />;
   }
 
-  if (profile?.user_type === 'patient' && patient) {
-    return <PatientPortal />;
+  // Patient portal redirect (simplified for this example)
+  if (patient) {
+    return <div>Portal del Paciente (en desarrollo)</div>;
   }
 
-  if (profile?.user_type === 'psychologist' && psychologist) {
-    const renderPsychologistContent = () => {
-      switch (currentView) {
-        case "dashboard":
-          return <Dashboard onViewChange={setCurrentView} />;
-        case "patients":
-          return <PatientManagement />;
-        case "calendar":
-          return <Calendar />;
-        case "messages":
-          return <MessagingHub />;
-        case "affiliates":
-          return <AffiliateSystem />;
-        default:
-          return <Dashboard onViewChange={setCurrentView} />;
-      }
-    };
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex w-full">
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
-        <div className="flex-1 ml-64">
-          <div className="p-8">
-            {renderPsychologistContent()}
-          </div>
-        </div>
-        {isTrialExpired && (
-          <TrialExpiredModal onUpgrade={() => console.log('Upgrade triggered')} />
-        )}
-      </div>
-    );
+  if (!psychologist) {
+    return <div>Perfil de psicólogo no encontrado</div>;
   }
+
+  const handleViewChange = (view: ViewType) => {
+    setCurrentView(view);
+  };
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "dashboard":
+        return <Dashboard onViewChange={handleViewChange} />;
+      case "patients":
+        return <PatientManagement />;
+      case "calendar":
+        return <CalendarView />;
+      case "messages":
+        return <MessagingHub />;
+      case "affiliates":
+        return <AffiliateSystem />;
+      case "seo":
+        return <SeoProfileManager />;
+      case "reports":
+        return <AdvancedReports />;
+      case "support":
+        return <PrioritySupport />;
+      case "early-access":
+        return <EarlyAccess />;
+      case "visibility":
+        return <VisibilityConsulting />;
+      default:
+        return <Dashboard onViewChange={handleViewChange} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-slate-600">Error: Tipo de usuario desconocido.</p>
-      </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Sidebar currentView={currentView} onViewChange={handleViewChange} />
+      <main className="flex-1 p-6 ml-64">
+        {renderCurrentView()}
+      </main>
+      {showTrialModal && (
+        <TrialExpiredModal onClose={() => setShowTrialModal(false)} />
+      )}
     </div>
   );
-};
-
-export default Index;
+}
