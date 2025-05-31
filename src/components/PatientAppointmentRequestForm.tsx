@@ -46,6 +46,13 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
   // Obtener solo los horarios disponibles
   const availableTimeSlots = getAvailableSlots();
 
+  console.log('=== FORM STATE DEBUG ===');
+  console.log('Patient psychologist_id:', patient?.psychologist_id);
+  console.log('Selected date:', formData.preferredDate);
+  console.log('Booked slots:', bookedSlots);
+  console.log('Available slots:', availableTimeSlots);
+  console.log('Is slots loading:', slotsLoading);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -72,8 +79,12 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
       return;
     }
 
-    // Verificar disponibilidad antes de enviar
+    // VERIFICACIÓN CRÍTICA: Verificar disponibilidad antes de enviar
+    console.log('Checking slot availability for:', formData.preferredTime);
+    console.log('Is slot available?', isSlotAvailable(formData.preferredTime));
+    
     if (!isSlotAvailable(formData.preferredTime)) {
+      console.error('Slot not available:', formData.preferredTime);
       toast({
         title: "Horario no disponible",
         description: "Este horario ya no está disponible. Por favor selecciona otro.",
@@ -190,6 +201,7 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
             type="date"
             value={formData.preferredDate}
             onChange={(e) => {
+              console.log('Date changed to:', e.target.value);
               setFormData({...formData, preferredDate: e.target.value, preferredTime: ""});
             }}
             min={getMinDate()}
@@ -207,7 +219,10 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
           <Label htmlFor="preferredTime">Hora preferida *</Label>
           <Select 
             value={formData.preferredTime} 
-            onValueChange={(value) => setFormData({...formData, preferredTime: value})}
+            onValueChange={(value) => {
+              console.log('Time selected:', value);
+              setFormData({...formData, preferredTime: value});
+            }}
             disabled={!formData.preferredDate || slotsLoading}
           >
             <SelectTrigger>
@@ -222,14 +237,22 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
               } />
             </SelectTrigger>
             <SelectContent>
-              {availableTimeSlots.map((time) => (
-                <SelectItem key={time} value={time}>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {time}
-                  </div>
-                </SelectItem>
-              ))}
+              {availableTimeSlots.length > 0 ? (
+                availableTimeSlots.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      {time}
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                formData.preferredDate && !slotsLoading && (
+                  <SelectItem value="" disabled>
+                    No hay horarios disponibles
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
 
@@ -247,7 +270,7 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
             </div>
           )}
 
-          {formData.preferredDate && availableTimeSlots.length === 0 && (
+          {formData.preferredDate && availableTimeSlots.length === 0 && !slotsLoading && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600" />
@@ -301,11 +324,32 @@ export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppoi
 
         <Button
           type="submit"
-          disabled={loading || !formData.preferredDate || !formData.preferredTime || !formData.type || availableTimeSlots.length === 0}
+          disabled={
+            loading || 
+            !formData.preferredDate || 
+            !formData.preferredTime || 
+            !formData.type || 
+            availableTimeSlots.length === 0 ||
+            !isSlotAvailable(formData.preferredTime)
+          }
           className="w-full bg-gradient-to-r from-blue-500 to-emerald-500"
         >
           {loading ? "Enviando solicitud..." : "Enviar Solicitud"}
         </Button>
+
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>Psychologist ID: {patient?.psychologist_id}</p>
+            <p>Selected Date: {formData.preferredDate}</p>
+            <p>Selected Time: {formData.preferredTime}</p>
+            <p>Available Slots: [{availableTimeSlots.join(', ')}]</p>
+            <p>Booked Slots: [{bookedSlots.join(', ')}]</p>
+            <p>Slots Loading: {slotsLoading ? 'Yes' : 'No'}</p>
+            <p>Can Submit: {isSlotAvailable(formData.preferredTime) ? 'Yes' : 'No'}</p>
+          </div>
+        )}
       </form>
     </div>
   );
