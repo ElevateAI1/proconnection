@@ -7,7 +7,6 @@ import { useState } from "react";
 
 export const DemoPage = () => {
   const [currentDemo, setCurrentDemo] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   const demoFeatures = [
     {
@@ -17,10 +16,10 @@ export const DemoPage = () => {
       icon: Calendar,
       color: "blue",
       steps: [
-        "Selecciona fecha y hora disponible",
-        "El sistema verifica automáticamente conflictos",
-        "Envía recordatorios automáticos al paciente",
-        "Permite reprogramar con un solo clic"
+        "Selecciona fecha y hora disponible en el calendario",
+        "El sistema verifica automáticamente conflictos horarios",
+        "Envía recordatorios automáticos por email al paciente",
+        "Permite reprogramar o cancelar con un solo clic"
       ]
     },
     {
@@ -30,10 +29,10 @@ export const DemoPage = () => {
       icon: Users,
       color: "emerald",
       steps: [
-        "Registro completo de datos del paciente",
-        "Historial médico y notas de sesiones",
-        "Seguimiento de progreso y objetivos",
-        "Acceso rápido a información relevante"
+        "Registro completo de datos personales del paciente",
+        "Historial médico y notas detalladas de cada sesión",
+        "Seguimiento de progreso y objetivos terapéuticos",
+        "Acceso rápido a toda la información relevante"
       ]
     },
     {
@@ -43,23 +42,23 @@ export const DemoPage = () => {
       icon: MessageCircle,
       color: "purple",
       steps: [
-        "Mensajes cifrados de extremo a extremo",
-        "Notificaciones en tiempo real",
+        "Mensajes cifrados para proteger la confidencialidad",
+        "Notificaciones en tiempo real para comunicación fluida",
         "Compartir documentos de forma segura",
-        "Historial completo de conversaciones"
+        "Historial completo de todas las conversaciones"
       ]
     },
     {
       id: "video",
       title: "Consultas Virtuales",
-      description: "Videollamadas HD para sesiones remotas",
+      description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
       color: "orange",
       steps: [
-        "Videollamadas de alta calidad",
-        "Grabación de sesiones (con consentimiento)",
-        "Pizarra virtual colaborativa",
-        "Salas de espera virtuales"
+        "Videollamadas HD con conexión estable",
+        "Enlaces únicos generados automáticamente",
+        "Compatible con cualquier dispositivo",
+        "Grabación opcional con consentimiento del paciente"
       ]
     },
     {
@@ -69,10 +68,10 @@ export const DemoPage = () => {
       icon: ClipboardList,
       color: "pink",
       steps: [
-        "Formularios de evaluación personalizables",
+        "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
-        "Reportes de progreso automáticos",
-        "Integración con historial del paciente"
+        "Generación automática de reportes de progreso",
+        "Integración directa con el historial del paciente"
       ]
     },
     {
@@ -82,22 +81,20 @@ export const DemoPage = () => {
       icon: Shield,
       color: "indigo",
       steps: [
-        "Cifrado de datos en reposo y tránsito",
-        "Autenticación de dos factores",
-        "Auditoría completa de accesos",
-        "Cumplimiento HIPAA y GDPR"
+        "Cifrado de extremo a extremo para todos los datos",
+        "Autenticación segura con verificación de identidad",
+        "Auditoría completa de todos los accesos al sistema",
+        "Cumplimiento con estándares internacionales de privacidad"
       ]
     }
   ];
 
   const startDemo = (featureId: string) => {
     setCurrentDemo(featureId);
-    setIsPlaying(true);
   };
 
   const resetDemo = () => {
     setCurrentDemo(null);
-    setIsPlaying(false);
   };
 
   const currentFeature = demoFeatures.find(f => f.id === currentDemo);
@@ -108,7 +105,7 @@ export const DemoPage = () => {
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3 group">
-            <ArrowLeft className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform duration-300" />
+            <ArrowLeft className="w-5 h-5 text-blue-600 group-hover:-translate-x-1 transition-transform duration-300" />
             <span className="text-lg font-semibold text-slate-700 group-hover:text-blue-600 transition-colors duration-300">
               Volver al inicio
             </span>
@@ -119,7 +116,7 @@ export const DemoPage = () => {
               <Play className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-              Demo Interactiva
+              Demostración de Funcionalidades
             </h1>
           </div>
 
@@ -138,7 +135,7 @@ export const DemoPage = () => {
         </h2>
         <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
           Descubre cómo PsiConnect puede transformar tu práctica profesional. 
-          Haz clic en cualquier característica para ver una demostración interactiva.
+          Haz clic en cualquier característica para conocer más detalles.
         </p>
       </section>
 
@@ -146,7 +143,7 @@ export const DemoPage = () => {
       <section className="max-w-7xl mx-auto px-6 pb-20">
         {!currentDemo ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {demoFeatures.map((feature, index) => (
+            {demoFeatures.map((feature) => (
               <Card 
                 key={feature.id}
                 className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer"
@@ -168,7 +165,7 @@ export const DemoPage = () => {
                     className={`w-full bg-gradient-to-r from-${feature.color}-500 to-${feature.color}-600 hover:scale-105 transition-all duration-300`}
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    Ver Demo
+                    Ver Detalles
                   </Button>
                 </CardContent>
               </Card>
@@ -194,7 +191,7 @@ export const DemoPage = () => {
               <CardContent className="p-8">
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-slate-800 mb-4">
-                    Cómo funciona:
+                    Características principales:
                   </h3>
                   
                   <div className="grid gap-4">
@@ -216,10 +213,10 @@ export const DemoPage = () => {
                       💡 Beneficios clave:
                     </h4>
                     <ul className="text-slate-600 space-y-2">
-                      <li>• Ahorra tiempo en tareas administrativas</li>
-                      <li>• Mejora la experiencia del paciente</li>
-                      <li>• Cumple con regulaciones de privacidad</li>
-                      <li>• Facilita el seguimiento y análisis</li>
+                      <li>• Optimiza el tiempo dedicado a tareas administrativas</li>
+                      <li>• Mejora significativamente la experiencia del paciente</li>
+                      <li>• Cumple con todas las regulaciones de privacidad médica</li>
+                      <li>• Facilita el análisis y seguimiento del progreso terapéutico</li>
                     </ul>
                   </div>
 
@@ -234,7 +231,7 @@ export const DemoPage = () => {
                     </Button>
                     <Link to="/app" className="flex-1">
                       <Button className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:scale-105 transition-all duration-300">
-                        Probar ahora gratis
+                        Comenzar ahora
                       </Button>
                     </Link>
                   </div>
@@ -252,7 +249,7 @@ export const DemoPage = () => {
             ¿Listo para empezar?
           </h3>
           <p className="text-xl text-blue-100 mb-8">
-            Comienza tu prueba gratuita de 14 días y transforma tu práctica profesional hoy mismo.
+            Comienza tu prueba gratuita de 7 días y transforma tu práctica profesional hoy mismo.
           </p>
           <Link to="/app">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 hover:scale-110 px-8 py-3 text-lg font-semibold">

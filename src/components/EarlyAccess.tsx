@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Rocket, Star, Lightbulb, MessageSquare, Bell, Zap, Clock, Users } from 'lucide-react';
+import { Rocket, Star, Lightbulb, MessageSquare, Bell, Zap, Clock } from 'lucide-react';
 import { PlanGate } from './PlanGate';
 
 const betaFeatures = [
@@ -11,46 +11,43 @@ const betaFeatures = [
     id: 'ai-assistant',
     title: 'Asistente IA para Terapias',
     description: 'IA que sugiere técnicas terapéuticas basadas en el progreso del paciente',
-    status: 'beta',
-    availability: 'Próximamente',
-    interested: 127
+    status: 'development',
+    availability: 'En desarrollo'
   },
   {
     id: 'voice-notes',
     title: 'Notas de Voz Automáticas',
     description: 'Transcripción automática de sesiones con análisis de sentimientos',
-    status: 'testing',
-    availability: 'En testing',
-    interested: 89
+    status: 'planning',
+    availability: 'Planificación'
   },
   {
     id: 'patient-app',
     title: 'App Móvil para Pacientes',
     description: 'Aplicación dedicada para que pacientes hagan seguimiento entre sesiones',
-    status: 'development',
-    availability: '2-3 meses',
-    interested: 203
+    status: 'design',
+    availability: 'En diseño'
   }
 ];
 
 const recentUpdates = [
   {
-    date: '2024-01-20',
-    title: 'Nuevo Dashboard de Analytics',
-    description: 'Métricas avanzadas para el seguimiento de pacientes',
+    date: '2025-01-20',
+    title: 'Sistema de Planes Mejorado',
+    description: 'Nuevas características Pro y Plus disponibles',
     type: 'feature'
   },
   {
-    date: '2024-01-15',
-    title: 'Integración con Zoom mejorada',
-    description: 'Mayor estabilidad en videollamadas',
+    date: '2025-01-15',
+    title: 'Panel de Administración',
+    description: 'Herramientas avanzadas para gestión de usuarios',
+    type: 'feature'
+  },
+  {
+    date: '2025-01-10',
+    title: 'Optimizaciones de Rendimiento',
+    description: 'Mejoras en velocidad de carga y estabilidad',
     type: 'improvement'
-  },
-  {
-    date: '2024-01-10',
-    title: 'Sistema de Recordatorios Inteligentes',
-    description: 'Notificaciones personalizadas para pacientes',
-    type: 'feature'
   }
 ];
 
@@ -88,11 +85,11 @@ export const EarlyAccess = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-slate-800">{feature.title}</h3>
                       <Badge variant={
-                        feature.status === 'beta' ? 'default' : 
-                        feature.status === 'testing' ? 'secondary' : 'outline'
+                        feature.status === 'development' ? 'default' : 
+                        feature.status === 'planning' ? 'secondary' : 'outline'
                       }>
-                        {feature.status === 'beta' ? 'Beta' : 
-                         feature.status === 'testing' ? 'Testing' : 'En desarrollo'}
+                        {feature.status === 'development' ? 'En desarrollo' : 
+                         feature.status === 'planning' ? 'Planificación' : 'En diseño'}
                       </Badge>
                     </div>
                     <p className="text-slate-600 text-sm mb-2">{feature.description}</p>
@@ -100,10 +97,6 @@ export const EarlyAccess = () => {
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {feature.availability}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {feature.interested} interesados
                       </span>
                     </div>
                   </div>
