@@ -19,14 +19,25 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
   ];
 
   useEffect(() => {
-    if (psychologistId && selectedDate) {
+    // Validar que tenemos los datos necesarios antes de hacer la consulta
+    if (psychologistId && psychologistId.trim() !== '' && selectedDate) {
       fetchBookedSlots();
     } else {
+      console.log('Missing psychologistId or selectedDate:', { psychologistId, selectedDate });
       setBookedSlots([]);
+      setLoading(false);
     }
   }, [psychologistId, selectedDate]);
 
   const fetchBookedSlots = async () => {
+    // Validación adicional antes de hacer la consulta
+    if (!psychologistId || psychologistId.trim() === '' || !selectedDate) {
+      console.log('Invalid parameters for fetchBookedSlots:', { psychologistId, selectedDate });
+      setBookedSlots([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       console.log('Fetching booked slots for:', { psychologistId, selectedDate });

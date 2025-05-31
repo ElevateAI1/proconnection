@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,6 @@ export const PatientPortal = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [selectedPsychologist, setSelectedPsychologist] = useState<any>(null);
 
   useEffect(() => {
     if (patient?.id) {
@@ -432,9 +432,9 @@ export const PatientPortal = () => {
                   <p className="text-sm">Solicita una nueva cita usando el botón de abajo</p>
                 </div>
               )}
-              {patient && (
+              {patient && patient.psychologist_id && (
                 <AppointmentRequestForm 
-                  psychologistId=""
+                  psychologistId={patient.psychologist_id}
                   patientId={patient.id}
                   onSuccess={fetchPatientData} 
                 />
@@ -506,27 +506,6 @@ export const PatientPortal = () => {
           </div>
         </CardContent>
       </Card>
-
-      {selectedPsychologist && patient && (
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Calendar className="w-5 h-5" />
-              Solicitar Cita con {selectedPsychologist.first_name} {selectedPsychologist.last_name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AppointmentRequestForm
-              psychologistId={selectedPsychologist.id}
-              patientId={patient.id}
-              onSuccess={async () => {
-                setSelectedPsychologist(null);
-                await fetchPatientData();
-              }}
-            />
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
