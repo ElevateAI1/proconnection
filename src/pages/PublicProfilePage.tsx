@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePublicProfiles } from '@/hooks/usePublicProfiles';
+import { useExpandedPublicProfiles } from '@/hooks/useExpandedPublicProfiles';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,10 @@ interface PublicProfileData {
   view_count: number;
   last_viewed_at?: string;
   profile_data: any;
+  about_description?: string;
+  therapeutic_approach?: string;
+  years_experience?: number;
+  profession_type?: string;
   first_name: string;
   last_name: string;
   specialization?: string;
@@ -26,11 +29,41 @@ interface PublicProfileData {
   config_description?: string;
   config_keywords?: string;
   config_custom_url?: string;
+  selected_specialties?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    icon: string;
+  }>;
 }
+
+const professionTitles: Record<string, string> = {
+  psychologist: 'Psicólogo/a',
+  doctor: 'Dr.',
+  physiotherapist: 'Fisioterapeuta',
+  kinesiologist: 'Kinesiólogo/a',
+  occupational_therapist: 'Terapeuta Ocupacional',
+  massage_therapist: 'Masajista Terapéutico',
+  osteopath: 'Osteópata',
+  nutritionist: 'Nutricionista',
+  coach: 'Coach',
+};
+
+const professionDescriptions: Record<string, string> = {
+  psychologist: 'Especialista en salud mental y bienestar emocional',
+  doctor: 'Profesional médico especializado',
+  physiotherapist: 'Especialista en rehabilitación y movimiento',
+  kinesiologist: 'Experto en kinesiología y terapia física',
+  occupational_therapist: 'Especialista en terapia ocupacional',
+  massage_therapist: 'Experto en terapias de masaje',
+  osteopath: 'Especialista en osteopatía',
+  nutritionist: 'Experto en nutrición y alimentación',
+  coach: 'Especialista en coaching y desarrollo personal',
+};
 
 export const PublicProfilePage = () => {
   const { profileUrl } = useParams<{ profileUrl: string }>();
-  const { getPublicProfileByUrl } = usePublicProfiles();
+  const { getPublicProfileByUrlDetailed } = useExpandedPublicProfiles();
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -45,18 +78,18 @@ export const PublicProfilePage = () => {
 
       try {
         setLoading(true);
-        console.log('=== LOADING PUBLIC PROFILE ===', profileUrl);
+        console.log('=== LOADING EXPANDED PUBLIC PROFILE ===', profileUrl);
         
-        const profileData = await getPublicProfileByUrl(profileUrl);
+        const profileData = await getPublicProfileByUrlDetailed(profileUrl);
         
         if (profileData) {
           setProfile(profileData);
-          console.log('=== PROFILE LOADED ===', profileData);
+          console.log('=== EXPANDED PROFILE LOADED ===', profileData);
         } else {
           setNotFound(true);
         }
       } catch (error) {
-        console.error('=== ERROR LOADING PROFILE ===', error);
+        console.error('=== ERROR LOADING EXPANDED PROFILE ===', error);
         setNotFound(true);
       } finally {
         setLoading(false);
@@ -69,7 +102,6 @@ export const PublicProfilePage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-        {/* Animated background */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-emerald-600/20 animate-pulse"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
         
@@ -113,9 +145,22 @@ export const PublicProfilePage = () => {
     );
   }
 
-  const seoTitle = profile.seo_title || profile.config_title || `Dr. ${profile.first_name} ${profile.last_name} - Psicólogo Profesional`;
-  const seoDescription = profile.seo_description || profile.config_description || `Consulta psicológica profesional con Dr. ${profile.first_name} ${profile.last_name}. ${profile.specialization || 'Especialista en terapia psicológica'}.`;
-  const seoKeywords = profile.seo_keywords || profile.config_keywords || `psicólogo, terapia, ${profile.specialization || 'terapia psicológica'}`;
+  const professionTitle = professionTitles[profile.profession_type || 'psychologist'] || 'Profesional';
+  const professionDescription = professionDescriptions[profile.profession_type || 'psychologist'] || 'Especialista profesional';
+
+  const seoTitle = profile.seo_title || profile.config_title || `${professionTitle} ${profile.first_name} ${profile.last_name} - Profesional Verificado`;
+  const seoDescription = profile.seo_description || profile.config_description || profile.about_description || `Consulta profesional con ${professionTitle} ${profile.first_name} ${profile.last_name}. ${professionDescription}.`;
+  const seoKeywords = profile.seo_keywords || profile.config_keywords || `${professionTitle.toLowerCase()}, consulta, ${profile.profession_type || 'profesional'}`;
+
+  // Agrupar especialidades por categoría
+  const groupedSpecialties = (profile.selected_specialties || []).reduce((acc, specialty) => {
+    const category = specialty.category || 'Otras';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(specialty);
+    return acc;
+  }, {} as Record<string, typeof profile.selected_specialties>);
 
   return (
     <>
@@ -125,27 +170,24 @@ export const PublicProfilePage = () => {
         <meta name="keywords" content={seoKeywords} />
         <meta name="robots" content="index, follow" />
         
-        {/* Open Graph */}
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:type" content="profile" />
         <meta property="og:url" content={`${window.location.origin}/perfil/${profile.custom_url}`} />
         
-        {/* Twitter Card */}
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
         
-        {/* Structured Data */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Person",
-            "name": `Dr. ${profile.first_name} ${profile.last_name}`,
-            "jobTitle": "Psicólogo",
+            "name": `${professionTitle} ${profile.first_name} ${profile.last_name}`,
+            "jobTitle": professionTitle,
             "description": seoDescription,
             "url": `${window.location.origin}/perfil/${profile.custom_url}`,
-            "knowsAbout": profile.specialization || "Terapia psicológica",
+            "knowsAbout": profile.selected_specialties?.map(s => s.name).join(', ') || professionDescription,
             "professionalCredentials": profile.professional_code
           })}
         </script>
@@ -169,7 +211,7 @@ export const PublicProfilePage = () => {
                 </div>
                 <div>
                   <span className="font-bold text-2xl text-white">ProConnection</span>
-                  <p className="text-white/60 text-sm">Plataforma Premium de Salud Mental</p>
+                  <p className="text-white/60 text-sm">Plataforma Premium de Profesionales de Salud</p>
                 </div>
               </div>
               <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 backdrop-blur-md px-4 py-2">
@@ -202,21 +244,24 @@ export const PublicProfilePage = () => {
               
               {/* Name and Title */}
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-                Dr. {profile.first_name} {profile.last_name}
+                {professionTitle} {profile.first_name} {profile.last_name}
               </h1>
               
-              {profile.specialization && (
-                <p className="text-2xl text-blue-200 mb-6 italic">
-                  {profile.specialization}
-                </p>
-              )}
+              <p className="text-2xl text-blue-200 mb-6 italic">
+                {professionDescription}
+              </p>
               
-              {/* Professional Credentials */}
               <div className="flex flex-wrap items-center justify-center gap-6 text-white/80 mb-8">
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                   <Award className="w-5 h-5 text-yellow-400" />
                   <span>Código: {profile.professional_code}</span>
                 </div>
+                {profile.years_experience && (
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <Clock className="w-5 h-5 text-green-400" />
+                    <span>{profile.years_experience} años de experiencia</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                   <Users className="w-5 h-5 text-blue-400" />
                   <span>{profile.view_count} consultas</span>
@@ -239,65 +284,68 @@ export const PublicProfilePage = () => {
                   <CardContent className="p-8">
                     <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
                       <Brain className="w-8 h-8 text-blue-400" />
-                      Acerca del Dr. {profile.first_name}
+                      Acerca de {professionTitle} {profile.first_name}
                     </h2>
                     
                     <div className="prose prose-lg prose-invert max-w-none">
                       <p className="text-white/80 leading-relaxed mb-6">
-                        Psicólogo profesional especializado en {profile.specialization || 'terapia psicológica'}, 
-                        con amplia experiencia en el tratamiento de diversos trastornos emocionales y del comportamiento. 
-                        Comprometido con brindar atención de la más alta calidad utilizando enfoques terapéuticos 
-                        basados en evidencia científica.
+                        {profile.about_description || `${professionTitle} especializado en brindar atención de la más alta calidad utilizando enfoques basados en evidencia científica. Comprometido con el bienestar y desarrollo de cada persona.`}
                       </p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                            <Heart className="w-5 h-5 text-red-400" />
-                            Enfoque Terapéutico
-                          </h4>
-                          <p className="text-white/70 text-sm">Terapia cognitivo-conductual, humanística y sistémica</p>
-                        </div>
+                        {profile.therapeutic_approach && (
+                          <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                            <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                              <Heart className="w-5 h-5 text-red-400" />
+                              Enfoque Profesional
+                            </h4>
+                            <p className="text-white/70 text-sm">{profile.therapeutic_approach}</p>
+                          </div>
+                        )}
                         
-                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-green-400" />
-                            Experiencia
-                          </h4>
-                          <p className="text-white/70 text-sm">Más de 5 años de experiencia clínica</p>
-                        </div>
+                        {profile.years_experience && (
+                          <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                            <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                              <Clock className="w-5 h-5 text-green-400" />
+                              Experiencia
+                            </h4>
+                            <p className="text-white/70 text-sm">{profile.years_experience} años de experiencia profesional</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Specialties */}
-                <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-glass animate-fade-in-scale">
-                  <CardContent className="p-8">
-                    <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                      <Sparkles className="w-6 h-6 text-yellow-400" />
-                      Especialidades
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { name: "Ansiedad y Estrés", icon: "🧘‍♀️" },
-                        { name: "Depresión", icon: "🌅" },
-                        { name: "Terapia de Pareja", icon: "💑" },
-                        { name: "Terapia Familiar", icon: "👨‍👩‍👧‍👦" },
-                        { name: "Trastornos del Sueño", icon: "😴" },
-                        { name: "Autoestima", icon: "💪" }
-                      ].map((specialty, index) => (
-                        <div key={index} className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{specialty.icon}</span>
-                            <span className="text-white">{specialty.name}</span>
+                {profile.selected_specialties && profile.selected_specialties.length > 0 && (
+                  <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-glass animate-fade-in-scale">
+                    <CardContent className="p-8">
+                      <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                        <Sparkles className="w-6 h-6 text-yellow-400" />
+                        Especialidades
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        {Object.entries(groupedSpecialties).map(([category, specialties]) => (
+                          <div key={category} className="space-y-3">
+                            <h4 className="text-lg font-semibold text-white/90">{category}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {specialties.map((specialty) => (
+                                <div key={specialty.id} className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all duration-300">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-2xl">{specialty.icon}</span>
+                                    <span className="text-white">{specialty.name}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Contact & CTA - 1 column */}
@@ -359,7 +407,7 @@ export const PublicProfilePage = () => {
                       <Globe className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
                       <h4 className="text-white font-bold mb-2">ProConnection</h4>
                       <p className="text-white/70 text-sm mb-4">
-                        Plataforma premium de gestión de salud mental con los más altos estándares de seguridad
+                        Plataforma premium de gestión profesional con los más altos estándares de seguridad
                       </p>
                       <Button 
                         variant="outline"
@@ -390,7 +438,7 @@ export const PublicProfilePage = () => {
                   ProConnection Premium
                 </a>
                 <p className="text-white/40 text-xs max-w-2xl">
-                  Plataforma líder en gestión psicológica profesional • Tecnología segura • Confidencialidad garantizada
+                  Plataforma líder en gestión profesional • Tecnología segura • Confidencialidad garantizada
                 </p>
               </div>
             </footer>

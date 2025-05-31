@@ -603,6 +603,62 @@ export type Database = {
           },
         ]
       }
+      professional_specialties: {
+        Row: {
+          category: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          profession_type: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          profession_type: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          profession_type?: string
+        }
+        Relationships: []
+      }
+      profile_specialties: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          specialty_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          specialty_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          specialty_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_specialties_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "professional_specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -890,46 +946,58 @@ export type Database = {
       }
       public_psychologist_profiles: {
         Row: {
+          about_description: string | null
           created_at: string
           custom_url: string
           id: string
           is_active: boolean
           last_viewed_at: string | null
+          profession_type: string | null
           profile_data: Json
           psychologist_id: string
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
+          therapeutic_approach: string | null
           updated_at: string
           view_count: number
+          years_experience: number | null
         }
         Insert: {
+          about_description?: string | null
           created_at?: string
           custom_url: string
           id?: string
           is_active?: boolean
           last_viewed_at?: string | null
+          profession_type?: string | null
           profile_data?: Json
           psychologist_id: string
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          therapeutic_approach?: string | null
           updated_at?: string
           view_count?: number
+          years_experience?: number | null
         }
         Update: {
+          about_description?: string | null
           created_at?: string
           custom_url?: string
           id?: string
           is_active?: boolean
           last_viewed_at?: string | null
+          profession_type?: string | null
           profile_data?: Json
           psychologist_id?: string
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          therapeutic_approach?: string | null
           updated_at?: string
           view_count?: number
+          years_experience?: number | null
         }
         Relationships: [
           {
@@ -1110,6 +1178,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_profile_detailed_view: {
+        Row: {
+          about_description: string | null
+          config_custom_url: string | null
+          config_description: string | null
+          config_keywords: string | null
+          config_title: string | null
+          custom_url: string | null
+          first_name: string | null
+          id: string | null
+          is_active: boolean | null
+          last_name: string | null
+          last_viewed_at: string | null
+          profession_type: string | null
+          professional_code: string | null
+          profile_data: Json | null
+          selected_specialties: Json | null
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
+          specialization: string | null
+          therapeutic_approach: string | null
+          view_count: number | null
+          years_experience: number | null
+        }
+        Relationships: []
       }
       public_profile_view: {
         Row: {
