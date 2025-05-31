@@ -29,12 +29,15 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     notes: ""
   });
 
+  // Solo usar el hook si tenemos un psychologist ID válido
+  const shouldFetchSlots = psychologist?.id && formData.appointmentDate;
+  
   const { getAvailableSlots, loading: slotsLoading, refreshAvailability } = useAvailableSlots({
     psychologistId: psychologist?.id || "",
     selectedDate: formData.appointmentDate
   });
 
-  const availableSlots = formData.appointmentDate ? getAvailableSlots() : [];
+  const availableSlots = shouldFetchSlots ? getAvailableSlots() : [];
 
   const getMinDate = () => {
     const today = new Date();
@@ -58,9 +61,11 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     }));
     
     // Force refresh of available slots after a brief delay
-    setTimeout(() => {
-      refreshAvailability();
-    }, 100);
+    if (psychologist?.id && date) {
+      setTimeout(() => {
+        refreshAvailability();
+      }, 100);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,7 +90,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     }
 
     // Verificar que el horario seleccionado esté disponible
-    if (!availableSlots.includes(formData.appointmentTime)) {
+    if (shouldFetchSlots && !availableSlots.includes(formData.appointmentTime)) {
       toast({
         title: "Error",
         description: "El horario seleccionado ya no está disponible",
@@ -160,9 +165,14 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
     return labels[type] || type;
   };
 
-  // Log available slots for debugging
-  console.log('Modal render - Available slots:', availableSlots);
-  console.log('Modal render - Selected date:', formData.appointmentDate);
+  // Mostrar mensaje si no hay psicólogo válido
+  if (!psychologist?.id) {
+    return (
+      <div className="text-center text-red-600">
+        No se pudo cargar la información del psicólogo
+      </div>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -211,7 +221,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
               <SelectContent>
                 {slotsLoading ? (
                   <div className="p-2 text-sm text-muted-foreground">Cargando horarios...</div>
-                ) : availableSlots.length > 0 ? (
+                ) : shouldFetchSlots && availableSlots.length > 0 ? (
                   availableSlots.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}

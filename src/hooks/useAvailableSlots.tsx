@@ -20,18 +20,24 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
 
   // Función para validar si es un UUID válido
   const isValidUUID = (uuid: string) => {
+    if (!uuid || typeof uuid !== 'string') return false;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   };
 
   useEffect(() => {
-    // Validar que tenemos los datos necesarios y que el UUID es válido
-    if (psychologistId && psychologistId.trim() !== '' && selectedDate && isValidUUID(psychologistId)) {
+    // Solo hacer fetch si tenemos datos válidos
+    if (psychologistId && 
+        psychologistId.trim() !== '' && 
+        selectedDate && 
+        selectedDate.trim() !== '' &&
+        isValidUUID(psychologistId)) {
+      console.log('Valid parameters, fetching slots for:', { psychologistId, selectedDate });
       fetchBookedSlots();
     } else {
-      console.log('Invalid psychologistId or selectedDate:', { 
-        psychologistId, 
-        selectedDate, 
+      console.log('Invalid or missing parameters, clearing slots:', { 
+        psychologistId: psychologistId || 'missing', 
+        selectedDate: selectedDate || 'missing',
         isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
       });
       setBookedSlots([]);
@@ -40,13 +46,13 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
   }, [psychologistId, selectedDate]);
 
   const fetchBookedSlots = async () => {
-    // Validación adicional antes de hacer la consulta
-    if (!psychologistId || psychologistId.trim() === '' || !selectedDate || !isValidUUID(psychologistId)) {
-      console.log('Invalid parameters for fetchBookedSlots:', { 
-        psychologistId, 
-        selectedDate,
-        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false
-      });
+    // Doble validación antes de hacer la consulta
+    if (!psychologistId || 
+        psychologistId.trim() === '' || 
+        !selectedDate || 
+        selectedDate.trim() === '' ||
+        !isValidUUID(psychologistId)) {
+      console.log('Aborting fetch due to invalid parameters');
       setBookedSlots([]);
       setLoading(false);
       return;
@@ -90,18 +96,13 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
           minute: '2-digit',
           hour12: false 
         });
-        console.log('Booked appointment:', {
-          original: apt.appointment_date,
-          parsed: aptDate.toISOString(),
-          timeString
-        });
         return timeString;
       });
 
-      console.log('Final booked slots:', bookedTimes);
+      console.log('Successfully fetched booked slots:', bookedTimes);
       setBookedSlots(bookedTimes);
     } catch (error) {
-      console.error('Error fetching booked slots:', error);
+      console.error('Exception in fetchBookedSlots:', error);
       setBookedSlots([]);
     } finally {
       setLoading(false);
@@ -109,16 +110,11 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
   };
 
   const isSlotAvailable = (time: string) => {
-    const isBooked = bookedSlots.includes(time);
-    console.log(`Checking slot ${time}: booked=${isBooked}`);
-    return !isBooked;
+    return !bookedSlots.includes(time);
   };
 
   const getAvailableSlots = () => {
-    const available = timeSlots.filter(slot => isSlotAvailable(slot));
-    console.log('Available slots:', available);
-    console.log('Booked slots:', bookedSlots);
-    return available;
+    return timeSlots.filter(slot => isSlotAvailable(slot));
   };
 
   return {
