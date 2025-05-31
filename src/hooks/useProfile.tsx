@@ -23,6 +23,7 @@ interface Psychologist {
   trial_start_date?: string;
   trial_end_date?: string;
   subscription_end_date?: string;
+  plan_type?: string;
 }
 
 interface Patient {
@@ -35,19 +36,19 @@ interface Patient {
   notes?: string;
 }
 
-// Cache global que persiste entre navegación
+// Cache global simplificado
 let profileCache: {
   profile: Profile | null;
   psychologist: Psychologist | null;
   patient: Patient | null;
   userId: string | null;
-  dataFetched: boolean;
+  lastFetch: number;
 } = {
   profile: null,
   psychologist: null,
   patient: null,
   userId: null,
-  dataFetched: false
+  lastFetch: 0
 };
 
 export const useProfile = () => {
@@ -55,55 +56,32 @@ export const useProfile = () => {
   const [profile, setProfile] = useState<Profile | null>(profileCache.profile);
   const [psychologist, setPsychologist] = useState<Psychologist | null>(profileCache.psychologist);
   const [patient, setPatient] = useState<Patient | null>(profileCache.patient);
-  const [loading, setLoading] = useState(!profileCache.dataFetched);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log('useProfile effect triggered:', { 
-      userId: user?.id, 
-      cachedUserId: profileCache.userId,
-      dataFetched: profileCache.dataFetched 
-    });
+  const clearCache = () => {
+    console.log('Clearing profile cache');
+    profileCache = {
+      profile: null,
+      psychologist: null,
+      patient: null,
+      userId: null,
+      lastFetch: 0
+    };
+  };
 
+  const fetchProfile = async (forceRefresh = false) => {
     if (!user) {
-      // Limpiar estado cuando no hay usuario
-      console.log('No user found, clearing state');
-      setProfile(null);
-      setPsychologist(null);
-      setPatient(null);
+      console.log('No user in fetchProfile');
       setLoading(false);
-      setError(null);
-      profileCache = {
-        profile: null,
-        psychologist: null,
-        patient: null,
-        userId: null,
-        dataFetched: false
-      };
       return;
     }
 
-    // Si el usuario cambió, limpiar cache y hacer fetch nuevo
-    if (profileCache.userId !== user.id) {
-      console.log('User ID changed, clearing cache and fetching new profile');
-      profileCache = {
-        profile: null,
-        psychologist: null,
-        patient: null,
-        userId: user.id,
-        dataFetched: false
-      };
-      setProfile(null);
-      setPsychologist(null);
-      setPatient(null);
-      setLoading(true);
-      setError(null);
-      fetchProfile();
-      return;
-    }
-
-    // Si ya tenemos datos para este usuario, usarlos inmediatamente
-    if (profileCache.userId === user.id && profileCache.dataFetched) {
+    // Verificar cache
+    const cacheAge = Date.now() - profileCache.lastFetch;
+    const isSameUser = profileCache.userId === user.id;
+    
+    if (!forceRefresh && isSameUser && cacheAge < 30000 && profileCache.profile) {
       console.log('Using cached profile data for user:', user.id);
       setProfile(profileCache.profile);
       setPsychologist(profileCache.psychologist);
@@ -112,41 +90,8 @@ export const useProfile = () => {
       return;
     }
 
-    // Solo hacer fetch si no tenemos datos en cache
-    if (!profileCache.dataFetched) {
-      console.log('No cached data, fetching profile for user:', user.id);
-      fetchProfile();
-    }
-  }, [user?.id]); // Solo depender del ID del usuario
-
-  // Escuchar eventos de actualización de plan
-  useEffect(() => {
-    const handlePlanUpdate = (event: CustomEvent) => {
-      const { psychologistId, newPlan } = event.detail;
-      if (psychologist?.id === psychologistId) {
-        console.log('Plan updated event received, refreshing profile data');
-        // Limpiar cache y refrescar
-        profileCache.dataFetched = false;
-        fetchProfile();
-      }
-    };
-
-    window.addEventListener('planUpdated', handlePlanUpdate as EventListener);
-    
-    return () => {
-      window.removeEventListener('planUpdated', handlePlanUpdate as EventListener);
-    };
-  }, [psychologist?.id]);
-
-  const fetchProfile = async () => {
-    if (!user) {
-      console.log('No user in fetchProfile');
-      setLoading(false);
-      return;
-    }
-
     try {
-      console.log('Fetching profile for user:', user.id);
+      console.log('Fetching fresh profile for user:', user.id);
       setLoading(true);
       setError(null);
       
@@ -208,13 +153,13 @@ export const useProfile = () => {
         }
       }
 
-      // Guardar en cache y marcar como completado
+      // Actualizar cache
       profileCache = {
         profile: typedProfile,
         psychologist: psychData,
         patient: patientData,
         userId: user.id,
-        dataFetched: true
+        lastFetch: Date.now()
       };
 
       console.log('Profile data cached successfully');
@@ -232,6 +177,61 @@ export const useProfile = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    console.log('useProfile effect triggered:', { 
+      userId: user?.id, 
+      cachedUserId: profileCache.userId
+    });
+
+    if (!user) {
+      // Limpiar estado cuando no hay usuario
+      console.log('No user found, clearing state');
+      setProfile(null);
+      setPsychologist(null);
+      setPatient(null);
+      setLoading(false);
+      setError(null);
+      clearCache();
+      return;
+    }
+
+    // Si el usuario cambió, limpiar cache
+    if (profileCache.userId !== user.id) {
+      console.log('User ID changed, clearing cache and fetching new profile');
+      clearCache();
+      profileCache.userId = user.id;
+    }
+
+    fetchProfile();
+  }, [user?.id]);
+
+  // Escuchar eventos de actualización de plan
+  useEffect(() => {
+    const handlePlanUpdate = (event: CustomEvent) => {
+      const { psychologistId } = event.detail;
+      if (psychologist?.id === psychologistId) {
+        console.log('Plan updated event received, refreshing profile data');
+        fetchProfile(true);
+      }
+    };
+
+    const handleAdminPlanUpdate = (event: CustomEvent) => {
+      const { psychologistId } = event.detail;
+      if (psychologist?.id === psychologistId) {
+        console.log('Admin plan update event received, refreshing profile data');
+        fetchProfile(true);
+      }
+    };
+
+    window.addEventListener('planUpdated', handlePlanUpdate as EventListener);
+    window.addEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('planUpdated', handlePlanUpdate as EventListener);
+      window.removeEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
+    };
+  }, [psychologist?.id]);
 
   const createPsychologistProfile = async (data: Omit<Psychologist, 'id' | 'professional_code'>) => {
     if (!user) {
@@ -367,21 +367,9 @@ export const useProfile = () => {
     }
   };
 
-  const clearCache = () => {
-    console.log('Clearing profile cache');
-    profileCache = {
-      profile: null,
-      psychologist: null,
-      patient: null,
-      userId: null,
-      dataFetched: false
-    };
-  };
-
   const refetch = () => {
     console.log('Refetching profile data');
-    profileCache.dataFetched = false;
-    fetchProfile();
+    fetchProfile(true);
   };
 
   const forceRefresh = () => {
@@ -389,7 +377,7 @@ export const useProfile = () => {
     clearCache();
     if (user) {
       profileCache.userId = user.id;
-      fetchProfile();
+      fetchProfile(true);
     }
   };
 
