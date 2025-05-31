@@ -191,7 +191,7 @@ export const AdminPanel = () => {
       console.log('Psychologist ID:', selectedPsychologist);
       console.log('New plan type:', newPlanType);
 
-      // Actualizar en la base de datos Y ESPERAR QUE TERMINE
+      // Actualizar DIRECTAMENTE en la tabla psychologists con timestamp
       const { error } = await supabase
         .from('psychologists')
         .update({ 
@@ -207,10 +207,10 @@ export const AdminPanel = () => {
 
       console.log('Plan type updated successfully in database');
 
-      // ESPERAR MÁS TIEMPO para que la DB se actualice completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // ESPERAR MÁS TIEMPO para asegurar que la DB se actualice
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Verificar que el cambio se aplicó
+      // Verificar que el cambio se aplicó REALMENTE
       const { data: verification, error: verifyError } = await supabase
         .from('psychologists')
         .select('plan_type')
@@ -219,43 +219,55 @@ export const AdminPanel = () => {
 
       if (verifyError) {
         console.error('Error verifying update:', verifyError);
-      } else {
-        console.log('Verified plan type in DB:', verification?.plan_type);
+        throw new Error('No se pudo verificar la actualización');
       }
 
-      // AHORA SÍ disparar eventos con todos los detalles
+      console.log('VERIFIED: Plan type in DB is now:', verification?.plan_type);
+
+      if (verification?.plan_type !== newPlanType) {
+        throw new Error(`El plan no se actualizó correctamente. Esperado: ${newPlanType}, Actual: ${verification?.plan_type}`);
+      }
+
+      // AHORA SÍ disparar eventos con MÚLTIPLES intentos
       const eventDetail = { 
         psychologistId: selectedPsychologist, 
         newPlan: newPlanType,
         timestamp: Date.now()
       };
       
-      console.log('Dispatching events with detail:', eventDetail);
+      console.log('Dispatching events with verified update:', eventDetail);
 
-      // Disparar eventos secuencialmente para asegurar propagación
+      // Disparar INMEDIATAMENTE múltiples eventos
       window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
+      window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
+      window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
       
-      // Esperar un poco y disparar más eventos
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
-        window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
-      }, 100);
-      
-      // Otro delay para asegurar
+      // Y también con delays para asegurar propagación
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
-      }, 300);
+        window.dispatchEvent(new CustomEvent('planUpdated', { detail: eventDetail }));
+      }, 100);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('adminPlanUpdated', { detail: eventDetail }));
+        window.dispatchEvent(new CustomEvent('forceRefreshCapabilities', { detail: eventDetail }));
+      }, 500);
 
       toast({
-        title: "Plan actualizado",
-        description: `El plan ha sido cambiado a ${newPlanType.toUpperCase()}`,
+        title: "Plan actualizado exitosamente",
+        description: `El plan de ${newPlanType.toUpperCase()} ha sido aplicado y verificado`,
       });
 
-      // Forzar refresh con delay para que los eventos se procesen
+      // Forzar refresh del admin con múltiples intentos
       setTimeout(async () => {
         console.log('Forcing admin refresh...');
         await forceRefresh();
-      }, 600);
+      }, 1000);
+
+      setTimeout(async () => {
+        console.log('Second admin refresh...');
+        await forceRefresh();
+      }, 2000);
       
       // Limpiar formulario
       setSelectedPsychologist('');

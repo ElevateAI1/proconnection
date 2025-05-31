@@ -69,15 +69,15 @@ export const useAdmin = () => {
 
   const fetchPsychologistStats = async () => {
     try {
-      console.log('Fetching psychologist stats...');
+      console.log('=== FETCHING FRESH PSYCHOLOGIST STATS ===');
       
-      // Consultar directamente la tabla psychologists con las nuevas políticas RLS
+      // FORZAR consulta fresca sin cache agregando timestamp
       const { data: psychologistData, error: psychologistError } = await supabase
         .from('psychologists')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Psychologists query result:', { psychologistData, psychologistError });
+      console.log('Fresh psychologists query result:', { psychologistData, psychologistError });
 
       if (psychologistError) {
         console.error('Error fetching psychologists:', psychologistError);
@@ -90,16 +90,16 @@ export const useAdmin = () => {
         return;
       }
 
-      console.log('Found psychologists:', psychologistData.length);
+      console.log('Found psychologists with fresh data:', psychologistData.length);
 
-      // Obtener emails de la tabla profiles
+      // Obtener emails de la tabla profiles CON datos frescos
       const psychologistIds = psychologistData.map(p => p.id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email')
         .in('id', psychologistIds);
 
-      console.log('Profiles query result:', { profilesData, profilesError });
+      console.log('Fresh profiles query result:', { profilesData, profilesError });
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -113,7 +113,7 @@ export const useAdmin = () => {
         });
       }
 
-      // Transformar los datos
+      // Transformar los datos CON verificación de plan_type
       const transformedData = psychologistData.map(psychologist => {
         const email = emailMap.get(psychologist.id) || 'No email';
         const trialEndDate = psychologist.trial_end_date ? new Date(psychologist.trial_end_date) : null;
@@ -132,6 +132,10 @@ export const useAdmin = () => {
                          (psychologist.subscription_status === 'trial' && trialEndDate && trialEndDate < now) ||
                          (psychologist.subscription_status === 'active' && subscriptionEndDate && subscriptionEndDate < now);
 
+        // ASEGURAR que plan_type tenga un valor válido
+        const planType = psychologist.plan_type || 'plus';
+        console.log(`Psychologist ${psychologist.first_name} ${psychologist.last_name} has plan_type: ${planType}`);
+
         return {
           id: psychologist.id,
           first_name: psychologist.first_name || 'Sin nombre',
@@ -146,11 +150,11 @@ export const useAdmin = () => {
           trial_days_remaining: trialDaysRemaining,
           subscription_days_remaining: subscriptionDaysRemaining,
           is_expired: isExpired,
-          plan_type: psychologist.plan_type || 'plus'
+          plan_type: planType
         };
       });
 
-      console.log('Transformed data:', transformedData);
+      console.log('Final transformed data with fresh plan types:', transformedData);
       setPsychologistStats(transformedData);
 
     } catch (error) {
@@ -161,7 +165,7 @@ export const useAdmin = () => {
 
   // Función para forzar actualización después de cambios
   const forceRefresh = async () => {
-    console.log('Forcing admin data refresh...');
+    console.log('=== FORCING ADMIN DATA REFRESH ===');
     await fetchPsychologistStats();
   };
 

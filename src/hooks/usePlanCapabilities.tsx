@@ -84,14 +84,26 @@ export const usePlanCapabilities = () => {
     fetchCapabilities();
   }, [fetchCapabilities]);
 
-  // Escuchar cambios de plan con refresco INMEDIATO
+  // Escuchar cambios de plan con refresco INMEDIATO Y MÚLTIPLES INTENTOS
   useEffect(() => {
     const handlePlanUpdate = () => {
       console.log('=== PLAN UPDATE EVENT - FORCING IMMEDIATE REFRESH ===');
       
-      // Refrescar INMEDIATAMENTE sin delays
+      // Primer refresh inmediato
       refreshProfile();
       fetchCapabilities(true);
+      
+      // Segundo refresh con delay corto para asegurar
+      setTimeout(() => {
+        refreshProfile();
+        fetchCapabilities(true);
+      }, 500);
+      
+      // Tercer refresh con delay más largo por si acaso
+      setTimeout(() => {
+        refreshProfile();
+        fetchCapabilities(true);
+      }, 2000);
     };
 
     const handleAdminPlanUpdate = (event: CustomEvent) => {
@@ -104,16 +116,19 @@ export const usePlanCapabilities = () => {
       if (psychologist?.id === psychologistId) {
         console.log('=== MATCH! FORCING IMMEDIATE REFRESH ===');
         
-        // Refrescar INMEDIATAMENTE - sin delays, sin promise chains
+        // Múltiples refreshes para asegurar actualización
         refreshProfile();
         fetchCapabilities(true);
         
-        // También hacer un segundo refresh con delay por si acaso
         setTimeout(() => {
-          console.log('=== SECOND REFRESH (DELAYED) ===');
           refreshProfile();
           fetchCapabilities(true);
-        }, 1000);
+        }, 500);
+        
+        setTimeout(() => {
+          refreshProfile();
+          fetchCapabilities(true);
+        }, 2000);
       }
     };
 
