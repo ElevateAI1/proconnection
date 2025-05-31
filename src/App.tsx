@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LandingPage } from "./pages/LandingPage";
 import { DemoPage } from "./pages/DemoPage";
+import { AuthPage } from "./pages/AuthPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLogin } from "./pages/AdminLogin";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/demo" element={<DemoPage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/app" element={<Index />} />
             <Route path="/admin" element={<AdminLogin />} />

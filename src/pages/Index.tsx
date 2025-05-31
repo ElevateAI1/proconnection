@@ -31,9 +31,9 @@ export default function Index() {
   useEmailVerification();
 
   useEffect(() => {
-    // Si ya terminó de cargar y no hay usuario, redirigir al login
+    // Si ya terminó de cargar y no hay usuario, redirigir al auth
     if (!authLoading && !user) {
-      navigate("/");
+      navigate("/auth");
       return;
     }
 
