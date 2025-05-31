@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
-import { CalendarView } from "@/components/CalendarView";
+import { Calendar } from "@/components/CalendarView";
 import { MessagingHub } from "@/components/MessagingHub";
 import { AffiliateSystem } from "@/components/AffiliateSystem";
 import { SeoProfileManager } from "@/components/SeoProfileManager";
@@ -18,7 +19,7 @@ import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
 
 export default function Index() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { psychologist, patient, loading: profileLoading } = useProfile();
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
@@ -50,7 +51,12 @@ export default function Index() {
 
   // Show profile setup if psychologist exists but profile is incomplete
   if (psychologist && (!psychologist.first_name || !psychologist.last_name)) {
-    return <ProfileSetup />;
+    return (
+      <ProfileSetup 
+        userType="psychologist" 
+        onComplete={() => window.location.reload()} 
+      />
+    );
   }
 
   // Patient portal redirect (simplified for this example)
@@ -73,7 +79,7 @@ export default function Index() {
       case "patients":
         return <PatientManagement />;
       case "calendar":
-        return <CalendarView />;
+        return <Calendar />;
       case "messages":
         return <MessagingHub />;
       case "affiliates":
@@ -100,7 +106,7 @@ export default function Index() {
         {renderCurrentView()}
       </main>
       {showTrialModal && (
-        <TrialExpiredModal onClose={() => setShowTrialModal(false)} />
+        <TrialExpiredModal onUpgrade={() => setShowTrialModal(false)} />
       )}
     </div>
   );
