@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { useExpandedPublicProfiles } from '@/hooks/useExpandedPublicProfiles';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useForm } from 'react-hook-form';
 import { Loader2, Eye, Save, Plus } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface FormData {
   custom_url: string;
@@ -80,7 +80,7 @@ export const ExpandedPublicProfileManager = () => {
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
-  const { register, handleSubmit, watch, setValue, reset } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, reset, formState: { isDirty } } = useForm<FormData>({
     defaultValues: {
       custom_url: '',
       is_active: true,
@@ -94,7 +94,12 @@ export const ExpandedPublicProfileManager = () => {
       certifications: '',
       email: '',
       website: '',
-      languages: ''
+      languages: '',
+      seo_title: '',
+      seo_description: '',
+      seo_keywords: '',
+      about_description: '',
+      therapeutic_approach: ''
     }
   });
 
@@ -157,24 +162,80 @@ export const ExpandedPublicProfileManager = () => {
 
   const onSubmit = async (formData: FormData) => {
     try {
+      console.log('=== FORM SUBMISSION ===', formData);
+      console.log('=== SELECTED SPECIALTIES ===', selectedSpecialties);
+      console.log('=== SELECTED LANGUAGES ===', selectedLanguages);
+
+      // Validaciones básicas
+      if (!formData.custom_url) {
+        toast({
+          title: "Error",
+          description: "La URL personalizada es obligatoria",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Convertir idiomas de string a array
       const languagesArray = formData.languages 
         ? formData.languages.split(',').map(lang => lang.trim()).filter(lang => lang.length > 0)
-        : [];
+        : selectedLanguages;
 
-      const result = await createOrUpdateExpandedProfile({
-        ...formData,
+      // Preparar datos completos para enviar
+      const profileDataToSave = {
+        custom_url: formData.custom_url.trim(),
+        is_active: formData.is_active,
+        seo_title: formData.seo_title || '',
+        seo_description: formData.seo_description || '',
+        seo_keywords: formData.seo_keywords || '',
+        about_description: formData.about_description || '',
+        therapeutic_approach: formData.therapeutic_approach || '',
+        years_experience: formData.years_experience || null,
+        profession_type: formData.profession_type || 'psychologist',
         specialties: selectedSpecialties,
-        languages: languagesArray
-      });
+        location: formData.location || '',
+        languages: languagesArray,
+        session_format: formData.session_format || 'presencial',
+        session_duration: formData.session_duration || 60,
+        pricing_info: formData.pricing_info || '',
+        education: formData.education || '',
+        certifications: formData.certifications || '',
+        email: formData.email || '',
+        website: formData.website || ''
+      };
 
-      if (result && selectedSpecialties.length > 0) {
-        await saveProfileSpecialties(result.id, selectedSpecialties);
+      console.log('=== SENDING PROFILE DATA ===', profileDataToSave);
+
+      const result = await createOrUpdateExpandedProfile(profileDataToSave);
+
+      if (result) {
+        console.log('=== PROFILE SAVED SUCCESSFULLY ===', result);
+        setCurrentProfileId(result.id);
+        
+        // Guardar especialidades si hay
+        if (selectedSpecialties.length > 0) {
+          console.log('=== SAVING SPECIALTIES ===', selectedSpecialties);
+          await saveProfileSpecialties(result.id, selectedSpecialties);
+        }
+
+        toast({
+          title: "¡Perfil guardado!",
+          description: "Tu perfil público ha sido actualizado correctamente",
+        });
+
+        // Forzar recarga de la página después de un breve delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
 
-      setCurrentProfileId(result.id);
-    } catch (error) {
-      console.error('Error saving profile:', error);
+    } catch (error: any) {
+      console.error('=== ERROR SAVING PROFILE ===', error);
+      toast({
+        title: "Error al guardar",
+        description: error.message || "No se pudo guardar el perfil. Inténtalo de nuevo.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -511,7 +572,7 @@ export const ExpandedPublicProfileManager = () => {
               <Label>Perfil público activo</Label>
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" disabled={isLoading} className="w-full" size="lg">
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -520,10 +581,16 @@ export const ExpandedPublicProfileManager = () => {
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Guardar Perfil Público
+                  {isDirty ? 'Guardar Cambios' : 'Guardar Perfil Público'}
                 </>
               )}
             </Button>
+
+            {isDirty && (
+              <p className="text-sm text-amber-600 text-center">
+                Tienes cambios sin guardar
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
