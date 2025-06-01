@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -17,6 +16,7 @@ import { VisibilityConsulting } from "@/components/VisibilityConsulting";
 import { Sidebar } from "@/components/Sidebar";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
+import { PatientPortal } from "@/components/PatientPortal";
 import { LandingPage } from "@/pages/LandingPage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -140,16 +140,9 @@ export default function Index() {
     );
   }
 
-  // Patient portal (simplified)
+  // Patient portal (using the complete PatientPortal component)
   if (patient) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-800 mb-4">Portal del Paciente</h1>
-          <p className="text-slate-600">En desarrollo...</p>
-        </div>
-      </div>
-    );
+    return <PatientPortal />;
   }
 
   // Check if we have a complete psychologist profile
