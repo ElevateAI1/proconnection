@@ -17,7 +17,6 @@ import { VisibilityConsulting } from "@/components/VisibilityConsulting";
 import { Sidebar } from "@/components/Sidebar";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
-import { PatientPortal } from "@/components/PatientPortal";
 import { Button } from "@/components/ui/button";
 
 type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
@@ -121,9 +120,16 @@ export default function Index() {
     );
   }
 
-  // Patient portal (restored)
+  // Patient portal (simplified)
   if (patient) {
-    return <PatientPortal />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-800 mb-4">Portal del Paciente</h1>
+          <p className="text-slate-600">En desarrollo...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check if we have a complete psychologist profile
