@@ -15,6 +15,15 @@ interface ExpandedProfileData {
   profession_type?: string;
   profile_data?: any;
   specialties?: string[];
+  location?: string;
+  languages?: string[];
+  session_format?: string;
+  session_duration?: number;
+  pricing_info?: string;
+  education?: string;
+  certifications?: string;
+  email?: string;
+  website?: string;
 }
 
 export const useExpandedPublicProfiles = () => {
@@ -41,6 +50,21 @@ export const useExpandedPublicProfiles = () => {
         throw checkError;
       }
 
+      // Construir el profile_data completo con todas las especialidades y información
+      const completeProfileData = {
+        selected_specialties: data.specialties || [],
+        location: data.location || '',
+        languages: data.languages || [],
+        session_format: data.session_format || '',
+        session_duration: data.session_duration || 60,
+        pricing_info: data.pricing_info || '',
+        education: data.education || '',
+        certifications: data.certifications || '',
+        email: data.email || '',
+        website: data.website || '',
+        ...data.profile_data
+      };
+
       let result;
       const profileData = {
         custom_url: data.custom_url,
@@ -52,7 +76,7 @@ export const useExpandedPublicProfiles = () => {
         therapeutic_approach: data.therapeutic_approach,
         years_experience: data.years_experience,
         profession_type: data.profession_type || 'psychologist',
-        profile_data: data.profile_data || {},
+        profile_data: completeProfileData,
         updated_at: new Date().toISOString()
       };
 
