@@ -171,7 +171,7 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
             </div>
 
             {/* Advanced Features */}
-            <div className="pt-6 border-t border-slate-100 mt-4">
+            <div className="pt-6 mt-4">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 text-slate-600 hover:bg-slate-100 mb-3 font-medium"
