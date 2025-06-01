@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { LogOut, Calendar, Users, MessageCircle, DollarSign, Settings, Crown, Zap, BarChart3, Headphones, Rocket, Eye, TrendingUp, Home } from "lucide-react";
+import { LogOut, Calendar, Users, MessageCircle, DollarSign, Settings, Crown, Zap, BarChart3, Headphones, Rocket, Eye, TrendingUp, Home, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,7 +8,7 @@ import { usePlanCapabilities } from "@/hooks/usePlanCapabilities";
 import { SettingsModal } from "@/components/SettingsModal";
 import { PlanBadge } from "@/components/PlanBadge";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "profile" | "seo" | "reports" | "support" | "early-access" | "visibility";
 
 interface SidebarProps {
   currentView: ViewType;
@@ -49,6 +49,12 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
       label: "Mensajes", 
       icon: MessageCircle,
       available: true
+    },
+    { 
+      id: "profile" as ViewType, 
+      label: "Mi Perfil", 
+      icon: User,
+      available: isPlusUser() || isProUser()
     },
     { 
       id: "affiliates" as ViewType, 
@@ -118,6 +124,7 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
             Principal
           </h3>
           {menuItems.map((item) => {
+            if (!item.available) return null;
             const Icon = item.icon;
             return (
               <button
