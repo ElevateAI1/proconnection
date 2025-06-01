@@ -12,33 +12,27 @@ import { Button } from "@/components/ui/button";
 interface PublicProfileData {
   id: string;
   custom_url: string;
-  display_name: string;
-  professional_title: string;
-  bio: string;
-  years_experience: number;
-  location: string;
-  phone: string;
-  email: string;
-  website: string;
-  selected_specialties: string[] | null;
-  therapeutic_approach: string;
-  session_format: string;
-  languages: string[] | null;
-  education: string;
-  certifications: string;
-  availability_hours: string;
-  session_duration: number;
-  pricing_info: string;
-  emergency_contact: string;
-  seo_title: string;
-  seo_description: string;
-  seo_keywords: string;
+  psychologist_id: string;
+  profession_type: string;
+  profile_data: any;
+  about_description?: string;
+  therapeutic_approach?: string;
+  years_experience?: number;
   view_count: number;
-  last_viewed_at: string;
+  last_viewed_at?: string;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  seo_title?: string;
+  seo_description?: string;
+  seo_keywords?: string;
   psychologist: {
     id: string;
     plan_type: string;
+    first_name: string;
+    last_name: string;
+    specialization?: string;
+    phone?: string;
   };
 }
 
@@ -54,7 +48,7 @@ export const PublicProfilePage = () => {
         .from('public_psychologist_profiles')
         .select(`
           *,
-          psychologist:psychologists(id, plan_type)
+          psychologist:psychologists(id, plan_type, first_name, last_name, specialization, phone)
         `)
         .eq('custom_url', profileUrl)
         .eq('is_active', true)
@@ -106,17 +100,27 @@ export const PublicProfilePage = () => {
   }
 
   const isPro = profile.psychologist?.plan_type === 'pro';
-  const specialties = Array.isArray(profile.selected_specialties) ? profile.selected_specialties : [];
-  const languages = Array.isArray(profile.languages) ? profile.languages : [];
+  const displayName = `${profile.psychologist.first_name} ${profile.psychologist.last_name}`;
+  const specialties = profile.profile_data?.selected_specialties || [];
+  const bio = profile.about_description || '';
+  const location = profile.profile_data?.location || '';
+  const email = profile.profile_data?.email || '';
+  const website = profile.profile_data?.website || '';
+  const languages = profile.profile_data?.languages || [];
+  const sessionFormat = profile.profile_data?.session_format || '';
+  const sessionDuration = profile.profile_data?.session_duration || 60;
+  const pricingInfo = profile.profile_data?.pricing_info || '';
+  const education = profile.profile_data?.education || '';
+  const certifications = profile.profile_data?.certifications || '';
 
   return (
     <>
       <Helmet>
-        <title>{profile.seo_title || `${profile.display_name} - ${profile.professional_title}`}</title>
-        <meta name="description" content={profile.seo_description || profile.bio} />
+        <title>{profile.seo_title || `${displayName} - ${profile.psychologist.specialization || 'Psicólogo'}`}</title>
+        <meta name="description" content={profile.seo_description || bio} />
         {profile.seo_keywords && <meta name="keywords" content={profile.seo_keywords} />}
-        <meta property="og:title" content={profile.seo_title || `${profile.display_name} - ${profile.professional_title}`} />
-        <meta property="og:description" content={profile.seo_description || profile.bio} />
+        <meta property="og:title" content={profile.seo_title || `${displayName} - ${profile.psychologist.specialization || 'Psicólogo'}`} />
+        <meta property="og:description" content={profile.seo_description || bio} />
         <meta property="og:type" content="profile" />
       </Helmet>
 
@@ -130,7 +134,7 @@ export const PublicProfilePage = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className={`text-3xl font-bold ${isPro ? 'bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent' : 'text-slate-800'}`}>
-                      {profile.display_name}
+                      {displayName}
                     </h1>
                     {isPro && (
                       <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
@@ -140,20 +144,22 @@ export const PublicProfilePage = () => {
                   </div>
                   
                   <p className={`text-xl mb-4 ${isPro ? 'text-blue-700' : 'text-slate-600'}`}>
-                    {profile.professional_title}
+                    {profile.psychologist.specialization || 'Psicólogo'}
                   </p>
                   
-                  {profile.location && (
+                  {location && (
                     <div className="flex items-center gap-2 text-slate-600 mb-2">
                       <MapPin className="w-4 h-4" />
-                      <span>{profile.location}</span>
+                      <span>{location}</span>
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-2 text-slate-600 mb-4">
-                    <Clock className="w-4 h-4" />
-                    <span>{profile.years_experience} años de experiencia</span>
-                  </div>
+                  {profile.years_experience && (
+                    <div className="flex items-center gap-2 text-slate-600 mb-4">
+                      <Clock className="w-4 h-4" />
+                      <span>{profile.years_experience} años de experiencia</span>
+                    </div>
+                  )}
 
                   {profile.view_count > 0 && (
                     <div className="flex items-center gap-2 text-slate-500 text-sm">
@@ -164,14 +170,14 @@ export const PublicProfilePage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  {profile.phone && (
+                  {profile.psychologist.phone && (
                     <Button variant="outline" className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
                       Llamar
                     </Button>
                   )}
                   
-                  {profile.email && (
+                  {email && (
                     <Button variant="outline" className="flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       Contactar
@@ -188,16 +194,18 @@ export const PublicProfilePage = () => {
           </Card>
 
           {/* Bio Section */}
-          <Card className={`mb-8 ${isPro ? 'border-blue-200' : ''}`}>
-            <CardContent className="p-6">
-              <h2 className={`text-xl font-semibold mb-4 ${isPro ? 'text-blue-800' : 'text-slate-800'}`}>
-                Sobre mí
-              </h2>
-              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                {profile.bio}
-              </p>
-            </CardContent>
-          </Card>
+          {bio && (
+            <Card className={`mb-8 ${isPro ? 'border-blue-200' : ''}`}>
+              <CardContent className="p-6">
+                <h2 className={`text-xl font-semibold mb-4 ${isPro ? 'text-blue-800' : 'text-slate-800'}`}>
+                  Sobre mí
+                </h2>
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {bio}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Specialties */}
           {specialties.length > 0 && (
@@ -207,7 +215,7 @@ export const PublicProfilePage = () => {
                   Especialidades
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {specialties.map((specialty, index) => (
+                  {specialties.map((specialty: string, index: number) => (
                     <Badge
                       key={index}
                       variant="secondary"
@@ -239,24 +247,26 @@ export const PublicProfilePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Session Info */}
-            <Card className={isPro ? 'border-blue-200' : ''}>
-              <CardContent className="p-6">
-                <h3 className={`font-semibold mb-3 ${isPro ? 'text-blue-800' : 'text-slate-800'}`}>
-                  Información de Sesiones
-                </h3>
-                <div className="space-y-2 text-sm text-slate-600">
-                  {profile.session_format && (
-                    <p><span className="font-medium">Formato:</span> {profile.session_format}</p>
-                  )}
-                  {profile.session_duration && (
-                    <p><span className="font-medium">Duración:</span> {profile.session_duration} minutos</p>
-                  )}
-                  {profile.pricing_info && (
-                    <p><span className="font-medium">Precios:</span> {profile.pricing_info}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {(sessionFormat || sessionDuration || pricingInfo) && (
+              <Card className={isPro ? 'border-blue-200' : ''}>
+                <CardContent className="p-6">
+                  <h3 className={`font-semibold mb-3 ${isPro ? 'text-blue-800' : 'text-slate-800'}`}>
+                    Información de Sesiones
+                  </h3>
+                  <div className="space-y-2 text-sm text-slate-600">
+                    {sessionFormat && (
+                      <p><span className="font-medium">Formato:</span> {sessionFormat}</p>
+                    )}
+                    {sessionDuration && (
+                      <p><span className="font-medium">Duración:</span> {sessionDuration} minutos</p>
+                    )}
+                    {pricingInfo && (
+                      <p><span className="font-medium">Precios:</span> {pricingInfo}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Languages */}
             {languages.length > 0 && (
@@ -266,7 +276,7 @@ export const PublicProfilePage = () => {
                     Idiomas
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {languages.map((language, index) => (
+                    {languages.map((language: string, index: number) => (
                       <Badge key={index} variant="outline">
                         {language}
                       </Badge>
@@ -277,25 +287,25 @@ export const PublicProfilePage = () => {
             )}
 
             {/* Education - Solo para Pro */}
-            {isPro && profile.education && (
+            {isPro && education && (
               <Card className="border-blue-200">
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-3 text-blue-800">
                     Educación
                   </h3>
-                  <p className="text-sm text-slate-600">{profile.education}</p>
+                  <p className="text-sm text-slate-600">{education}</p>
                 </CardContent>
               </Card>
             )}
 
             {/* Certifications - Solo para Pro */}
-            {isPro && profile.certifications && (
+            {isPro && certifications && (
               <Card className="border-blue-200">
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-3 text-blue-800">
                     Certificaciones
                   </h3>
-                  <p className="text-sm text-slate-600">{profile.certifications}</p>
+                  <p className="text-sm text-slate-600">{certifications}</p>
                 </CardContent>
               </Card>
             )}
@@ -320,7 +330,7 @@ export const PublicProfilePage = () => {
                   Agendar Primera Cita
                 </Button>
                 
-                {profile.website && (
+                {website && (
                   <Button variant="outline" size="lg">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Visitar Sitio Web
