@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const usePaymentProof = () => {
@@ -24,39 +25,32 @@ export const usePaymentProof = () => {
         throw new Error('El archivo es demasiado grande. Máximo 5MB.');
       }
 
-      // Convertir archivo a base64 para almacenamiento local
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Generar nombre único para el archivo
+      // Generar nombre del archivo: {patient_id}/{timestamp}_{original_name}
       const timestamp = Date.now();
       const extension = file.name.split('.').pop();
-      const fileName = `payment_proof_${psychologistId}_${patientId}_${timestamp}.${extension}`;
+      const fileName = `${patientId}/${timestamp}_${psychologistId}.${extension}`;
 
-      // Guardar en localStorage
-      const paymentProofs = JSON.parse(localStorage.getItem('paymentProofs') || '{}');
-      paymentProofs[fileName] = {
-        data: base64,
-        originalName: file.name,
-        type: file.type,
-        size: file.size,
-        uploadedAt: new Date().toISOString()
-      };
-      localStorage.setItem('paymentProofs', JSON.stringify(paymentProofs));
+      // Subir archivo a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, file);
 
-      // Crear URL local para el archivo
-      const localUrl = `/payment-proofs/${fileName}`;
+      if (error) {
+        console.error('Supabase storage error:', error);
+        throw new Error(`Error al subir archivo: ${error.message}`);
+      }
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(fileName);
 
       toast({
         title: "Comprobante subido",
         description: "El comprobante de pago se ha subido exitosamente"
       });
 
-      return localUrl;
+      return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading payment proof:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -72,17 +66,17 @@ export const usePaymentProof = () => {
   };
 
   const getPaymentProofUrl = (fileName: string) => {
-    // Para archivos locales, devolver la URL directa
-    return `/payment-proofs/${fileName}`;
+    const { data } = supabase.storage
+      .from('payment-proofs')
+      .getPublicUrl(fileName);
+    
+    return data.publicUrl;
   };
 
   const getPaymentProofData = (fileName: string) => {
-    try {
-      const paymentProofs = JSON.parse(localStorage.getItem('paymentProofs') || '{}');
-      return paymentProofs[fileName.replace('/payment-proofs/', '')] || null;
-    } catch {
-      return null;
-    }
+    // Este método ya no es necesario con Supabase Storage
+    // pero mantenemos la firma para compatibilidad
+    return null;
   };
 
   return {

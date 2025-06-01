@@ -19,7 +19,7 @@ export const PaymentProofUploader = ({
   onUploadComplete,
   currentProofUrl 
 }: PaymentProofUploaderProps) => {
-  const { uploadPaymentProof, uploading, getPaymentProofData } = usePaymentProof();
+  const { uploadPaymentProof, uploading } = usePaymentProof();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,25 +62,8 @@ export const PaymentProofUploader = ({
   };
 
   const openFileViewer = (url: string) => {
-    if (url.startsWith('/payment-proofs/')) {
-      // Para archivos locales, obtener los datos del localStorage y mostrarlos
-      const fileName = url.replace('/payment-proofs/', '');
-      const fileData = getPaymentProofData(fileName);
-      if (fileData) {
-        // Crear un blob URL para mostrar el archivo
-        const byteCharacters = atob(fileData.data.split(',')[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: fileData.type });
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-      }
-    } else {
-      window.open(url, '_blank');
-    }
+    // Con Supabase Storage, simplemente abrimos la URL directamente
+    window.open(url, '_blank');
   };
 
   return (
