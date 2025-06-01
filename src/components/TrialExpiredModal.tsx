@@ -1,16 +1,16 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Sparkles, Zap, Star } from 'lucide-react';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { useMercadoPago } from '@/hooks/useMercadoPago';
-
 interface TrialExpiredModalProps {
   onUpgrade: () => void;
 }
-
-export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
-  const { createSubscription } = useMercadoPago();
-
+export const TrialExpiredModal = ({
+  onUpgrade
+}: TrialExpiredModalProps) => {
+  const {
+    createSubscription
+  } = useMercadoPago();
   const handlePlanSelect = async (planId: string) => {
     try {
       await createSubscription(planId);
@@ -19,22 +19,24 @@ export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
       console.error('Error selecting plan:', error);
     }
   };
-
-  return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900/95 via-purple-900/85 to-blue-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+  return <div className="fixed inset-0 bg-gradient-to-br from-slate-900/95 via-purple-900/85 to-blue-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="relative">
         {/* Floating elements for visual appeal */}
         <div className="absolute -top-6 -left-6 w-20 h-20 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-xl animate-float"></div>
-        <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-gradient-to-r from-blue-400/25 to-cyan-400/25 rounded-full blur-xl animate-float" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/2 -left-12 w-16 h-16 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-lg animate-float" style={{animationDelay: '0.8s'}}></div>
+        <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-gradient-to-r from-blue-400/25 to-cyan-400/25 rounded-full blur-xl animate-float" style={{
+        animationDelay: '1.5s'
+      }}></div>
+        <div className="absolute top-1/2 -left-12 w-16 h-16 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-lg animate-float" style={{
+        animationDelay: '0.8s'
+      }}></div>
         
         <Card className="w-full max-w-5xl border-0 shadow-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white/95 via-slate-50/95 to-purple-50/90 backdrop-blur-xl animate-fade-in-scale">
           <CardHeader className="text-center relative overflow-hidden pb-8">
             {/* Background decoration */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-emerald-500/5"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-emerald-500/5 bg-white"></div>
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-80 h-80 bg-gradient-to-br from-purple-200/20 to-blue-200/20 rounded-full blur-3xl"></div>
             
-            <div className="relative z-10">
+            <div className="relative z-10 bg-white">
               <div className="w-24 h-24 bg-gradient-to-br from-purple-500 via-blue-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl ring-4 ring-white/50">
                 <Clock className="w-12 h-12 text-white animate-pulse" />
               </div>
@@ -60,7 +62,7 @@ export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
             </div>
           </CardHeader>
 
-          <CardContent className="relative px-8 pb-8">
+          <CardContent className="relative px-8 pb-8 bg-white">
             {/* Benefits section */}
             <div className="text-center mb-10 relative">
               <div className="bg-gradient-to-r from-red-50/80 to-orange-50/80 border border-red-200/60 rounded-2xl p-8 mb-8 shadow-lg backdrop-blur-sm">
@@ -137,6 +139,5 @@ export const TrialExpiredModal = ({ onUpgrade }: TrialExpiredModalProps) => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
