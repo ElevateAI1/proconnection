@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -170,34 +171,39 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
             </div>
 
             {/* Advanced Features */}
-            <div className="pt-4">
+            <div className="pt-6 border-t border-slate-100 mt-4">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 text-slate-600 hover:bg-slate-100 mb-2"
+                className="w-full justify-start gap-2 text-slate-600 hover:bg-slate-100 mb-3 font-medium"
                 onClick={() => setShowAdvanced(!showAdvanced)}
               >
                 {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <span className="text-sm font-medium">Funciones Avanzadas</span>
+                <span className="text-sm">Funciones Avanzadas</span>
               </Button>
               
               {showAdvanced && (
-                <div className="space-y-1 ml-2">
+                <div className="space-y-2 pl-2">
                   {advancedItems.map((item) => (
                     <Button
                       key={item.id}
                       variant={currentView === item.id ? "default" : "ghost"}
-                      className={`w-full justify-start gap-3 text-sm ${
+                      className={`w-full justify-start gap-3 relative py-3 ${
                         currentView === item.id 
                           ? "bg-gradient-to-r from-blue-500 to-emerald-500 text-white" 
-                          : "text-slate-600 hover:bg-slate-100"
-                      } ${!item.available ? "opacity-50" : ""}`}
+                          : item.available 
+                            ? "text-slate-700 hover:bg-slate-50" 
+                            : "text-slate-400 hover:bg-slate-50"
+                      } ${!item.available ? "cursor-not-allowed" : ""}`}
                       onClick={() => onViewChange(item.id)}
                       disabled={!item.available}
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span className="flex-1 text-left">{item.label}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
                       {item.isPro && !item.available && (
-                        <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs px-1.5 py-0.5 border-amber-200 text-amber-700 bg-amber-50 font-medium"
+                        >
                           PRO
                         </Badge>
                       )}
@@ -231,3 +237,4 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
     </div>
   );
 };
+
