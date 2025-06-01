@@ -17,6 +17,7 @@ import { VisibilityConsulting } from "@/components/VisibilityConsulting";
 import { Sidebar } from "@/components/Sidebar";
 import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
+import { LandingPage } from "@/pages/LandingPage";
 import { Button } from "@/components/ui/button";
 
 type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility";
@@ -41,13 +42,7 @@ export default function Index() {
       profileError 
     });
 
-    // Si ya terminó de cargar y no hay usuario, redirigir al auth
-    if (!authLoading && !user) {
-      console.log('=== NO USER, REDIRECTING TO AUTH ===');
-      navigate("/auth");
-      return;
-    }
-
+    // Ya no redirigimos automáticamente - dejamos que usuarios no autenticados vean la landing
     if (psychologist && psychologist.trial_end_date) {
       const trialEndDate = new Date(psychologist.trial_end_date);
       const now = new Date();
@@ -57,7 +52,8 @@ export default function Index() {
     }
   }, [user, authLoading, navigate, psychologist, profile, profileError]);
 
-  if (authLoading || profileLoading) {
+  // Mostrar loading mientras se cargan auth y profile
+  if (authLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -68,9 +64,9 @@ export default function Index() {
     );
   }
 
-  // Si no hay usuario después de cargar, no mostrar nada (ya se redirigió)
+  // Si no hay usuario, mostrar la landing page
   if (!user) {
-    return null;
+    return <LandingPage />;
   }
 
   // Si hay error de perfil o no hay perfil base
