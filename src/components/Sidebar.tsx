@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -237,4 +236,3 @@ export const Sidebar = ({ currentView, onViewChange }: SidebarProps) => {
     </div>
   );
 };
-
