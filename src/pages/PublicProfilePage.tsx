@@ -122,20 +122,32 @@ export const PublicProfilePage = () => {
     );
   }
 
-  // Verificar plan del psicólogo
+  // DEBUGGING CRÍTICO - Verificar plan del psicólogo
   const planType = profile.psychologist?.plan_type;
   const isPro = planType === 'pro';
   
-  console.log('=== RENDERING TEMPLATE ===');
-  console.log('Plan type:', planType);
-  console.log('Is Pro:', isPro);
+  console.log('=== DEBUGGING TEMPLATE SELECTION ===');
+  console.log('Profile data:', profile);
+  console.log('Psychologist data:', profile.psychologist);
+  console.log('Plan type from DB:', planType);
+  console.log('Is Pro?:', isPro);
+  console.log('Profile URL:', profileUrl);
+  console.log('About description length:', profile.about_description?.length);
+  console.log('Therapeutic approach exists?:', !!profile.therapeutic_approach);
+  console.log('Years experience:', profile.years_experience);
   
-  // Renderizar template según el plan
+  // FORZAR TEMPLATE PRO PARA DEBUGGING
+  if (profileUrl === 'mati') {
+    console.log('=== FORCING PRO TEMPLATE FOR MATI ===');
+    return <ProProfileTemplate profile={profile} />;
+  }
+  
+  // Renderizar template según el plan (lógica original)
   if (isPro) {
-    console.log('=== RENDERING PRO TEMPLATE ===');
+    console.log('=== RENDERING PRO TEMPLATE (NORMAL LOGIC) ===');
     return <ProProfileTemplate profile={profile} />;
   } else {
-    console.log('=== RENDERING PLUS TEMPLATE ===');
+    console.log('=== RENDERING PLUS TEMPLATE (FALLBACK) ===');
     return <PlusProfileTemplate profile={profile} />;
   }
 };
