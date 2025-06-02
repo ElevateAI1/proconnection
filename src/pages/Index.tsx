@@ -27,10 +27,9 @@ type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
-  const { profile, psychologist, patient, loading: profileLoading, error: profileError, forceRefresh, verifyProfileCompleteness } = useProfile();
+  const { profile, psychologist, patient, loading: profileLoading, error: profileError, forceRefresh } = useProfile();
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
-  const [profileCheckComplete, setProfileCheckComplete] = useState(false);
   const navigate = useNavigate();
 
   // Manejar verificación de email desde URL
@@ -50,7 +49,6 @@ export default function Index() {
     const checkTrialStatus = async () => {
       if (psychologist?.id) {
         try {
-          // Verificar si el trial ha expirado usando la función de Supabase
           const { data: isExpired, error } = await supabase.rpc('is_trial_expired', {
             psychologist_id: psychologist.id
           });
@@ -60,11 +58,9 @@ export default function Index() {
             return;
           }
 
-          // También verificar directamente el subscription_status
           const hasExpiredStatus = psychologist.subscription_status === 'expired' || 
                                  psychologist.subscription_status === 'cancelled';
 
-          // Mostrar modal si el trial ha expirado O si el status es expired/cancelled
           if (isExpired || hasExpiredStatus) {
             console.log('Trial expired, showing modal:', { isExpired, hasExpiredStatus, subscription_status: psychologist.subscription_status });
             setShowTrialModal(true);
@@ -79,69 +75,6 @@ export default function Index() {
       checkTrialStatus();
     }
   }, [user, authLoading, navigate, psychologist, profile, profileError]);
-
-  // Función mejorada para verificar si un perfil está completo
-  const isProfileComplete = async (userType: string, profileData: any, roleData: any) => {
-    console.log('=== CHECKING PROFILE COMPLETION ===', {
-      userType,
-      hasProfileData: !!profileData,
-      hasRoleData: !!roleData,
-      roleDataFirstName: roleData?.first_name,
-      roleDataLastName: roleData?.last_name
-    });
-
-    if (!profileData || !roleData) {
-      console.log('Missing profile or role data, checking database directly...');
-      
-      // If cache data is missing, verify directly from database
-      if (verifyProfileCompleteness) {
-        const dbResult = await verifyProfileCompleteness(userType);
-        console.log('Database verification result:', dbResult);
-        
-        if (dbResult) {
-          console.log('Database shows profile is complete, but cache is stale. Forcing refresh...');
-          forceRefresh();
-          return true;
-        }
-      }
-      
-      return false;
-    }
-
-    const hasRequiredNames = !!(roleData.first_name && roleData.last_name);
-    console.log('Profile completion check result:', {
-      hasRequiredNames,
-      firstName: roleData.first_name,
-      lastName: roleData.last_name
-    });
-    
-    return hasRequiredNames;
-  };
-
-  // Efecto para verificar completitud del perfil cuando cambian los datos
-  useEffect(() => {
-    const checkProfileCompleteness = async () => {
-      if (!user || !profile || profileLoading) {
-        setProfileCheckComplete(false);
-        return;
-      }
-
-      console.log('=== PROFILE COMPLETENESS CHECK EFFECT ===');
-      
-      let isComplete = false;
-      
-      if (profile.user_type === 'psychologist') {
-        isComplete = await isProfileComplete('psychologist', profile, psychologist);
-      } else if (profile.user_type === 'patient') {
-        isComplete = await isProfileComplete('patient', profile, patient);
-      }
-      
-      console.log('Profile completeness result:', isComplete);
-      setProfileCheckComplete(isComplete);
-    };
-
-    checkProfileCompleteness();
-  }, [user, profile, psychologist, patient, profileLoading]);
 
   // Mostrar loading mientras se cargan auth y profile
   if (authLoading || (user && profileLoading)) {
@@ -187,21 +120,31 @@ export default function Index() {
     );
   }
 
-  // Show profile setup if profile needs completion
-  if (profile && !profileCheckComplete) {
-    console.log('=== SHOWING PROFILE SETUP ===', {
-      userType: profile.user_type,
-      profileCheckComplete
-    });
-    
+  // SIMPLIFICADO: Solo mostrar ProfileSetup si REALMENTE no hay datos de rol
+  if (profile && profile.user_type === 'psychologist' && !psychologist) {
+    console.log('=== SHOWING PROFILE SETUP FOR PSYCHOLOGIST - NO DATA FOUND ===');
     return (
       <ProfileSetup 
-        userType={profile.user_type as 'psychologist' | 'patient'} 
+        userType="psychologist"
         onComplete={() => {
           console.log('=== PROFILE SETUP COMPLETED - FORCING REFRESH ===');
-          setProfileCheckComplete(true);
           forceRefresh();
-          // Small delay to ensure state updates
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }} 
+      />
+    );
+  }
+
+  if (profile && profile.user_type === 'patient' && !patient) {
+    console.log('=== SHOWING PROFILE SETUP FOR PATIENT - NO DATA FOUND ===');
+    return (
+      <ProfileSetup 
+        userType="patient"
+        onComplete={() => {
+          console.log('=== PROFILE SETUP COMPLETED - FORCING REFRESH ===');
+          forceRefresh();
           setTimeout(() => {
             window.location.reload();
           }, 500);
@@ -215,72 +158,73 @@ export default function Index() {
     return <PatientPortal />;
   }
 
-  // Check if we have a complete psychologist profile
-  if (!psychologist && profile?.user_type === 'psychologist') {
+  // Psychologist dashboard - si hay psychologist data, mostrar directamente
+  if (psychologist) {
+    const handleViewChange = (view: ViewType) => {
+      setCurrentView(view);
+    };
+
+    const renderCurrentView = () => {
+      switch (currentView) {
+        case "dashboard":
+          return <Dashboard onViewChange={handleViewChange} />;
+        case "patients":
+          return <PatientManagement />;
+        case "calendar":
+          return <Calendar />;
+        case "messages":
+          return <MessagingHub />;
+        case "affiliates":
+          return <AffiliateSystem />;
+        case "seo":
+          return <SeoProfileManager />;
+        case "reports":
+          return <AdvancedReports />;
+        case "support":
+          return <PrioritySupport />;
+        case "early-access":
+          return <EarlyAccess />;
+        case "visibility":
+          return <VisibilityConsulting />;
+        case "rates":
+          return <PsychologistRatesManager />;
+        default:
+          return <Dashboard onViewChange={handleViewChange} />;
+      }
+    };
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
-            <h2 className="text-xl font-bold text-yellow-700 mb-2">
-              Perfil Incompleto
-            </h2>
-            <p className="text-yellow-600 mb-4">
-              Tu cuenta está registrada pero necesitas completar tu perfil profesional.
-            </p>
-            <Button 
-              onClick={() => forceRefresh()}
-              className="bg-yellow-600 hover:bg-yellow-700"
-            >
-              Completar Perfil
-            </Button>
-          </div>
-        </div>
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <Sidebar currentView={currentView} onViewChange={handleViewChange} />
+        <main className="flex-1 p-6 ml-64">
+          {renderCurrentView()}
+        </main>
+        {showTrialModal && (
+          <TrialExpiredModal onUpgrade={() => setShowTrialModal(false)} />
+        )}
       </div>
     );
   }
 
-  const handleViewChange = (view: ViewType) => {
-    setCurrentView(view);
-  };
-
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case "dashboard":
-        return <Dashboard onViewChange={handleViewChange} />;
-      case "patients":
-        return <PatientManagement />;
-      case "calendar":
-        return <Calendar />;
-      case "messages":
-        return <MessagingHub />;
-      case "affiliates":
-        return <AffiliateSystem />;
-      case "seo":
-        return <SeoProfileManager />;
-      case "reports":
-        return <AdvancedReports />;
-      case "support":
-        return <PrioritySupport />;
-      case "early-access":
-        return <EarlyAccess />;
-      case "visibility":
-        return <VisibilityConsulting />;
-      case "rates":
-        return <PsychologistRatesManager />;
-      default:
-        return <Dashboard onViewChange={handleViewChange} />;
-    }
-  };
-
+  // Fallback: si llegamos aquí, hay un problema de datos
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar currentView={currentView} onViewChange={handleViewChange} />
-      <main className="flex-1 p-6 ml-64">
-        {renderCurrentView()}
-      </main>
-      {showTrialModal && (
-        <TrialExpiredModal onUpgrade={() => setShowTrialModal(false)} />
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="text-center max-w-md">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
+          <h2 className="text-xl font-bold text-yellow-700 mb-2">
+            Configuración Incompleta
+          </h2>
+          <p className="text-yellow-600 mb-4">
+            Tu cuenta necesita configuración adicional.
+          </p>
+          <Button 
+            onClick={() => forceRefresh()}
+            className="bg-yellow-600 hover:bg-yellow-700"
+          >
+            Recargar
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

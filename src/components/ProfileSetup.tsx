@@ -14,7 +14,7 @@ interface ProfileSetupProps {
 }
 
 export const ProfileSetup = ({ userType, onComplete }: ProfileSetupProps) => {
-  const { createPatientProfile, forceRefresh, verifyProfileCompleteness } = useProfile();
+  const { createPatientProfile, forceRefresh } = useProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [professionalCode, setProfessionalCode] = useState('');
@@ -33,7 +33,6 @@ export const ProfileSetup = ({ userType, onComplete }: ProfileSetupProps) => {
   useEffect(() => {
     console.log('ProfileSetup mounted for:', userType);
     if (userType === 'patient') {
-      // Get professional code from signup metadata if available
       const getSignupData = async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -76,7 +75,6 @@ export const ProfileSetup = ({ userType, onComplete }: ProfileSetupProps) => {
       console.log('Updating psychologist profile for user:', user.id);
       console.log('Update data:', formData);
 
-      // Update the existing psychologist profile
       const { data: result, error: updateError } = await supabase
         .from('psychologists')
         .update({
@@ -146,27 +144,13 @@ export const ProfileSetup = ({ userType, onComplete }: ProfileSetupProps) => {
 
       console.log('=== PROFILE SETUP COMPLETED SUCCESSFULLY ===');
       
-      // Force complete cache refresh first
+      // Simplified completion - just force refresh and complete
       forceRefresh();
       
-      // Wait a bit longer for cache to clear and then verify the profile was saved
-      setTimeout(async () => {
-        console.log('=== VERIFYING PROFILE COMPLETION ===');
-        
-        const isComplete = await verifyProfileCompleteness?.(userType);
-        console.log('Profile verification result:', isComplete);
-        
-        if (isComplete) {
-          console.log('Profile verified as complete, calling onComplete');
-          onComplete();
-        } else {
-          console.warn('Profile verification failed, trying again...');
-          // Try one more time with additional delay
-          setTimeout(() => {
-            console.log('Second attempt at completion');
-            onComplete();
-          }, 500);
-        }
+      // Immediate completion with minimal delay
+      setTimeout(() => {
+        console.log('Calling onComplete');
+        onComplete();
       }, 200);
       
     } catch (error: any) {
