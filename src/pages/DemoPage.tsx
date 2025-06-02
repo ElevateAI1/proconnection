@@ -39,7 +39,7 @@ export const DemoPage = () => {
       title: "Comunicación Segura",
       description: "Mensajería cifrada para mantener contacto profesional",
       icon: MessageCircle,
-      color: "amber",
+      color: "pink",
       steps: [
         "Mensajes cifrados para proteger la confidencialidad",
         "Notificaciones en tiempo real para comunicación fluida",
