@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, ArrowRight, CheckCircle, Star, Shield, Headphones } from "lucide-react";
+import { UserCheck, ArrowRight, CheckCircle, Star, Shield, Headphones, Clock, CreditCard } from "lucide-react";
 
 export const RegisterPage = () => {
   const [searchParams] = useSearchParams();
@@ -92,14 +92,46 @@ export const RegisterPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <div className="container mx-auto px-4 py-8">
         
-        {/* Header */}
+        {/* Header with Enhanced Trial Messaging */}
         <div className="text-center mb-12">
+          {/* Trial Badge */}
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-full mb-6 shadow-lg">
+            <Clock className="w-5 h-5" />
+            <span className="font-bold text-lg">7 DÍAS GRATIS</span>
+          </div>
+          
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent mb-4">
             Únete a ProConnection
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-6">
             Crea tu cuenta y comienza a gestionar tu práctica profesional con las mejores herramientas del mercado
           </p>
+          
+          {/* Free Trial Highlights */}
+          <div className="max-w-3xl mx-auto bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-emerald-800">
+                Prueba GRATIS por 7 días - Sin tarjeta de crédito
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>Acceso completo a todas las funciones</span>
+              </div>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>Cancela en cualquier momento</span>
+              </div>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>Sin compromisos ni permanencia</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto">
@@ -205,15 +237,26 @@ export const RegisterPage = () => {
           </div>
         </div>
 
-        {/* Features Section */}
+        {/* Enhanced Features Section with Trial Benefits */}
         <div className="max-w-4xl mx-auto mt-16">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-800 mb-4">
               ¿Por qué elegir ProConnection?
             </h2>
+            <p className="text-slate-600">
+              Descubre todo lo que incluye tu prueba gratuita de 7 días
+            </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-6 bg-white rounded-lg shadow-sm border border-emerald-100">
+              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-slate-800 mb-2">7 Días Completamente Gratis</h3>
+              <p className="text-slate-600 text-sm">Acceso total sin limitaciones ni tarjeta de crédito</p>
+            </div>
+            
             <div className="text-center p-6 bg-white rounded-lg shadow-sm border">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-6 h-6 text-blue-600" />
@@ -223,19 +266,11 @@ export const RegisterPage = () => {
             </div>
             
             <div className="text-center p-6 bg-white rounded-lg shadow-sm border">
-              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-6 h-6 text-emerald-600" />
-              </div>
-              <h3 className="font-semibold text-slate-800 mb-2">Fácil de Usar</h3>
-              <p className="text-slate-600 text-sm">Interface intuitiva diseñada para profesionales</p>
-            </div>
-            
-            <div className="text-center p-6 bg-white rounded-lg shadow-sm border">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Headphones className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="font-semibold text-slate-800 mb-2">Soporte 24/7</h3>
-              <p className="text-slate-600 text-sm">Estamos aquí para ayudarte cuando lo necesites</p>
+              <h3 className="font-semibold text-slate-800 mb-2">Soporte Incluido</h3>
+              <p className="text-slate-600 text-sm">Asistencia personalizada durante tu período de prueba</p>
             </div>
           </div>
         </div>

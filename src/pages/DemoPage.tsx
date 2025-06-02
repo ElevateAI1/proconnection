@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users, Video, ClipboardList, Shield, ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
@@ -120,7 +119,7 @@ export const DemoPage = () => {
             </h1>
           </div>
 
-          <Link to="/app">
+          <Link to="/register">
             <Button className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:scale-105 transition-all duration-300">
               Empezar Ahora
             </Button>
@@ -229,7 +228,7 @@ export const DemoPage = () => {
                       <RotateCcw className="w-4 h-4 mr-2" />
                       Ver todas las características
                     </Button>
-                    <Link to="/app" className="flex-1">
+                    <Link to="/register" className="flex-1">
                       <Button className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:scale-105 transition-all duration-300">
                         Comenzar ahora
                       </Button>
@@ -251,7 +250,7 @@ export const DemoPage = () => {
           <p className="text-xl text-blue-100 mb-8">
             Comienza tu prueba gratuita de 7 días y transforma tu práctica profesional hoy mismo.
           </p>
-          <Link to="/app">
+          <Link to="/register">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 hover:scale-110 px-8 py-3 text-lg font-semibold">
               Comenzar Prueba Gratuita
             </Button>
