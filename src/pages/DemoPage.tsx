@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users, Video, ClipboardList, Shield, ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
@@ -15,7 +14,6 @@ export const DemoPage = () => {
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
       color: "orange",
-      hideFade: true,
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
@@ -29,7 +27,6 @@ export const DemoPage = () => {
       description: "Mantén organizados los historiales y datos de todos tus pacientes",
       icon: Users,
       color: "emerald",
-      hideFade: true,
       steps: [
         "Registro completo de datos personales del paciente",
         "Historial médico y notas detalladas de cada sesión",
@@ -43,7 +40,6 @@ export const DemoPage = () => {
       description: "Mensajería cifrada para mantener contacto profesional",
       icon: MessageCircle,
       color: "purple",
-      hideFade: true,
       steps: [
         "Mensajes cifrados para proteger la confidencialidad",
         "Notificaciones en tiempo real para comunicación fluida",
@@ -57,7 +53,6 @@ export const DemoPage = () => {
       description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
       color: "orange",
-      hideFade: true,
       steps: [
         "Videollamadas HD con conexión estable",
         "Enlaces únicos generados automáticamente",
@@ -71,7 +66,6 @@ export const DemoPage = () => {
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
       color: "amber",
-      hideFade: true,
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
@@ -85,7 +79,6 @@ export const DemoPage = () => {
       description: "Cumplimiento total con regulaciones de privacidad médica",
       icon: Shield,
       color: "red",
-      hideFade: true,
       steps: [
         "Cifrado de extremo a extremo para todos los datos",
         "Autenticación segura con verificación de identidad",
@@ -155,9 +148,6 @@ export const DemoPage = () => {
                 className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer relative overflow-hidden"
                 onClick={() => startDemo(feature.id)}
               >
-                {!feature.hideFade && (
-                  <div className={`absolute inset-0 bg-gradient-to-br from-${feature.color}-50 to-transparent opacity-20 group-hover:opacity-30 transition-opacity duration-300`} />
-                )}
                 <CardHeader className="text-center relative z-10">
                   <div className={`w-16 h-16 bg-gradient-to-r from-${feature.color}-500 to-${feature.color}-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
                     <feature.icon className="w-8 h-8 text-white" />
