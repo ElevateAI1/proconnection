@@ -1,13 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Shield, Users, MessageCircle, Calendar, Star, CheckCircle, Award, TrendingUp, Clock, Globe, Zap, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollAnimationWrapper } from "@/components/ScrollAnimationWrapper";
-
 export const LandingPage = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -40,7 +37,9 @@ export const LandingPage = () => {
         {/* Floating background elements */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-blue-200/30 rounded-full blur-xl animate-bounce"></div>
         <div className="absolute top-40 right-20 w-32 h-32 bg-emerald-200/30 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-purple-200/30 rounded-full blur-xl animate-bounce" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-purple-200/30 rounded-full blur-xl animate-bounce" style={{
+        animationDelay: '2s'
+      }}></div>
         
         <div className="max-w-4xl mx-auto relative z-10">
           <ScrollAnimationWrapper animation="fade-up">
@@ -79,11 +78,7 @@ export const LandingPage = () => {
           {/* Hero Image */}
           <ScrollAnimationWrapper animation="fade-scale" delay={600}>
             <div className="relative group">
-              <img 
-                src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-                alt="Profesional de la salud mental usando ProConnection"
-                className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full transform group-hover:scale-105 transition-all duration-500 group-hover:shadow-3xl"
-              />
+              <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Profesional de la salud mental usando ProConnection" className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full transform group-hover:scale-105 transition-all duration-500 group-hover:shadow-3xl" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl group-hover:from-black/10 transition-all duration-500"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
@@ -144,51 +139,43 @@ export const LandingPage = () => {
         </ScrollAnimationWrapper>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            {
-              icon: Shield,
-              title: "Seguridad Garantizada",
-              description: "Cumplimos con los más altos estándares de seguridad y privacidad para proteger la información sensible de pacientes y profesionales.",
-              color: "blue",
-              delay: 0
-            },
-            {
-              icon: Users,
-              title: "Gestión de Pacientes",
-              description: "Sistema completo para administrar historiales, citas y seguimiento de pacientes de manera eficiente y organizada.",
-              color: "emerald",
-              delay: 100
-            },
-            {
-              icon: MessageCircle,
-              title: "Comunicación Segura",
-              description: "Mensajería cifrada y llamadas seguras para mantener la confidencialidad en todas las comunicaciones profesionales.",
-              color: "purple",
-              delay: 200
-            },
-            {
-              icon: Calendar,
-              title: "Agenda Inteligente",
-              description: "Programación automática de citas, recordatorios y gestión optimizada del tiempo para maximizar la productividad.",
-              color: "orange",
-              delay: 300
-            },
-            {
-              icon: Star,
-              title: "Interfaz Intuitiva",
-              description: "Diseño moderno y fácil de usar que permite enfocarse en lo importante: el bienestar de los pacientes.",
-              color: "pink",
-              delay: 400
-            },
-            {
-              icon: Heart,
-              title: "Soporte 24/7",
-              description: "Equipo de soporte especializado disponible en todo momento para resolver cualquier duda o inconveniente.",
-              color: "indigo",
-              delay: 500
-            }
-          ].map((feature, index) => (
-            <ScrollAnimationWrapper key={index} animation="fade-scale" delay={feature.delay}>
+          {[{
+          icon: Shield,
+          title: "Seguridad Garantizada",
+          description: "Cumplimos con los más altos estándares de seguridad y privacidad para proteger la información sensible de pacientes y profesionales.",
+          color: "blue",
+          delay: 0
+        }, {
+          icon: Users,
+          title: "Gestión de Pacientes",
+          description: "Sistema completo para administrar historiales, citas y seguimiento de pacientes de manera eficiente y organizada.",
+          color: "emerald",
+          delay: 100
+        }, {
+          icon: MessageCircle,
+          title: "Comunicación Segura",
+          description: "Mensajería cifrada y llamadas seguras para mantener la confidencialidad en todas las comunicaciones profesionales.",
+          color: "purple",
+          delay: 200
+        }, {
+          icon: Calendar,
+          title: "Agenda Inteligente",
+          description: "Programación automática de citas, recordatorios y gestión optimizada del tiempo para maximizar la productividad.",
+          color: "orange",
+          delay: 300
+        }, {
+          icon: Star,
+          title: "Interfaz Intuitiva",
+          description: "Diseño moderno y fácil de usar que permite enfocarse en lo importante: el bienestar de los pacientes.",
+          color: "pink",
+          delay: 400
+        }, {
+          icon: Heart,
+          title: "Soporte 24/7",
+          description: "Equipo de soporte especializado disponible en todo momento para resolver cualquier duda o inconveniente.",
+          color: "indigo",
+          delay: 500
+        }].map((feature, index) => <ScrollAnimationWrapper key={index} animation="fade-scale" delay={feature.delay}>
               <Card className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer relative overflow-hidden">
                 <div className={`absolute inset-0 bg-gradient-to-br from-${feature.color}-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
                 <CardHeader className="text-center relative z-10">
@@ -203,8 +190,7 @@ export const LandingPage = () => {
                   </p>
                 </CardContent>
               </Card>
-            </ScrollAnimationWrapper>
-          ))}
+            </ScrollAnimationWrapper>)}
         </div>
       </section>
 
@@ -228,30 +214,25 @@ export const LandingPage = () => {
             </ScrollAnimationWrapper>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              {[
-                {
-                  step: "1",
-                  title: "Regístrate",
-                  description: "Crea tu perfil profesional en minutos. Verifica tu identidad y comienza a configurar tu espacio de trabajo digital.",
-                  color: "blue",
-                  delay: 200
-                },
-                {
-                  step: "2",
-                  title: "Conecta",
-                  description: "Los pacientes pueden encontrarte y agendar citas según tu disponibilidad. Recibe notificaciones y confirma automáticamente.",
-                  color: "emerald",
-                  delay: 400
-                },
-                {
-                  step: "3",
-                  title: "Atiende",
-                  description: "Utiliza nuestras herramientas integradas para realizar sesiones, llevar registros y dar seguimiento a tus pacientes.",
-                  color: "purple",
-                  delay: 600
-                }
-              ].map((step, index) => (
-                <ScrollAnimationWrapper key={index} animation="fade-up" delay={step.delay}>
+              {[{
+              step: "1",
+              title: "Regístrate",
+              description: "Crea tu perfil profesional en minutos. Verifica tu identidad y comienza a configurar tu espacio de trabajo digital.",
+              color: "blue",
+              delay: 200
+            }, {
+              step: "2",
+              title: "Conecta",
+              description: "Los pacientes pueden encontrarte y agendar citas según tu disponibilidad. Recibe notificaciones y confirma automáticamente.",
+              color: "emerald",
+              delay: 400
+            }, {
+              step: "3",
+              title: "Atiende",
+              description: "Utiliza nuestras herramientas integradas para realizar sesiones, llevar registros y dar seguimiento a tus pacientes.",
+              color: "purple",
+              delay: 600
+            }].map((step, index) => <ScrollAnimationWrapper key={index} animation="fade-up" delay={step.delay}>
                   <div className="text-center group hover:scale-105 transition-all duration-500">
                     <div className={`w-20 h-20 bg-gradient-to-r from-${step.color}-500 to-${step.color}-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 group-hover:shadow-xl`}>
                       <span className="text-2xl font-bold text-white group-hover:animate-pulse">{step.step}</span>
@@ -261,8 +242,7 @@ export const LandingPage = () => {
                       {step.description}
                     </p>
                   </div>
-                </ScrollAnimationWrapper>
-              ))}
+                </ScrollAnimationWrapper>)}
             </div>
           </div>
         </section>
@@ -285,20 +265,14 @@ export const LandingPage = () => {
             <Card className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
-                  <img 
-                    src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"
-                    alt="Dra. Ana García"
-                    className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300"
-                  />
+                  <img src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Dra. Ana García" className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300" />
                   <div>
                     <h5 className="font-semibold text-slate-800">Dra. Ana García</h5>
                     <p className="text-sm text-slate-600">Psicóloga Clínica</p>
                   </div>
                 </div>
                 <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />
-                  ))}
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />)}
                 </div>
                 <p className="text-slate-600">
                   "ProConnection ha transformado completamente mi práctica. La gestión de pacientes 
@@ -310,20 +284,14 @@ export const LandingPage = () => {
             <Card className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
-                  <img 
-                    src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"
-                    alt="Dr. Carlos Mendoza"
-                    className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300"
-                  />
+                  <img src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Dr. Carlos Mendoza" className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300" />
                   <div>
                     <h5 className="font-semibold text-slate-800">Dr. Carlos Mendoza</h5>
                     <p className="text-sm text-slate-600">Psicoterapeuta</p>
                   </div>
                 </div>
                 <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />
-                  ))}
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />)}
                 </div>
                 <p className="text-slate-600">
                   "La seguridad y privacidad que ofrece ProConnection me da total tranquilidad. 
@@ -335,20 +303,14 @@ export const LandingPage = () => {
             <Card className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-105 hover:-translate-y-2 cursor-pointer">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
-                  <img 
-                    src="https://images.unsplash.com/photo-1721322800607-8c38375eef04?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"
-                    alt="Dra. María López"
-                    className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300"
-                  />
+                  <img src="https://images.unsplash.com/photo-1721322800607-8c38375eef04?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Dra. María López" className="w-12 h-12 rounded-full mr-4 group-hover:scale-110 transition-transform duration-300" />
                   <div>
                     <h5 className="font-semibold text-slate-800">Dra. María López</h5>
                     <p className="text-sm text-slate-600">Psicóloga Infantil</p>
                   </div>
                 </div>
                 <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />
-                  ))}
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" />)}
                 </div>
                 <p className="text-slate-600">
                   "Las herramientas de comunicación son excelentes. Puedo mantener contacto 
@@ -415,11 +377,7 @@ export const LandingPage = () => {
               </div>
               
               <div className="relative group">
-                <img 
-                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-                  alt="Profesional usando ProConnection"
-                  className="rounded-2xl shadow-2xl group-hover:scale-105 group-hover:shadow-3xl transition-all duration-500"
-                />
+                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Profesional usando ProConnection" className="rounded-2xl shadow-2xl group-hover:scale-105 group-hover:shadow-3xl transition-all duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl group-hover:from-black/10 transition-all duration-500"></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
@@ -458,19 +416,27 @@ export const LandingPage = () => {
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Acceso completo al portal web</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.1s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.1s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Gestión ilimitada de pacientes</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.2s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.2s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Sistema de citas y calendario</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.3s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.3s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Código profesional y referidos</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.4s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.4s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Hub de mensajería básico</span>
                   </li>
@@ -490,7 +456,7 @@ export const LandingPage = () => {
                 </span>
               </div>
               <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl mb-2 group-hover:text-purple-600 transition-colors duration-300 flex items-center justify-center gap-2">
+                <CardTitle className="text-2xl mb-2 group-hover:text-purple-600 transition-colors duration-300 flex items-center justify-center gap-2 px-0 mx-0 my-[25px]">
                   <Crown className="w-6 h-6 text-purple-500" />
                   Plan Pro
                 </CardTitle>
@@ -503,23 +469,33 @@ export const LandingPage = () => {
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span className="font-medium">Todo lo incluido en Plan Plus</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.1s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.1s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>SEO de perfil profesional</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.2s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.2s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Reportes avanzados de pacientes</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.3s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.3s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Prioridad en nuevas funciones</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.4s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.4s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Soporte técnico preferencial</span>
                   </li>
-                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{transitionDelay: '0.5s'}}>
+                  <li className="flex items-center gap-3 group-hover:translate-x-2 transition-transform duration-300" style={{
+                  transitionDelay: '0.5s'
+                }}>
                     <CheckCircle className="w-5 h-5 text-green-500 group-hover:scale-125 transition-transform duration-200" />
                     <span>Consultoría de visibilidad</span>
                   </li>
@@ -622,6 +598,5 @@ export const LandingPage = () => {
           </div>
         </footer>
       </ScrollAnimationWrapper>
-    </div>
-  );
+    </div>;
 };
