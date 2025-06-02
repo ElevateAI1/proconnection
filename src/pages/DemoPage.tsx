@@ -13,7 +13,7 @@ export const DemoPage = () => {
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
-      color: "orange",
+      color: "blue",
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
@@ -52,7 +52,7 @@ export const DemoPage = () => {
       title: "Consultas Virtuales",
       description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
-      color: "orange",
+      color: "blue",
       steps: [
         "Videollamadas HD con conexión estable",
         "Enlaces únicos generados automáticamente",
@@ -65,7 +65,7 @@ export const DemoPage = () => {
       title: "Formularios Digitales",
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
-      color: "amber",
+      color: "blue",
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
