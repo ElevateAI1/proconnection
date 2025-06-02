@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -20,9 +20,10 @@ import { LandingPage } from './pages/LandingPage';
 import { HelmetProvider } from 'react-helmet-async';
 import { PublicProfilePage } from "@/pages/PublicProfilePage";
 
-function App() {
-  const [queryClient] = useState(() => new QueryClient());
+// Create QueryClient outside of component to prevent recreating on each render
+const queryClient = new QueryClient();
 
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>
