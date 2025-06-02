@@ -127,10 +127,6 @@
   .animate-shimmer {
     animation: shimmer 2.5s ease-in-out infinite;
   }
-
-  .animate-gradient {
-    animation: gradient 4s ease-in-out infinite;
-  }
   
   /* Premium Glass Effect */
   .glass-effect {
@@ -231,12 +227,6 @@
 
   .gradient-blue {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-
-  .gradient-rainbow {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
-    background-size: 300% 300%;
-    animation: gradient 4s ease infinite;
   }
 }
 
@@ -347,18 +337,6 @@
   }
   100% {
     background-position: 200% 0;
-  }
-}
-
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
   }
 }
 
