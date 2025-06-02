@@ -93,8 +93,8 @@ export default function Index() {
     return <LandingPage />;
   }
 
-  // Si hay error de perfil o no hay perfil base
-  if (profileError || (!profile && !profileLoading)) {
+  // Si hay error de perfil
+  if (profileError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
@@ -103,7 +103,7 @@ export default function Index() {
               Error al cargar el perfil
             </h2>
             <p className="text-red-600 mb-4">
-              {profileError || 'No se pudo encontrar tu perfil en la base de datos.'}
+              {profileError}
             </p>
             <Button 
               onClick={forceRefresh}
@@ -112,22 +112,44 @@ export default function Index() {
               Reintentar
             </Button>
           </div>
-          <p className="text-sm text-slate-500">
-            Si el problema persiste, contacta con soporte.
-          </p>
         </div>
       </div>
     );
   }
 
-  // Si hay perfil, ir directamente a la aplicación correspondiente
+  // Si hay usuario pero no hay perfil, esperar un poco más o forzar refresh
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
+            <h2 className="text-xl font-bold text-yellow-700 mb-2">
+              Configurando tu perfil...
+            </h2>
+            <p className="text-yellow-600 mb-4">
+              Estamos preparando tu cuenta. Esto debería tomar solo unos segundos.
+            </p>
+            <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <Button 
+              onClick={() => forceRefresh()}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Recargar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SI HAY PERFIL, IR DIRECTO A LA APP PRINCIPAL
   if (profile) {
     // Patient portal
     if (profile.user_type === 'patient') {
       return <PatientPortal />;
     }
 
-    // Psychologist dashboard
+    // Psychologist dashboard - IR DIRECTO AL DASHBOARD
     if (profile.user_type === 'psychologist') {
       const handleViewChange = (view: ViewType) => {
         setCurrentView(view);
@@ -176,23 +198,15 @@ export default function Index() {
     }
   }
 
-  // Fallback: si llegamos aquí, hay un problema de datos
+  // Fallback
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
-          <h2 className="text-xl font-bold text-yellow-700 mb-2">
-            Configuración Incompleta
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
+          <h2 className="text-xl font-bold text-blue-700 mb-2">
+            Cargando aplicación...
           </h2>
-          <p className="text-yellow-600 mb-4">
-            Tu cuenta necesita configuración adicional.
-          </p>
-          <Button 
-            onClick={() => forceRefresh()}
-            className="bg-yellow-600 hover:bg-yellow-700"
-          >
-            Recargar
-          </Button>
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     </div>

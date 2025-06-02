@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,11 +30,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // When user confirms email, create their profile automatically
-        if (event === 'SIGNED_IN' && session?.user && session.user.user_metadata) {
-          console.log('=== SIGNED IN EVENT, HANDLING PROFILE ===');
+        // When user signs in, ensure their profile is complete
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('=== SIGNED IN EVENT, ENSURING COMPLETE PROFILE ===');
           setTimeout(async () => {
-            await handlePostSignInProfile(session.user);
+            await ensureCompleteProfile(session.user);
           }, 100);
         }
         
@@ -52,13 +53,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handlePostSignInProfile = async (user: User) => {
+  const ensureCompleteProfile = async (user: User) => {
     try {
-      console.log('=== HANDLING POST SIGN-IN PROFILE ===');
+      console.log('=== ENSURING COMPLETE PROFILE ===');
       console.log('User ID:', user.id);
       console.log('User metadata:', user.user_metadata);
 
-      // Check if profile already exists
+      // Check if base profile exists
       const { data: existingProfile, error: profileCheckError } = await supabase
         .from('profiles')
         .select('*')
@@ -70,94 +71,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      if (existingProfile) {
-        console.log('=== PROFILE EXISTS ===', existingProfile);
-        
-        const userType = existingProfile.user_type || user.user_metadata.user_type;
-        
-        if (userType === 'psychologist') {
-          const { data: existingPsych } = await supabase
-            .from('psychologists')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          if (!existingPsych && user.user_metadata.first_name) {
-            console.log('=== CREATING PSYCHOLOGIST FROM METADATA ===');
-            const { data: codeData } = await supabase.rpc('generate_professional_code');
-            
-            if (codeData) {
-              const { error: psychError } = await supabase.from('psychologists').insert({
-                id: user.id,
-                first_name: user.user_metadata.first_name,
-                last_name: user.user_metadata.last_name,
-                professional_code: codeData,
-                phone: user.user_metadata.phone,
-                specialization: user.user_metadata.specialization,
-                license_number: user.user_metadata.license_number
-              });
-              
-              if (psychError) {
-                console.error('=== ERROR CREATING PSYCHOLOGIST ===', psychError);
-              } else {
-                console.log('=== PSYCHOLOGIST CREATED SUCCESSFULLY ===');
-              }
-            }
-          }
-        } else if (userType === 'patient') {
-          const { data: existingPatient } = await supabase
-            .from('patients')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          if (!existingPatient && user.user_metadata.first_name && user.user_metadata.professional_code) {
-            console.log('=== CREATING PATIENT FROM METADATA ===');
-            
-            // Validate professional code and get psychologist ID
-            const { data: psychologistId, error: validateError } = await supabase.rpc('validate_professional_code', { 
-              code: user.user_metadata.professional_code 
-            });
-            
-            if (validateError) {
-              console.error('=== ERROR VALIDATING CODE ===', validateError);
-              return;
-            }
-            
-            if (psychologistId) {
-              console.log('=== CODE VALIDATED, PSYCHOLOGIST ID ===', psychologistId);
-              
-              const { error: patientError } = await supabase.from('patients').insert({
-                id: user.id,
-                first_name: user.user_metadata.first_name,
-                last_name: user.user_metadata.last_name,
-                psychologist_id: psychologistId,
-                phone: user.user_metadata.phone,
-                age: user.user_metadata.age ? parseInt(user.user_metadata.age.toString()) : null
-              });
-              
-              if (patientError) {
-                console.error('=== ERROR CREATING PATIENT ===', patientError);
-              } else {
-                console.log('=== PATIENT CREATED SUCCESSFULLY ===');
-                toast({
-                  title: "Registro completado",
-                  description: "Tu perfil de paciente ha sido creado exitosamente",
-                });
-              }
-            } else {
-              console.error('=== INVALID PROFESSIONAL CODE ===', user.user_metadata.professional_code);
-              toast({
-                title: "Error",
-                description: "Código profesional inválido",
-                variant: "destructive"
-              });
-            }
-          }
-        }
-      } else {
-        console.log('=== NO PROFILE EXISTS, CREATING BASE PROFILE ===');
-        // Create base profile if it doesn't exist
+      // Create base profile if it doesn't exist
+      if (!existingProfile) {
+        console.log('=== CREATING BASE PROFILE ===');
         const { error: createProfileError } = await supabase
           .from('profiles')
           .insert({
@@ -168,12 +84,105 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
         if (createProfileError) {
           console.error('=== ERROR CREATING BASE PROFILE ===', createProfileError);
+          return;
         } else {
           console.log('=== BASE PROFILE CREATED ===');
         }
       }
+
+      const userType = existingProfile?.user_type || user.user_metadata.user_type;
+      
+      // Handle psychologist profile creation
+      if (userType === 'psychologist') {
+        const { data: existingPsych } = await supabase
+          .from('psychologists')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (!existingPsych && user.user_metadata.first_name) {
+          console.log('=== CREATING PSYCHOLOGIST FROM METADATA ===');
+          
+          // Generate professional code
+          const { data: codeData } = await supabase.rpc('generate_professional_code');
+          
+          if (codeData) {
+            const { error: psychError } = await supabase.from('psychologists').insert({
+              id: user.id,
+              first_name: user.user_metadata.first_name,
+              last_name: user.user_metadata.last_name,
+              professional_code: codeData,
+              phone: user.user_metadata.phone,
+              specialization: user.user_metadata.specialization,
+              license_number: user.user_metadata.license_number
+            });
+            
+            if (psychError) {
+              console.error('=== ERROR CREATING PSYCHOLOGIST ===', psychError);
+            } else {
+              console.log('=== PSYCHOLOGIST CREATED SUCCESSFULLY ===');
+              toast({
+                title: "¡Bienvenido!",
+                description: "Tu perfil de psicólogo ha sido configurado exitosamente",
+              });
+            }
+          }
+        }
+      } 
+      // Handle patient profile creation
+      else if (userType === 'patient') {
+        const { data: existingPatient } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (!existingPatient && user.user_metadata.first_name && user.user_metadata.professional_code) {
+          console.log('=== CREATING PATIENT FROM METADATA ===');
+          
+          // Validate professional code and get psychologist ID
+          const { data: psychologistId, error: validateError } = await supabase.rpc('validate_professional_code', { 
+            code: user.user_metadata.professional_code 
+          });
+          
+          if (validateError) {
+            console.error('=== ERROR VALIDATING CODE ===', validateError);
+            return;
+          }
+          
+          if (psychologistId) {
+            console.log('=== CODE VALIDATED, CREATING PATIENT ===', psychologistId);
+            
+            const { error: patientError } = await supabase.from('patients').insert({
+              id: user.id,
+              first_name: user.user_metadata.first_name,
+              last_name: user.user_metadata.last_name,
+              psychologist_id: psychologistId,
+              phone: user.user_metadata.phone,
+              age: user.user_metadata.age ? parseInt(user.user_metadata.age.toString()) : null
+            });
+            
+            if (patientError) {
+              console.error('=== ERROR CREATING PATIENT ===', patientError);
+            } else {
+              console.log('=== PATIENT CREATED SUCCESSFULLY ===');
+              toast({
+                title: "¡Bienvenido!",
+                description: "Tu perfil de paciente ha sido configurado exitosamente",
+              });
+            }
+          } else {
+            console.error('=== INVALID PROFESSIONAL CODE ===', user.user_metadata.professional_code);
+            toast({
+              title: "Error",
+              description: "Código profesional inválido",
+              variant: "destructive"
+            });
+          }
+        }
+      }
     } catch (error) {
-      console.error('=== EXCEPTION IN POST SIGN-IN PROFILE ===', error);
+      console.error('=== EXCEPTION IN PROFILE CREATION ===', error);
     }
   };
 
@@ -221,8 +230,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('=== SIGN IN SUCCESSFUL ===');
       toast({
-        title: "Inicio de sesión exitoso",
-        description: "Bienvenido a ProConnection",
+        title: "¡Bienvenido!",
+        description: "Inicio de sesión exitoso",
       });
     }
     
@@ -234,7 +243,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Additional data:', additionalData);
     
     try {
-      // Crear el usuario primero
+      // Crear el usuario con todos los datos en metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -260,34 +269,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('=== USER CREATED SUCCESSFULLY ===', data.user?.id);
       
       if (data.user) {
-        // Crear el perfil manualmente si el trigger no funcionó
-        try {
-          console.log('=== CREATING PROFILE MANUALLY ===');
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email!,
-              user_type: userType
-            });
-          
-          if (profileError) {
-            console.log('=== PROFILE CREATION ERROR (MIGHT EXIST) ===', profileError);
-          } else {
-            console.log('=== PROFILE CREATED SUCCESSFULLY ===');
-          }
-        } catch (profileCreationError) {
-          console.error('=== EXCEPTION CREATING PROFILE ===', profileCreationError);
-        }
-        
         // Cerrar sesión inmediatamente para evitar auto-login
         await supabase.auth.signOut();
         
-        // Enviar SOLO nuestro email personalizado de verificación
+        // Enviar email personalizado de verificación
         try {
           console.log('=== SENDING CUSTOM VERIFICATION EMAIL ===');
           
-          // Crear un token de verificación seguro con información del usuario
           const verificationData = {
             userId: data.user.id,
             email: data.user.email,
@@ -296,10 +284,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             timestamp: Date.now()
           };
           
-          // Codificar los datos de verificación
           const verificationToken = btoa(JSON.stringify(verificationData));
-          
-          // Crear URL de verificación con el token
           const redirectUrl = `${window.location.origin}/app?verify=${verificationToken}`;
           
           const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
@@ -324,16 +309,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('=== VERIFICATION EMAIL SENT SUCCESSFULLY ===');
             toast({
               title: "¡Cuenta creada exitosamente!",
-              description: "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada y haz clic en el enlace para verificar tu cuenta.",
+              description: "Te hemos enviado un email de verificación. Una vez verificado, podrás iniciar sesión y acceder directamente al dashboard.",
             });
           }
         } catch (emailError) {
           console.error('=== EXCEPTION SENDING VERIFICATION EMAIL ===', emailError);
-          toast({
-            title: "Cuenta creada",
-            description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Contacta con soporte.",
-            variant: "destructive"
-          });
         }
       }
       
