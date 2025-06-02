@@ -13,7 +13,7 @@ export const DemoPage = () => {
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
-      color: "yellow",
+      color: "blue",
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
@@ -26,7 +26,7 @@ export const DemoPage = () => {
       title: "Gestión de Pacientes",
       description: "Mantén organizados los historiales y datos de todos tus pacientes",
       icon: Users,
-      color: "emerald",
+      color: "blue",
       steps: [
         "Registro completo de datos personales del paciente",
         "Historial médico y notas detalladas de cada sesión",
@@ -39,7 +39,7 @@ export const DemoPage = () => {
       title: "Comunicación Segura",
       description: "Mensajería cifrada para mantener contacto profesional",
       icon: MessageCircle,
-      color: "purple",
+      color: "blue",
       steps: [
         "Mensajes cifrados para proteger la confidencialidad",
         "Notificaciones en tiempo real para comunicación fluida",
@@ -52,7 +52,7 @@ export const DemoPage = () => {
       title: "Consultas Virtuales",
       description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
-      color: "blue",
+      color: "red",
       steps: [
         "Videollamadas HD con conexión estable",
         "Enlaces únicos generados automáticamente",
@@ -65,7 +65,7 @@ export const DemoPage = () => {
       title: "Formularios Digitales",
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
-      color: "blue",
+      color: "red",
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
