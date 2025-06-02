@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, CreditCard, Star, Crown } from 'lucide-react';
+import { Check, MessageCircle, Star, Crown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,14 +19,8 @@ interface Plan {
   savings_text?: string;
 }
 
-interface SubscriptionPlansProps {
-  onPlanSelect: (planId: string) => void;
-}
-
-export const SubscriptionPlans = ({ onPlanSelect }: SubscriptionPlansProps) => {
+export const SubscriptionPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,23 +62,12 @@ export const SubscriptionPlans = ({ onPlanSelect }: SubscriptionPlansProps) => {
     fetchPlans();
   }, []);
 
-  const handleSelectPlan = async (plan: Plan) => {
-    setSelectedPlan(plan.plan_key);
-    setIsLoading(true);
-
-    try {
-      await onPlanSelect(plan.plan_key);
-    } catch (error) {
-      console.error('Error selecting plan:', error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al procesar tu selección. Inténtalo nuevamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-      setSelectedPlan(null);
-    }
+  const openWhatsApp = (planTitle: string) => {
+    const phoneNumber = "5491144133576";
+    const message = `Hola! Quiero contratar el ${planTitle} de ProConnection`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   if (loading) {
@@ -165,8 +149,7 @@ export const SubscriptionPlans = ({ onPlanSelect }: SubscriptionPlansProps) => {
               </ul>
 
               <Button
-                onClick={() => handleSelectPlan(plan)}
-                disabled={isLoading && selectedPlan === plan.plan_key}
+                onClick={() => openWhatsApp(plan.title)}
                 className={`w-full py-3 ${
                   plan.is_recommended 
                     ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600' 
@@ -174,12 +157,8 @@ export const SubscriptionPlans = ({ onPlanSelect }: SubscriptionPlansProps) => {
                 }`}
                 size="lg"
               >
-                {isLoading && selectedPlan === plan.plan_key ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                ) : (
-                  <CreditCard className="w-5 h-5 mr-2" />
-                )}
-                {isLoading && selectedPlan === plan.plan_key ? 'Procesando...' : 'Suscribirse Ahora'}
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Contactar por WhatsApp
               </Button>
             </CardContent>
           </Card>
@@ -188,7 +167,7 @@ export const SubscriptionPlans = ({ onPlanSelect }: SubscriptionPlansProps) => {
 
       <div className="text-center mt-8">
         <p className="text-sm text-slate-500 max-w-md mx-auto">
-          Pago seguro procesado por MercadoPago. Puedes cambiar de plan en cualquier momento.
+          Contacta con nosotros por WhatsApp para coordinar el pago y activación de tu plan.
         </p>
       </div>
     </div>
