@@ -13,7 +13,7 @@ export const DemoPage = () => {
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
-      color: "blue",
+      color: "emerald",
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
