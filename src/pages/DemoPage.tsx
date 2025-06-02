@@ -9,7 +9,7 @@ export const DemoPage = () => {
 
   const demoFeatures = [
     {
-      id: "calendar",
+      id: "yellow",
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
