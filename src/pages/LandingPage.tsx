@@ -166,7 +166,7 @@ export const LandingPage = () => {
           icon: Star,
           title: "Interfaz Intuitiva",
           description: "Diseño moderno y fácil de usar que permite enfocarse en lo importante: el bienestar de los pacientes.",
-          color: "yellow",
+          color: "pink",
           delay: 400
         }, {
           icon: Heart,
