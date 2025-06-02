@@ -15,7 +15,6 @@ import { PrioritySupport } from "@/components/PrioritySupport";
 import { EarlyAccess } from "@/components/EarlyAccess";
 import { VisibilityConsulting } from "@/components/VisibilityConsulting";
 import { Sidebar } from "@/components/Sidebar";
-import { ProfileSetup } from "@/components/ProfileSetup";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { PatientPortal } from "@/components/PatientPortal";
 import { LandingPage } from "@/pages/LandingPage";
@@ -121,92 +120,60 @@ export default function Index() {
     );
   }
 
-  // Solo mostrar ProfileSetup si NO estamos cargando Y realmente no hay datos de rol
-  if (profile && !profileLoading) {
-    if (profile.user_type === 'psychologist' && !psychologist) {
-      console.log('=== SHOWING PROFILE SETUP FOR PSYCHOLOGIST - NO DATA FOUND ===');
-      return (
-        <ProfileSetup 
-          userType="psychologist"
-          onComplete={() => {
-            console.log('=== PROFILE SETUP COMPLETED - FORCING REFRESH ===');
-            forceRefresh();
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
-          }} 
-        />
-      );
+  // Si hay perfil, ir directamente a la aplicación correspondiente
+  if (profile) {
+    // Patient portal
+    if (profile.user_type === 'patient') {
+      return <PatientPortal />;
     }
 
-    if (profile.user_type === 'patient' && !patient) {
-      console.log('=== SHOWING PROFILE SETUP FOR PATIENT - NO DATA FOUND ===');
+    // Psychologist dashboard
+    if (profile.user_type === 'psychologist') {
+      const handleViewChange = (view: ViewType) => {
+        setCurrentView(view);
+      };
+
+      const renderCurrentView = () => {
+        switch (currentView) {
+          case "dashboard":
+            return <Dashboard onViewChange={handleViewChange} />;
+          case "patients":
+            return <PatientManagement />;
+          case "calendar":
+            return <Calendar />;
+          case "messages":
+            return <MessagingHub />;
+          case "affiliates":
+            return <AffiliateSystem />;
+          case "seo":
+            return <SeoProfileManager />;
+          case "reports":
+            return <AdvancedReports />;
+          case "support":
+            return <PrioritySupport />;
+          case "early-access":
+            return <EarlyAccess />;
+          case "visibility":
+            return <VisibilityConsulting />;
+          case "rates":
+            return <PsychologistRatesManager />;
+          default:
+            return <Dashboard onViewChange={handleViewChange} />;
+        }
+      };
+
       return (
-        <ProfileSetup 
-          userType="patient"
-          onComplete={() => {
-            console.log('=== PROFILE SETUP COMPLETED - FORCING REFRESH ===');
-            forceRefresh();
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
-          }} 
-        />
+        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+          <Sidebar currentView={currentView} onViewChange={handleViewChange} />
+          <main className="flex-1 p-6 ml-64">
+            {renderCurrentView()}
+          </main>
+          {showTrialModal && (
+            <TrialExpiredModal onUpgrade={() => setShowTrialModal(false)} />
+          )}
+        </div>
       );
     }
-  }
-
-  // Patient portal (using the complete PatientPortal component)
-  if (patient) {
-    return <PatientPortal />;
-  }
-
-  // Psychologist dashboard - si hay psychologist data, mostrar directamente
-  if (psychologist) {
-    const handleViewChange = (view: ViewType) => {
-      setCurrentView(view);
-    };
-
-    const renderCurrentView = () => {
-      switch (currentView) {
-        case "dashboard":
-          return <Dashboard onViewChange={handleViewChange} />;
-        case "patients":
-          return <PatientManagement />;
-        case "calendar":
-          return <Calendar />;
-        case "messages":
-          return <MessagingHub />;
-        case "affiliates":
-          return <AffiliateSystem />;
-        case "seo":
-          return <SeoProfileManager />;
-        case "reports":
-          return <AdvancedReports />;
-        case "support":
-          return <PrioritySupport />;
-        case "early-access":
-          return <EarlyAccess />;
-        case "visibility":
-          return <VisibilityConsulting />;
-        case "rates":
-          return <PsychologistRatesManager />;
-        default:
-          return <Dashboard onViewChange={handleViewChange} />;
-      }
-    };
-
-    return (
-      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <Sidebar currentView={currentView} onViewChange={handleViewChange} />
-        <main className="flex-1 p-6 ml-64">
-          {renderCurrentView()}
-        </main>
-        {showTrialModal && (
-          <TrialExpiredModal onUpgrade={() => setShowTrialModal(false)} />
-        )}
-      </div>
-    );
   }
 
   // Fallback: si llegamos aquí, hay un problema de datos
