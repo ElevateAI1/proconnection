@@ -26,7 +26,7 @@ export const DemoPage = () => {
       title: "Gestión de Pacientes",
       description: "Mantén organizados los historiales y datos de todos tus pacientes",
       icon: Users,
-      color: "blue",
+      color: "emerald",
       steps: [
         "Registro completo de datos personales del paciente",
         "Historial médico y notas detalladas de cada sesión",
@@ -39,7 +39,7 @@ export const DemoPage = () => {
       title: "Comunicación Segura",
       description: "Mensajería cifrada para mantener contacto profesional",
       icon: MessageCircle,
-      color: "blue",
+      color: "amber",
       steps: [
         "Mensajes cifrados para proteger la confidencialidad",
         "Notificaciones en tiempo real para comunicación fluida",
