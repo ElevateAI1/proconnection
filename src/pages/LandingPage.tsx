@@ -1,10 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Shield, Users, MessageCircle, Calendar, Star, CheckCircle, Award, TrendingUp, Clock, Globe, Zap, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollAnimationWrapper } from "@/components/ScrollAnimationWrapper";
-
 export const LandingPage = () => {
   return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -55,10 +53,7 @@ export const LandingPage = () => {
           </ScrollAnimationWrapper>
           
           <ScrollAnimationWrapper animation="fade-up" delay={200}>
-            <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-              ProConnection es la plataforma integral que une a psicólogos y pacientes 
-              en un entorno seguro, profesional y tecnológicamente avanzado.
-            </p>
+            <p className="text-xl text-slate-600 mb-8 leading-relaxed">ProConnection es la plataforma integral que une a profesionales y pacientes en un entorno seguro, profesional y tecnológicamente avanzado.</p>
           </ScrollAnimationWrapper>
           
           <ScrollAnimationWrapper animation="fade-up" delay={400}>
