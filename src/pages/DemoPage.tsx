@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users, Video, ClipboardList, Shield, ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
@@ -13,7 +14,7 @@ export const DemoPage = () => {
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
-      color: "blue",
+      color: "orange",
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
@@ -65,7 +66,7 @@ export const DemoPage = () => {
       title: "Formularios Digitales",
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
-      color: "pink",
+      color: "yellow",
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
@@ -78,7 +79,7 @@ export const DemoPage = () => {
       title: "Seguridad y Privacidad",
       description: "Cumplimiento total con regulaciones de privacidad médica",
       icon: Shield,
-      color: "indigo",
+      color: "red",
       steps: [
         "Cifrado de extremo a extremo para todos los datos",
         "Autenticación segura con verificación de identidad",
