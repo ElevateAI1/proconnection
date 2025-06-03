@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users, Video, ClipboardList, Shield, ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
@@ -34,13 +33,29 @@ export const DemoPage = () => {
       numberBg: "bg-orange-500",
       textHover: "group-hover:text-orange-600"
     },
-    red: {
-      icon: "bg-gradient-to-r from-red-500 to-red-600",
-      button: "bg-gradient-to-r from-red-500 to-red-600",
-      border: "border-red-500",
-      bg: "bg-red-50/50", 
-      numberBg: "bg-red-500",
-      textHover: "group-hover:text-red-600"
+    purple: {
+      icon: "bg-gradient-to-r from-purple-500 to-purple-600",
+      button: "bg-gradient-to-r from-purple-500 to-purple-600",
+      border: "border-purple-500",
+      bg: "bg-purple-50/50", 
+      numberBg: "bg-purple-500",
+      textHover: "group-hover:text-purple-600"
+    },
+    indigo: {
+      icon: "bg-gradient-to-r from-indigo-500 to-indigo-600",
+      button: "bg-gradient-to-r from-indigo-500 to-indigo-600",
+      border: "border-indigo-500",
+      bg: "bg-indigo-50/50", 
+      numberBg: "bg-indigo-500",
+      textHover: "group-hover:text-indigo-600"
+    },
+    slate: {
+      icon: "bg-gradient-to-r from-slate-500 to-slate-600",
+      button: "bg-gradient-to-r from-slate-500 to-slate-600",
+      border: "border-slate-500",
+      bg: "bg-slate-50/50", 
+      numberBg: "bg-slate-500",
+      textHover: "group-hover:text-slate-600"
     }
   };
 
@@ -89,7 +104,7 @@ export const DemoPage = () => {
       title: "Consultas Virtuales",
       description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
-      color: "red" as keyof typeof colorMap,
+      color: "purple" as keyof typeof colorMap,
       steps: [
         "Videollamadas HD con conexión estable",
         "Enlaces únicos generados automáticamente",
@@ -102,7 +117,7 @@ export const DemoPage = () => {
       title: "Formularios Digitales",
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
-      color: "red" as keyof typeof colorMap,
+      color: "indigo" as keyof typeof colorMap,
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
@@ -115,7 +130,7 @@ export const DemoPage = () => {
       title: "Seguridad y Privacidad",
       description: "Cumplimiento total con regulaciones de privacidad médica",
       icon: Shield,
-      color: "red" as keyof typeof colorMap,
+      color: "slate" as keyof typeof colorMap,
       steps: [
         "Cifrado de extremo a extremo para todos los datos",
         "Autenticación segura con verificación de identidad",
