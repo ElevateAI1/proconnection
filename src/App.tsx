@@ -13,7 +13,7 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminRedirect } from "./pages/AdminRedirect";
 import { PublicProfilePage } from "./pages/PublicProfilePage";
 import { SitemapPage } from "./pages/SitemapPage";
-import { NotFound } from "./pages/NotFound";
+import NotFound from "./pages/NotFound";
 import { AdminRoute } from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
