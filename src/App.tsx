@@ -29,6 +29,7 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Index />} />
+            <Route path="/app" element={<Index />} />
             <Route path="/perfil/:customUrl" element={<PublicProfilePage />} />
             <Route path="/sitemap.xml" element={<SitemapPage />} />
             <Route path="/admin-login" element={<AdminLogin />} />

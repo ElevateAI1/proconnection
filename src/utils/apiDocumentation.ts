@@ -1,6 +1,8 @@
 
+const baseUrl = 'https://scikpgzpgzevkgwwobrf.supabase.co/functions/v1';
+
 export const API_DOCUMENTATION = {
-  baseUrl: 'https://scikpgzpgzevkgwwobrf.supabase.co/functions/v1',
+  baseUrl,
   authentication: {
     header: 'x-api-key',
     description: 'Clave API requerida para todas las llamadas. Contacta al administrador para obtenerla.'
@@ -199,9 +201,9 @@ export const API_DOCUMENTATION = {
   },
   examples: {
     curl: {
-      listPsychologists: `curl -X GET "${API_DOCUMENTATION.baseUrl}/api-psychologists?page=1&limit=10" \\
+      listPsychologists: `curl -X GET "${baseUrl}/api-psychologists?page=1&limit=10" \\
   -H "x-api-key: YOUR_API_KEY"`,
-      createPsychologist: `curl -X POST "${API_DOCUMENTATION.baseUrl}/api-psychologists" \\
+      createPsychologist: `curl -X POST "${baseUrl}/api-psychologists" \\
   -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -211,7 +213,7 @@ export const API_DOCUMENTATION = {
     "specialization": "Psicología Clínica",
     "plan_type": "pro"
   }'`,
-      updateSubscription: `curl -X PUT "${API_DOCUMENTATION.baseUrl}/api-subscriptions/USER_ID/status" \\
+      updateSubscription: `curl -X PUT "${baseUrl}/api-subscriptions/USER_ID/status" \\
   -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -220,7 +222,7 @@ export const API_DOCUMENTATION = {
   }'`
     },
     javascript: {
-      basicRequest: `const response = await fetch('${API_DOCUMENTATION.baseUrl}/api-psychologists', {
+      basicRequest: `const response = await fetch('${baseUrl}/api-psychologists', {
   method: 'GET',
   headers: {
     'x-api-key': 'YOUR_API_KEY',
@@ -235,7 +237,7 @@ const Discord = require('discord.js');
 
 async function createPsychologist(interaction, firstName, lastName, email) {
   try {
-    const response = await fetch('${API_DOCUMENTATION.baseUrl}/api-accounts/psychologist', {
+    const response = await fetch('${baseUrl}/api-accounts/psychologist', {
       method: 'POST',
       headers: {
         'x-api-key': process.env.PROCONNECTION_API_KEY,
