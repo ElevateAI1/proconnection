@@ -1,8 +1,35 @@
+
+# Robots.txt for ProConnection
+
+User-agent: *
+Allow: /
+Allow: /demo
+Allow: /register
+Allow: /perfil/*
+
+# Block admin and auth pages from indexing
+Disallow: /auth
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /*?*
+
+# Block specific file types
+Disallow: *.json$
+Disallow: *.xml$
+Disallow: /api/
+
+# Allow specific bots
 User-agent: Googlebot
 Allow: /
+Allow: /demo
+Allow: /register
+Allow: /perfil/*
 
 User-agent: Bingbot
 Allow: /
+Allow: /demo
+Allow: /register
+Allow: /perfil/*
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +37,8 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Sitemap location
+Sitemap: ${window.location?.origin || 'https://proconnection.lovable.app'}/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
