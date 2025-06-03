@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users, Video, ClipboardList, Shield, ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
@@ -7,13 +8,49 @@ import { useState } from "react";
 export const DemoPage = () => {
   const [currentDemo, setCurrentDemo] = useState<string | null>(null);
 
+  // Static color mapping to ensure Tailwind classes are compiled correctly
+  const colorMap = {
+    blue: {
+      icon: "bg-gradient-to-r from-blue-500 to-blue-600",
+      button: "bg-gradient-to-r from-blue-500 to-blue-600",
+      border: "border-blue-500",
+      bg: "bg-blue-50/50",
+      numberBg: "bg-blue-500",
+      textHover: "group-hover:text-blue-600"
+    },
+    emerald: {
+      icon: "bg-gradient-to-r from-emerald-500 to-emerald-600",
+      button: "bg-gradient-to-r from-emerald-500 to-emerald-600", 
+      border: "border-emerald-500",
+      bg: "bg-emerald-50/50",
+      numberBg: "bg-emerald-500",
+      textHover: "group-hover:text-emerald-600"
+    },
+    orange: {
+      icon: "bg-gradient-to-r from-orange-500 to-orange-600",
+      button: "bg-gradient-to-r from-orange-500 to-orange-600",
+      border: "border-orange-500", 
+      bg: "bg-orange-50/50",
+      numberBg: "bg-orange-500",
+      textHover: "group-hover:text-orange-600"
+    },
+    red: {
+      icon: "bg-gradient-to-r from-red-500 to-red-600",
+      button: "bg-gradient-to-r from-red-500 to-red-600",
+      border: "border-red-500",
+      bg: "bg-red-50/50", 
+      numberBg: "bg-red-500",
+      textHover: "group-hover:text-red-600"
+    }
+  };
+
   const demoFeatures = [
     {
       id: "calendar",
       title: "Gestión de Agenda",
       description: "Sistema inteligente para programar y gestionar citas con tus pacientes",
       icon: Calendar,
-      color: "blue",
+      color: "blue" as keyof typeof colorMap,
       steps: [
         "Selecciona fecha y hora disponible en el calendario",
         "El sistema verifica automáticamente conflictos horarios",
@@ -26,7 +63,7 @@ export const DemoPage = () => {
       title: "Gestión de Pacientes",
       description: "Mantén organizados los historiales y datos de todos tus pacientes",
       icon: Users,
-      color: "emerald",
+      color: "emerald" as keyof typeof colorMap,
       steps: [
         "Registro completo de datos personales del paciente",
         "Historial médico y notas detalladas de cada sesión",
@@ -39,7 +76,7 @@ export const DemoPage = () => {
       title: "Comunicación Segura",
       description: "Mensajería cifrada para mantener contacto profesional",
       icon: MessageCircle,
-      color: "orange",
+      color: "orange" as keyof typeof colorMap,
       steps: [
         "Mensajes cifrados para proteger la confidencialidad",
         "Notificaciones en tiempo real para comunicación fluida",
@@ -52,7 +89,7 @@ export const DemoPage = () => {
       title: "Consultas Virtuales",
       description: "Videollamadas de alta calidad para sesiones remotas",
       icon: Video,
-      color: "red",
+      color: "red" as keyof typeof colorMap,
       steps: [
         "Videollamadas HD con conexión estable",
         "Enlaces únicos generados automáticamente",
@@ -65,7 +102,7 @@ export const DemoPage = () => {
       title: "Formularios Digitales",
       description: "Crea y gestiona formularios de evaluación personalizados",
       icon: ClipboardList,
-      color: "red",
+      color: "red" as keyof typeof colorMap,
       steps: [
         "Formularios de evaluación completamente personalizables",
         "Consentimientos informados digitales",
@@ -78,7 +115,7 @@ export const DemoPage = () => {
       title: "Seguridad y Privacidad",
       description: "Cumplimiento total con regulaciones de privacidad médica",
       icon: Shield,
-      color: "red",
+      color: "red" as keyof typeof colorMap,
       steps: [
         "Cifrado de extremo a extremo para todos los datos",
         "Autenticación segura con verificación de identidad",
@@ -149,10 +186,10 @@ export const DemoPage = () => {
                 onClick={() => startDemo(feature.id)}
               >
                 <CardHeader className="text-center relative z-10">
-                  <div className={`w-16 h-16 bg-gradient-to-r from-${feature.color}-500 to-${feature.color}-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
+                  <div className={`w-16 h-16 ${colorMap[feature.color].icon} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
                     <feature.icon className="w-8 h-8 text-white" />
                   </div>
-                  <CardTitle className={`text-xl group-hover:text-${feature.color}-600 transition-colors duration-300`}>
+                  <CardTitle className={`text-xl ${colorMap[feature.color].textHover} transition-colors duration-300`}>
                     {feature.title}
                   </CardTitle>
                 </CardHeader>
@@ -161,7 +198,7 @@ export const DemoPage = () => {
                     {feature.description}
                   </p>
                   <Button 
-                    className={`w-full bg-gradient-to-r from-${feature.color}-500 to-${feature.color}-600 hover:scale-105 transition-all duration-300`}
+                    className={`w-full ${colorMap[feature.color].button} hover:scale-105 transition-all duration-300`}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Ver Detalles
@@ -175,7 +212,7 @@ export const DemoPage = () => {
             <Card className="border-0 shadow-xl">
               <CardHeader className="text-center bg-gradient-to-r from-blue-50 to-emerald-50">
                 <div className="flex items-center justify-center gap-4 mb-4">
-                  <div className={`w-12 h-12 bg-gradient-to-r from-${currentFeature?.color}-500 to-${currentFeature?.color}-600 rounded-full flex items-center justify-center`}>
+                  <div className={`w-12 h-12 ${colorMap[currentFeature?.color || 'blue'].icon} rounded-full flex items-center justify-center`}>
                     {currentFeature && <currentFeature.icon className="w-6 h-6 text-white" />}
                   </div>
                   <CardTitle className="text-2xl text-slate-800">
@@ -197,9 +234,9 @@ export const DemoPage = () => {
                     {currentFeature?.steps.map((step, index) => (
                       <div 
                         key={index}
-                        className={`flex items-start gap-4 p-4 rounded-lg border-l-4 border-${currentFeature.color}-500 bg-${currentFeature.color}-50/50 transform hover:scale-102 transition-all duration-300`}
+                        className={`flex items-start gap-4 p-4 rounded-lg border-l-4 ${colorMap[currentFeature.color].border} ${colorMap[currentFeature.color].bg} transform hover:scale-102 transition-all duration-300`}
                       >
-                        <div className={`w-8 h-8 bg-${currentFeature.color}-500 text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0`}>
+                        <div className={`w-8 h-8 ${colorMap[currentFeature.color].numberBg} text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0`}>
                           {index + 1}
                         </div>
                         <p className="text-slate-700 font-medium">{step}</p>
