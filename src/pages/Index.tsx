@@ -207,6 +207,13 @@ export default function Index() {
       }
     };
 
+    // Clean and format names properly for display
+    const firstName = (psychologist?.first_name ?? '').trim();
+    const lastName = (psychologist?.last_name ?? '').trim();
+    const displayName = unifiedStats.psychologistName || 
+                       [firstName, lastName].filter(Boolean).join(' ') || 
+                       'Profesional';
+
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 to-blue-50">
@@ -216,7 +223,7 @@ export default function Index() {
               <SidebarTrigger className="-ml-1" />
               <div className="ml-auto flex items-center space-x-4">
                 <span className="text-sm text-muted-foreground">
-                  {unifiedStats.psychologistName || psychologist?.first_name + ' ' + psychologist?.last_name || 'Profesional'}
+                  {displayName}
                 </span>
                 {(unifiedStats.planType || psychologist?.plan_type) && (
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">

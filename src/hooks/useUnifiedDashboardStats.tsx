@@ -68,10 +68,15 @@ export const useUnifiedDashboardStats = (psychologistId?: string) => {
         return;
       }
 
+      // Clean and format the name properly
+      const firstName = (psychData.first_name || '').trim();
+      const lastName = (psychData.last_name || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Profesional';
+
       // Update basic info immediately
       setStats(prev => ({
         ...prev,
-        psychologistName: `${psychData.first_name} ${psychData.last_name}`,
+        psychologistName: fullName,
         planType: psychData.plan_type || 'plus',
         subscriptionStatus: psychData.subscription_status || 'trial',
         profileLoading: false
@@ -97,7 +102,7 @@ export const useUnifiedDashboardStats = (psychologistId?: string) => {
           .lt('appointment_date', endOfDay.toISOString())
           .in('status', ['scheduled', 'confirmed', 'accepted']);
 
-        const appointmentsResult = await Promise.race([appointmentsPromise, timeoutPromise]);
+        const appointmentsResult = await Promise.race([appointmentsPromise, timeoutPromise]) as any;
         
         // Fetch patients count with timeout
         const patientsPromise = supabase
@@ -105,43 +110,41 @@ export const useUnifiedDashboardStats = (psychologistId?: string) => {
           .select('id', { count: 'exact', head: true })
           .eq('psychologist_id', psychologistId);
 
-        const patientsResult = await Promise.race([patientsPromise, timeoutPromise]);
+        const patientsResult = await Promise.race([patientsPromise, timeoutPromise]) as any;
 
         let todayAppointments = 0;
         let activePatients = 0;
         let unreadMessages = 0;
 
-        if (!appointmentsResult.error) {
-          todayAppointments = appointmentsResult.count || 0;
+        if (!appointmentsResult?.error) {
+          todayAppointments = appointmentsResult?.count || 0;
         }
 
-        if (!patientsResult.error) {
-          activePatients = patientsResult.count || 0;
+        if (!patientsResult?.error) {
+          activePatients = patientsResult?.count || 0;
         }
 
         // For messages, use a simpler approach to avoid hanging
         try {
-          const { data: conversations } = await Promise.race([
-            supabase
-              .from('conversations')
-              .select('id')
-              .eq('psychologist_id', psychologistId)
-              .limit(10),
-            timeoutPromise
-          ]);
+          const conversationsPromise = supabase
+            .from('conversations')
+            .select('id')
+            .eq('psychologist_id', psychologistId)
+            .limit(10);
 
-          if (conversations && conversations.length > 0) {
-            const conversationIds = conversations.map(c => c.id);
+          const conversationsResult = await Promise.race([conversationsPromise, timeoutPromise]) as any;
+
+          if (conversationsResult?.data && conversationsResult.data.length > 0) {
+            const conversationIds = conversationsResult.data.map((c: any) => c.id);
             
-            const { data: unreadData } = await Promise.race([
-              supabase
-                .from('messages')
-                .select('id', { count: 'exact', head: true })
-                .in('conversation_id', conversationIds)
-                .neq('sender_id', psychologistId)
-                .is('read_at', null),
-              timeoutPromise
-            ]);
+            const messagesPromise = supabase
+              .from('messages')
+              .select('id', { count: 'exact', head: true })
+              .in('conversation_id', conversationIds)
+              .neq('sender_id', psychologistId)
+              .is('read_at', null);
+
+            const unreadData = await Promise.race([messagesPromise, timeoutPromise]) as any;
 
             unreadMessages = unreadData?.count || 0;
           }

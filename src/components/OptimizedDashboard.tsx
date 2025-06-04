@@ -29,8 +29,8 @@ interface OptimizedDashboardProps {
 export const OptimizedDashboard = ({ onViewChange, psychologistId, psychologistName, planType }: OptimizedDashboardProps) => {
   const { todayAppointments, activePatients, unreadMessages, statsLoading, psychologistName: statsName, planType: statsPlan } = useUnifiedDashboardStats(psychologistId);
 
-  // Use fallback values from props if stats haven't loaded yet
-  const displayName = statsName || psychologistName || 'Profesional';
+  // Use fallback values from props if stats haven't loaded yet, with proper cleaning
+  const displayName = (statsName || psychologistName || 'Profesional').trim();
   const displayPlan = statsPlan || planType || 'plus';
 
   const quickActions = [
