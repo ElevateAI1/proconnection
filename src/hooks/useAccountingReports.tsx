@@ -62,7 +62,15 @@ export const useAccountingReports = (psychologistId?: string) => {
 
       if (psychError) throw psychError;
 
-      setReports(reportsData || []);
+      // Transform the data to match our interface
+      const transformedReports = (reportsData || []).map(report => ({
+        ...report,
+        amount_by_payment_method: typeof report.amount_by_payment_method === 'object' 
+          ? report.amount_by_payment_method as Record<string, number>
+          : {}
+      }));
+
+      setReports(transformedReports);
       setCurrentCategory(psychData?.monotax_category || null);
     } catch (err) {
       console.error('Error fetching accounting reports:', err);

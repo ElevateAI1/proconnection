@@ -21,10 +21,11 @@ import { LandingPage } from "@/pages/LandingPage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { PsychologistRatesManager } from "@/components/PsychologistRatesManager";
+import { AccountingDashboard } from "@/components/AccountingDashboard";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates";
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
@@ -202,6 +203,8 @@ export default function Index() {
           return <VisibilityConsulting />;
         case "rates":
           return <PsychologistRatesManager />;
+        case "accounting":
+          return <AccountingDashboard psychologistId={psychologist?.id || ''} />;
         default:
           return <Dashboard onViewChange={setCurrentView} />;
       }

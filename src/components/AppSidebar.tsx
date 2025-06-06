@@ -16,11 +16,13 @@ import {
   Settings, 
   LogOut, 
   ChevronDown, 
-  ChevronRight 
+  ChevronRight,
+  Calculator
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { usePlanCapabilities } from "@/hooks/usePlanCapabilities";
+import { usePaymentReceipts } from "@/hooks/usePaymentReceipts";
 import { ProfessionalCodeDisplay } from "./ProfessionalCodeDisplay";
 import {
   Sidebar,
@@ -39,7 +41,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates";
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting";
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -49,11 +51,14 @@ interface AppSidebarProps {
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
   const { psychologist } = useProfile();
   const { capabilities } = usePlanCapabilities();
+  const { receipts } = usePaymentReceipts(psychologist?.id);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  const pendingReceipts = receipts.filter(r => r.validation_status === 'pending').length;
 
   const menuItems = [
     {
@@ -79,6 +84,13 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
       label: "Mensajes",
       icon: MessageSquare,
       available: true
+    },
+    {
+      id: "accounting" as ViewType,
+      label: "Sistema Contable",
+      icon: Calculator,
+      available: true,
+      badge: pendingReceipts > 0 ? pendingReceipts.toString() : undefined
     },
     {
       id: "rates" as ViewType,

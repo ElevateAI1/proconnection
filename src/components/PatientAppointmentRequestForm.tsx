@@ -1,407 +1,324 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, AlertCircle, DollarSign, CreditCard } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Calendar, Clock, User, FileText, Upload, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useProfile } from "@/hooks/useProfile";
-import { useAvailableSlots } from "@/hooks/useAvailableSlots";
-import { usePsychologistRates } from "@/hooks/usePsychologistRates";
-import { PaymentProofUploader } from "./PaymentProofUploader";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PatientAppointmentRequestFormProps {
-  onRequestCreated: () => void;
+  psychologistId: string;
+  onClose: () => void;
 }
 
-export const PatientAppointmentRequestForm = ({ onRequestCreated }: PatientAppointmentRequestFormProps) => {
-  const { patient } = useProfile();
-  const [loading, setLoading] = useState(false);
+export const PatientAppointmentRequestForm = ({ psychologistId, onClose }: PatientAppointmentRequestFormProps) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
+    patientName: "",
+    patientEmail: "",
+    patientPhone: "",
     preferredDate: "",
     preferredTime: "",
-    type: "",
-    notes: "",
-    paymentProofUrl: "",
-    paymentAmount: 0
+    sessionType: "presencial",
+    notes: ""
   });
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Cargar tarifas del psicólogo
-  const { rates, loading: ratesLoading } = usePsychologistRates(patient?.psychologist_id);
-
-  // Verificar disponibilidad de horarios
-  const {
-    loading: slotsLoading,
-    isSlotAvailable,
-    getAvailableSlots,
-    bookedSlots
-  } = useAvailableSlots({
-    psychologistId: patient?.psychologist_id || "",
-    selectedDate: formData.preferredDate
-  });
-
-  const getMinDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Obtener solo los horarios disponibles
-  const availableTimeSlots = getAvailableSlots();
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type (images and PDFs)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Error",
+          description: "Solo se permiten archivos de imagen (JPG, PNG, GIF) o PDF",
+          variant: "destructive"
+        });
+        return;
+      }
 
-  // Obtener tarifa para el tipo de consulta seleccionado
-  const selectedRate = rates.find(rate => rate.session_type === formData.type);
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "El archivo no puede ser mayor a 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
 
-  // Actualizar monto cuando se selecciona tipo de consulta
-  useEffect(() => {
-    if (selectedRate) {
-      setFormData(prev => ({ ...prev, paymentAmount: selectedRate.price }));
+      setPaymentProof(file);
     }
-  }, [selectedRate]);
+  };
+
+  const removeFile = () => {
+    setPaymentProof(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!patient?.psychologist_id) {
+    if (!formData.patientName || !formData.patientEmail || !formData.preferredDate) {
       toast({
         title: "Error",
-        description: "No se pudo identificar al psicólogo asignado",
+        description: "Por favor completa todos los campos obligatorios",
         variant: "destructive"
       });
       return;
     }
 
-    if (!formData.preferredDate || !formData.preferredTime || !formData.type) {
-      toast({
-        title: "Error",
-        description: "Por favor completa todos los campos requeridos",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Verificar que se haya subido comprobante para tipos que requieren pago
-    if (selectedRate && !formData.paymentProofUrl) {
-      toast({
-        title: "Comprobante requerido",
-        description: "Debes subir un comprobante de pago para continuar",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Verificar disponibilidad antes de enviar
-    if (!isSlotAvailable(formData.preferredTime)) {
-      toast({
-        title: "Horario no disponible",
-        description: "Este horario ya no está disponible. Por favor selecciona otro.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      const requestData = {
-        patient_id: patient.id,
-        psychologist_id: patient.psychologist_id,
-        preferred_date: formData.preferredDate,
-        preferred_time: formData.preferredTime,
-        type: formData.type,
-        status: 'pending',
-        notes: formData.notes || null,
-        payment_proof_url: formData.paymentProofUrl || null,
-        payment_amount: formData.paymentAmount || null,
-        payment_status: formData.paymentProofUrl ? 'pending' : null
-      };
+      // Upload payment proof if provided
+      let proofUrl = null;
+      if (paymentProof) {
+        const fileExt = paymentProof.name.split('.').pop();
+        const fileName = `payment-proof-${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, paymentProof);
 
-      const { data: insertedData, error: requestError } = await supabase
-        .from('appointment_requests')
-        .insert(requestData)
-        .select()
-        .single();
-
-      if (requestError) {
-        throw new Error('Error al enviar la solicitud de cita: ' + requestError.message);
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(fileName);
+        
+        proofUrl = publicUrl;
       }
+
+      // Create appointment request
+      const { error } = await supabase
+        .from('appointment_requests')
+        .insert({
+          psychologist_id: psychologistId,
+          patient_name: formData.patientName,
+          patient_email: formData.patientEmail,
+          patient_phone: formData.patientPhone,
+          preferred_date: formData.preferredDate,
+          preferred_time: formData.preferredTime,
+          session_type: formData.sessionType,
+          notes: formData.notes,
+          payment_proof_url: proofUrl,
+          status: 'pending'
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Solicitud enviada",
-        description: "Tu solicitud de cita ha sido enviada al psicólogo para su aprobación"
+        description: "Tu solicitud de cita ha sido enviada exitosamente. El psicólogo se contactará contigo pronto."
       });
 
-      // Resetear formulario
-      setFormData({
-        preferredDate: "",
-        preferredTime: "",
-        type: "",
-        notes: "",
-        paymentProofUrl: "",
-        paymentAmount: 0
-      });
-      
-      onRequestCreated();
-
+      onClose();
     } catch (error) {
-      console.error('Error creating appointment request:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('Error submitting appointment request:', error);
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Hubo un error al enviar tu solicitud. Por favor intenta nuevamente.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      individual: "Terapia Individual",
-      couple: "Terapia de Pareja",
-      family: "Terapia Familiar",
-      evaluation: "Evaluación",
-      follow_up: "Seguimiento"
-    };
-    return labels[type] || type;
-  };
-
-  const formatSelectedDate = (dateString: string) => {
-    if (!dateString) return "";
-    
-    const [year, month, day] = dateString.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  if (!patient?.psychologist_id) {
-    return (
-      <div className="text-center text-red-600 p-4">
-        <p>No tienes un psicólogo asignado. Contacta al administrador.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center">
-        <Calendar className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-        <h2 className="text-xl font-bold text-slate-800">Solicitar Cita</h2>
-        <p className="text-sm text-slate-600">Envía una solicitud de cita a tu psicólogo</p>
-      </div>
-
-      {/* Mostrar tarifas disponibles */}
-      {!ratesLoading && rates.length > 0 && (
-        <Card className="border-emerald-200 bg-emerald-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-emerald-800">
-              <DollarSign className="w-5 h-5" />
-              Tarifas por Consulta
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {rates.map((rate) => (
-                <div key={rate.id} className="flex items-center justify-between p-3 bg-white rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">
-                    {getTypeLabel(rate.session_type)}
-                  </span>
-                  <Badge variant="outline" className="text-emerald-700 border-emerald-300">
-                    {rate.price} {rate.currency}
-                  </Badge>
-                </div>
-              ))}
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Solicitar Cita
+        </CardTitle>
+        <p className="text-slate-600">
+          Completa el formulario para solicitar una cita
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Information */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="w-4 h-4" />
+              <h3 className="font-medium">Información Personal</h3>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardContent className="p-6 space-y-4">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="patientName">Nombre Completo *</Label>
+                <Input
+                  id="patientName"
+                  value={formData.patientName}
+                  onChange={(e) => handleInputChange('patientName', e.target.value)}
+                  placeholder="Tu nombre completo"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="patientPhone">Teléfono</Label>
+                <Input
+                  id="patientPhone"
+                  type="tel"
+                  value={formData.patientPhone}
+                  onChange={(e) => handleInputChange('patientPhone', e.target.value)}
+                  placeholder="+54 9 11 1234-5678"
+                />
+              </div>
+            </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="preferredDate">Fecha preferida *</Label>
-              <input
-                id="preferredDate"
-                type="date"
-                value={formData.preferredDate}
-                onChange={(e) => {
-                  setFormData({...formData, preferredDate: e.target.value, preferredTime: ""});
-                }}
-                min={getMinDate()}
+              <Label htmlFor="patientEmail">Email *</Label>
+              <Input
+                id="patientEmail"
+                type="email"
+                value={formData.patientEmail}
+                onChange={(e) => handleInputChange('patientEmail', e.target.value)}
+                placeholder="tu@email.com"
                 required
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
-              {formData.preferredDate && (
-                <p className="text-sm text-slate-600">
-                  Fecha seleccionada: {formatSelectedDate(formData.preferredDate)}
+            </div>
+          </div>
+
+          {/* Appointment Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4" />
+              <h3 className="font-medium">Detalles de la Cita</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="preferredDate">Fecha Preferida *</Label>
+                <Input
+                  id="preferredDate"
+                  type="date"
+                  value={formData.preferredDate}
+                  onChange={(e) => handleInputChange('preferredDate', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="preferredTime">Horario Preferido</Label>
+                <Input
+                  id="preferredTime"
+                  type="time"
+                  value={formData.preferredTime}
+                  onChange={(e) => handleInputChange('preferredTime', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sessionType">Tipo de Sesión</Label>
+              <select
+                id="sessionType"
+                value={formData.sessionType}
+                onChange={(e) => handleInputChange('sessionType', e.target.value)}
+                className="w-full p-2 border border-slate-200 rounded-md"
+              >
+                <option value="presencial">Presencial</option>
+                <option value="virtual">Virtual</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Payment Proof Upload */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Upload className="w-4 h-4" />
+              <h3 className="font-medium">Comprobante de Pago (Opcional)</h3>
+            </div>
+            
+            {!paymentProof ? (
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-sm text-slate-600 mb-2">
+                  Arrastra y suelta tu comprobante aquí, o
                 </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="preferredTime">Hora preferida *</Label>
-              <Select 
-                value={formData.preferredTime} 
-                onValueChange={(value) => setFormData({...formData, preferredTime: value})}
-                disabled={!formData.preferredDate || slotsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    !formData.preferredDate 
-                      ? "Primero selecciona una fecha" 
-                      : slotsLoading 
-                      ? "Cargando horarios..."
-                      : availableTimeSlots.length === 0
-                      ? "No hay horarios disponibles"
-                      : "Selecciona una hora"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTimeSlots.length > 0 ? (
-                    availableTimeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          {time}
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    formData.preferredDate && !slotsLoading && (
-                      <SelectItem value="" disabled>
-                        No hay horarios disponibles
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-
-              {formData.preferredDate && bookedSlots.length > 0 && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">Horarios ocupados:</p>
-                      <p className="text-sm text-amber-700">
-                        {bookedSlots.join(", ")}
-                      </p>
-                    </div>
-                  </div>
+                <label htmlFor="paymentProof" className="cursor-pointer">
+                  <Button type="button" variant="outline" size="sm">
+                    Seleccionar archivo
+                  </Button>
+                  <input
+                    id="paymentProof"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-slate-500 mt-2">
+                  Formatos: JPG, PNG, GIF, PDF (máx. 5MB)
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span className="text-sm font-medium">{paymentProof.name}</span>
+                  <span className="text-xs text-slate-500">
+                    ({(paymentProof.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
                 </div>
-              )}
-            </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeFile}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo de consulta *</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => setFormData({...formData, type: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona el tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rates.length > 0 ? (
-                    // Mostrar solo los tipos que tienen tarifa configurada
-                    rates.map((rate) => (
-                      <SelectItem key={rate.session_type} value={rate.session_type}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{getTypeLabel(rate.session_type)}</span>
-                          <Badge variant="outline" className="ml-2 text-emerald-700">
-                            {rate.price} {rate.currency}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    // Fallback si no hay tarifas configuradas
-                    <>
-                      <SelectItem value="individual">{getTypeLabel("individual")}</SelectItem>
-                      <SelectItem value="couple">{getTypeLabel("couple")}</SelectItem>
-                      <SelectItem value="family">{getTypeLabel("family")}</SelectItem>
-                      <SelectItem value="evaluation">{getTypeLabel("evaluation")}</SelectItem>
-                      <SelectItem value="follow_up">{getTypeLabel("follow_up")}</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
+          {/* Additional Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notas Adicionales</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => handleInputChange('notes', e.target.value)}
+              placeholder="Cualquier información adicional que consideres importante..."
+              rows={3}
+            />
+          </div>
 
-              {/* Mostrar precio seleccionado */}
-              {selectedRate && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
-                      Precio de esta consulta: {selectedRate.price} {selectedRate.currency}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas adicionales (opcional)</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                placeholder="Describe brevemente el motivo de la consulta o cualquier información relevante..."
-                className="min-h-[80px]"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sección de comprobante de pago - solo mostrar si hay tarifa */}
-        {selectedRate && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <CreditCard className="w-5 h-5" />
-                Comprobante de Pago
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PaymentProofUploader
-                psychologistId={patient.psychologist_id}
-                patientId={patient.id}
-                onUploadComplete={(url) => setFormData({...formData, paymentProofUrl: url})}
-                currentProofUrl={formData.paymentProofUrl}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        <Button
-          type="submit"
-          disabled={
-            loading || 
-            !formData.preferredDate || 
-            !formData.preferredTime || 
-            !formData.type || 
-            availableTimeSlots.length === 0 ||
-            !isSlotAvailable(formData.preferredTime) ||
-            (selectedRate && !formData.paymentProofUrl) // Requerir comprobante si hay tarifa
-          }
-          className="w-full bg-gradient-to-r from-blue-500 to-emerald-500"
-        >
-          {loading ? "Enviando solicitud..." : "Enviar Solicitud"}
-        </Button>
-      </form>
-    </div>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
