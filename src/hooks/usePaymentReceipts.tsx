@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -53,6 +52,32 @@ export const usePaymentReceipts = (psychologistId?: string) => {
       setLoading(false);
     }
   };
+
+  // Set up real-time subscription for payment receipts
+  useEffect(() => {
+    if (!psychologistId) return;
+
+    const channel = supabase
+      .channel('payment-receipts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_receipts',
+          filter: `psychologist_id=eq.${psychologistId}`
+        },
+        (payload) => {
+          console.log('Payment receipts real-time update:', payload);
+          fetchReceipts(); // Refetch data when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [psychologistId]);
 
   const validateReceipt = async (
     receiptId: string, 
