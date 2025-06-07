@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ interface PatientAppointmentRequestFormProps {
 
 export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onRequestCreated }: PatientAppointmentRequestFormProps) => {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     patientName: "",
     patientEmail: "",
@@ -63,6 +64,13 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
 
   const removeFile = () => {
     setPaymentProof(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,18 +257,21 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
                 <p className="text-sm text-slate-600 mb-2">
                   Arrastra y suelta tu comprobante aquí, o
                 </p>
-                <label htmlFor="paymentProof" className="cursor-pointer">
-                  <Button type="button" variant="outline" size="sm">
-                    Seleccionar archivo
-                  </Button>
-                  <input
-                    id="paymentProof"
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={triggerFileInput}
+                >
+                  Seleccionar archivo
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
                 <p className="text-xs text-slate-500 mt-2">
                   Formatos: JPG, PNG, GIF, PDF (máx. 5MB)
                 </p>
