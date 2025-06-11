@@ -38,6 +38,16 @@ N8N_WEBHOOK_URL = https://tu-instancia-n8n.com/webhook/receipt-ocr
 3. Host: `https://your-supabase-url.supabase.co`
 4. Service Role Key: Tu service role key de Supabase
 
+### Configurar el Nodo OpenAI Vision
+1. Abre el workflow importado
+2. Ve al nodo "OpenAI Vision Analysis"
+3. Configura:
+   - **Resource**: "image" 
+   - **Operation**: "analyze"
+   - **Image Input**: "binary"
+   - **Prompt**: (ya está configurado en el JSON)
+   - **Credentials**: Selecciona "openai-credentials"
+
 ### Actualizar URLs en el Workflow
 1. Abre el workflow importado
 2. En los nodos "Update Receipt - Success" y "Update Receipt - Error":
@@ -91,7 +101,28 @@ El sistema extrae:
 - **Descripción**: Del servicio prestado
 - **Confianza**: Nivel de precisión de la extracción (0-1)
 
-## 6. Beneficios del Sistema
+## 6. Configuración Específica del Nodo OpenAI Vision
+
+⚠️ **IMPORTANTE**: El nodo OpenAI debe configurarse así:
+
+```json
+{
+  "resource": "image",
+  "operation": "analyze",
+  "imageInput": "binary",
+  "prompt": "Analiza este comprobante...",
+  "options": {
+    "maxTokens": 500,
+    "temperature": 0.1
+  }
+}
+```
+
+**NO uses**: 
+- `resource: "assistant"`
+- `operation: "customApiCall"`
+
+## 7. Beneficios del Sistema
 
 - ✅ **Procesamiento Automático**: Sin intervención manual
 - ✅ **Doble Redundancia**: Edge Function + n8n
@@ -100,7 +131,7 @@ El sistema extrae:
 - ✅ **Validación Humana**: Profesional revisa antes de aprobar
 - ✅ **Integración Contable**: Automáticamente en reportes mensuales
 
-## 7. Resolución de Problemas
+## 8. Resolución de Problemas
 
 ### Si OCR falla:
 1. Check logs en Supabase Functions
@@ -114,7 +145,13 @@ El sistema extrae:
 3. Verificar URL del webhook en el código
 4. El sistema funcionará solo con Edge Function como respaldo
 
-## 8. Testing
+### Si OpenAI Vision no funciona en n8n:
+1. Verificar que usas `resource: "image"` y `operation: "analyze"`
+2. Asegurar que el archivo se descarga como binary
+3. Verificar que las credenciales OpenAI estén bien configuradas
+4. Check logs del workflow en n8n
+
+## 9. Testing
 
 Para probar el sistema:
 1. Sube un comprobante como paciente
@@ -123,4 +160,3 @@ Para probar el sistema:
 4. Debe cambiar a "extracted" con datos extraídos
 5. Como profesional, valida y aprueba
 6. Verifica que aparece en reportes contables
-```

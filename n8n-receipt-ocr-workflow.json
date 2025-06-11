@@ -66,7 +66,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse the OpenAI response and validate data\nconst response = $input.first().json.message.content;\n\ntry {\n  const extractedData = JSON.parse(response);\n  \n  // Validate and clean the extracted data\n  const cleanedData = {\n    date: extractedData.date || new Date().toISOString().split('T')[0],\n    amount: parseFloat(extractedData.amount) || 0,\n    type: extractedData.type || 'comprobante',\n    number: extractedData.number || 'N/A',\n    cuit: extractedData.cuit || '',\n    paymentMethod: extractedData.paymentMethod || 'no_especificado',\n    description: extractedData.description || '',\n    confidence: extractedData.confidence || 0.8\n  };\n  \n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    extractedData: cleanedData,\n    originalFileUrl: $('Webhook Trigger').first().json.body.fileUrl,\n    psychologistId: $('Webhook Trigger').first().json.body.psychologistId,\n    success: true\n  };\n  \n} catch (error) {\n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    error: error.message,\n    success: false\n  };\n}"
+        "jsCode": "// Parse the OpenAI response and validate data\nconst response = $input.first().json.message.content;\n\ntry {\n  const extractedData = JSON.parse(response);\n  \n  // Validate and clean the extracted data\n  const cleanedData = {\n    date: extractedData.date || new Date().toISOString().split('T')[0],\n    amount: parseFloat(extractedData.amount) || 0,\n    type: extractedData.type || 'comprobante',\n    number: extractedData.number || 'N/A',\n    cuit: extractedData.cuit || '',\n    paymentMethod: extractedData.paymentMethod || 'no_especificado',\n    description: extractedData.description || '',\n    confidence: extractedData.confidence || 0.8\n  };\n  \n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    extractedData: cleanedData,\n    originalFileUrl: $('Webhook Trigger').first().json.body.fileUrl,\n    success: true\n  };\n  \n} catch (error) {\n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    error: error.message,\n    success: false\n  };\n}"
       },
       "id": "process-data",
       "name": "Process Extracted Data",
@@ -270,52 +270,6 @@
       "position": [
         1560,
         300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "retry-condition",
-              "leftValue": "={{ $json.success }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "equal"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "retry-check",
-      "name": "Should Retry?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        720,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 30,
-        "unit": "seconds"
-      },
-      "id": "wait-retry",
-      "name": "Wait Before Retry",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [
-        940,
-        600
       ]
     }
   ],

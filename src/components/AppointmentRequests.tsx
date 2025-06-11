@@ -41,6 +41,16 @@ interface AppointmentRequestsProps {
   isDashboardView?: boolean;
 }
 
+interface PaymentReceiptData {
+  psychologist_id: string;
+  patient_id: string;
+  payment_proof_url: string;
+  preferred_date: string;
+  payment_amount?: number;
+  notes: string;
+  id: string;
+}
+
 export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequestsProps) => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<AppointmentRequest[]>([]);
@@ -156,15 +166,7 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
     }
   }, [psychologistId]);
 
-  const createPaymentReceipt = async (requestData: {
-    psychologist_id: string;
-    patient_id: string;
-    payment_proof_url: string;
-    preferred_date: string;
-    payment_amount?: number;
-    notes: string;
-    id: string;
-  }) => {
+  const createPaymentReceipt = async (requestData: PaymentReceiptData) => {
     if (!requestData.payment_proof_url || !requestData.payment_amount) {
       console.log('AppointmentRequests: No payment proof or amount, skipping receipt creation');
       return;
@@ -181,7 +183,7 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
         }
       }
 
-      const { error: receiptError } = await supabase
+      const { data: receiptData, error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
           psychologist_id: requestData.psychologist_id,
@@ -191,20 +193,40 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
           amount: amount || 0,
           receipt_type: 'comprobante_pago',
           payment_method: 'transferencia',
-          extraction_status: 'processing',
+          extraction_status: 'pending',
           validation_status: 'pending',
           include_in_report: false,
-          validation_notes: `Comprobante en procesamiento desde solicitud de cita ${requestData.id}`,
-          validated_by: psychologistId,
-          validated_at: new Date().toISOString()
-        });
+          validation_notes: `Comprobante desde solicitud de cita ${requestData.id}`,
+        })
+        .select()
+        .single();
 
       if (receiptError) {
         console.error('AppointmentRequests: Error creating payment receipt:', receiptError);
         throw receiptError;
       }
 
-      console.log('AppointmentRequests: Payment receipt created successfully');
+      console.log('AppointmentRequests: Payment receipt created successfully:', receiptData);
+
+      // Llamar a la Edge Function para procesar OCR
+      if (receiptData) {
+        try {
+          const { error: ocrError } = await supabase.functions.invoke('process-receipt-ocr', {
+            body: { 
+              fileUrl: requestData.payment_proof_url, 
+              receiptId: receiptData.id 
+            }
+          });
+
+          if (ocrError) {
+            console.error('AppointmentRequests: Error calling OCR function:', ocrError);
+          } else {
+            console.log('AppointmentRequests: OCR processing initiated successfully');
+          }
+        } catch (ocrError) {
+          console.error('AppointmentRequests: Error in OCR processing:', ocrError);
+        }
+      }
     } catch (error) {
       console.error('AppointmentRequests: Error in createPaymentReceipt:', error);
     }
