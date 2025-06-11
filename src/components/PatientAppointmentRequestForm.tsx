@@ -37,7 +37,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type (images and PDFs)
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
         toast({
@@ -48,7 +47,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "Error",
@@ -73,6 +71,34 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
     fileInputRef.current?.click();
   };
 
+  const triggerN8nWebhook = async (receiptId: string, fileUrl: string) => {
+    try {
+      console.log('Triggering n8n webhook for receipt:', receiptId);
+      
+      // Esta URL se debe configurar en el environment de n8n
+      const webhookUrl = 'https://tu-instancia-n8n.com/webhook/receipt-ocr';
+      
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          receiptId,
+          fileUrl,
+          psychologistId,
+          timestamp: new Date().toISOString(),
+          source: 'patient_appointment_form'
+        })
+      });
+
+      console.log('n8n webhook triggered successfully');
+    } catch (error) {
+      console.error('Error triggering n8n webhook:', error);
+      // No lanzamos error aquí para no bloquear el flujo principal
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -88,8 +114,10 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
     setIsSubmitting(true);
 
     try {
-      // Upload payment proof if provided
       let proofUrl = null;
+      let receiptId = null;
+
+      // Upload payment proof if provided
       if (paymentProof) {
         const fileExt = paymentProof.name.split('.').pop();
         const fileName = `payment-proof-${Date.now()}.${fileExt}`;
@@ -105,17 +133,51 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
           .getPublicUrl(fileName);
         
         proofUrl = publicUrl;
+
+        // Crear registro en payment_receipts para el OCR
+        const { data: receiptData, error: receiptError } = await supabase
+          .from('payment_receipts')
+          .insert({
+            psychologist_id: psychologistId,
+            patient_id: user?.id || '',
+            original_file_url: proofUrl,
+            extraction_status: 'pending',
+            validation_status: 'pending',
+            include_in_report: false,
+            validation_notes: 'Comprobante subido desde formulario de solicitud de cita'
+          })
+          .select()
+          .single();
+
+        if (receiptError) throw receiptError;
+        
+        receiptId = receiptData.id;
+
+        // Disparar webhook n8n para procesamiento OCR
+        await triggerN8nWebhook(receiptId, proofUrl);
+
+        // También disparar la función edge como respaldo
+        try {
+          await supabase.functions.invoke('process-receipt-ocr', {
+            body: { 
+              fileUrl: proofUrl, 
+              receiptId: receiptId 
+            }
+          });
+        } catch (ocrError) {
+          console.error('Error in backup OCR processing:', ocrError);
+        }
       }
 
-      // Create appointment request with correct schema
+      // Create appointment request
       const { error } = await supabase
         .from('appointment_requests')
         .insert({
           psychologist_id: psychologistId,
-          patient_id: user?.id || '', // Use authenticated user ID or empty string
+          patient_id: user?.id || '',
           preferred_date: formData.preferredDate,
           preferred_time: formData.preferredTime,
-          type: 'individual', // Use a valid type from the schema
+          type: 'individual',
           notes: `Nombre: ${formData.patientName}\nEmail: ${formData.patientEmail}\nTeléfono: ${formData.patientPhone}\nTipo de sesión: ${formData.sessionType}\n\nNotas adicionales: ${formData.notes}`,
           payment_proof_url: proofUrl,
           status: 'pending'
@@ -125,7 +187,9 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
 
       toast({
         title: "Solicitud enviada",
-        description: "Tu solicitud de cita ha sido enviada exitosamente. El psicólogo se contactará contigo pronto."
+        description: paymentProof 
+          ? "Tu solicitud y comprobante han sido enviados. El comprobante está siendo procesado automáticamente."
+          : "Tu solicitud de cita ha sido enviada exitosamente. El psicólogo se contactará contigo pronto."
       });
 
       onRequestCreated?.();
@@ -155,7 +219,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <User className="w-4 h-4" />
@@ -199,7 +262,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
             </div>
           </div>
 
-          {/* Appointment Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4" />
@@ -244,7 +306,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
             </div>
           </div>
 
-          {/* Payment Proof Upload */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <Upload className="w-4 h-4" />
@@ -275,6 +336,9 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
                 <p className="text-xs text-slate-500 mt-2">
                   Formatos: JPG, PNG, GIF, PDF (máx. 5MB)
                 </p>
+                <p className="text-xs text-green-600 mt-1">
+                  ✨ Se procesará automáticamente con IA
+                </p>
               </div>
             ) : (
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
@@ -297,7 +361,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
             )}
           </div>
 
-          {/* Additional Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notas Adicionales</Label>
             <Textarea
@@ -309,7 +372,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
             />
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
               type="button"

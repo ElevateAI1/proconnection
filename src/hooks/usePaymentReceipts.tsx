@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -69,6 +70,24 @@ export const usePaymentReceipts = (psychologistId?: string) => {
         },
         (payload) => {
           console.log('Payment receipts real-time update:', payload);
+          
+          // Mostrar notificación cuando se complete el procesamiento OCR
+          if (payload.eventType === 'UPDATE' && payload.new.extraction_status === 'extracted') {
+            toast({
+              title: "OCR Completado",
+              description: "Un comprobante ha sido procesado automáticamente por IA",
+            });
+          }
+          
+          // Mostrar notificación cuando hay error en el procesamiento
+          if (payload.eventType === 'UPDATE' && payload.new.extraction_status === 'error') {
+            toast({
+              title: "Error en OCR",
+              description: "Hubo un error procesando un comprobante automáticamente",
+              variant: "destructive"
+            });
+          }
+          
           fetchReceipts(); // Refetch data when changes occur
         }
       )
@@ -93,15 +112,22 @@ export const usePaymentReceipts = (psychologistId?: string) => {
           validation_notes: validationNotes,
           validated_by: psychologistId,
           validated_at: new Date().toISOString(),
+          include_in_report: validationStatus === 'approved',
           ...extractedData
         })
         .eq('id', receiptId);
 
       if (error) throw error;
 
+      const statusMessages = {
+        approved: 'aprobado',
+        rejected: 'rechazado',
+        needs_correction: 'marcado para corrección'
+      };
+
       toast({
         title: "Comprobante actualizado",
-        description: `El comprobante ha sido ${validationStatus === 'approved' ? 'aprobado' : validationStatus === 'rejected' ? 'rechazado' : 'marcado para corrección'}`
+        description: `El comprobante ha sido ${statusMessages[validationStatus]}`
       });
 
       fetchReceipts();
@@ -140,6 +166,45 @@ export const usePaymentReceipts = (psychologistId?: string) => {
     }
   };
 
+  const retryOCRProcessing = async (receiptId: string, fileUrl: string) => {
+    try {
+      // Actualizar estado a "processing"
+      const { error: updateError } = await supabase
+        .from('payment_receipts')
+        .update({
+          extraction_status: 'processing',
+          validation_notes: 'Reintentando procesamiento OCR...'
+        })
+        .eq('id', receiptId);
+
+      if (updateError) throw updateError;
+
+      // Llamar a la función de procesamiento OCR
+      const { error: ocrError } = await supabase.functions.invoke('process-receipt-ocr', {
+        body: { 
+          fileUrl: fileUrl, 
+          receiptId: receiptId 
+        }
+      });
+
+      if (ocrError) throw ocrError;
+
+      toast({
+        title: "Reintentando OCR",
+        description: "El comprobante está siendo reprocesado automáticamente"
+      });
+
+      fetchReceipts();
+    } catch (err) {
+      console.error('Error retrying OCR processing:', err);
+      toast({
+        title: "Error",
+        description: "Error al reintentar el procesamiento OCR",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchReceipts();
   }, [psychologistId]);
@@ -150,6 +215,7 @@ export const usePaymentReceipts = (psychologistId?: string) => {
     error,
     validateReceipt,
     updateReceiptInclusion,
+    retryOCRProcessing,
     refetch: fetchReceipts
   };
 };

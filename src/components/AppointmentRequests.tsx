@@ -51,7 +51,6 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
     const getPsychologistId = async () => {
       if (user) {
         try {
-          // Fetch the psychologist ID based on the user's ID
           const { data: psychologistData, error: psychologistError } = await supabase
             .from('psychologists')
             .select('id')
@@ -157,19 +156,26 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
     }
   }, [psychologistId]);
 
-  const createPaymentReceipt = async (request: AppointmentRequest) => {
-    if (!request.payment_proof_url || !request.payment_amount) {
+  const createPaymentReceipt = async (requestData: {
+    psychologist_id: string;
+    patient_id: string;
+    payment_proof_url: string;
+    preferred_date: string;
+    payment_amount?: number;
+    notes: string;
+    id: string;
+  }) => {
+    if (!requestData.payment_proof_url || !requestData.payment_amount) {
       console.log('AppointmentRequests: No payment proof or amount, skipping receipt creation');
       return;
     }
 
     try {
-      console.log('AppointmentRequests: Creating payment receipt for request:', request.id);
+      console.log('AppointmentRequests: Creating payment receipt for request:', requestData.id);
       
-      // Extract amount from notes if payment_amount is not set
-      let amount = request.payment_amount;
-      if (!amount && request.notes) {
-        const amountMatch = request.notes.match(/\$?([\d,]+\.?\d*)/);
+      let amount = requestData.payment_amount;
+      if (!amount && requestData.notes) {
+        const amountMatch = requestData.notes.match(/\$?([\d,]+\.?\d*)/);
         if (amountMatch) {
           amount = parseFloat(amountMatch[1].replace(',', ''));
         }
@@ -178,17 +184,17 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
-          psychologist_id: request.psychologist_id,
-          patient_id: request.patient_id,
-          original_file_url: request.payment_proof_url,
-          receipt_date: request.preferred_date,
+          psychologist_id: requestData.psychologist_id,
+          patient_id: requestData.patient_id,
+          original_file_url: requestData.payment_proof_url,
+          receipt_date: requestData.preferred_date,
           amount: amount || 0,
           receipt_type: 'comprobante_pago',
           payment_method: 'transferencia',
-          extraction_status: 'extracted',
-          validation_status: 'approved',
-          include_in_report: true,
-          validation_notes: `Comprobante aprobado automáticamente desde solicitud de cita ${request.id}`,
+          extraction_status: 'processing',
+          validation_status: 'pending',
+          include_in_report: false,
+          validation_notes: `Comprobante en procesamiento desde solicitud de cita ${requestData.id}`,
           validated_by: psychologistId,
           validated_at: new Date().toISOString()
         });
@@ -232,15 +238,20 @@ export const AppointmentRequests = ({ isDashboardView = false }: AppointmentRequ
 
       console.log('AppointmentRequests: Appointment created successfully:', appointment);
 
-      // Crear reunión Jitsi
       if (appointment) {
         await createJitsiMeeting(appointment, request);
       }
 
-      // Crear comprobante de pago en el sistema contable si existe
-      await createPaymentReceipt(request);
+      await createPaymentReceipt({
+        psychologist_id: request.psychologist_id,
+        patient_id: request.patient_id,
+        payment_proof_url: request.payment_proof_url || '',
+        preferred_date: request.preferred_date,
+        payment_amount: request.payment_amount,
+        notes: request.notes,
+        id: request.id
+      });
 
-      // Actualizar el estado de la solicitud
       const { error: updateError } = await supabase
         .from('appointment_requests')
         .update({ status: 'approved' })

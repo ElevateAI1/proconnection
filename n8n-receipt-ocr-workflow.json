@@ -1,0 +1,421 @@
+
+{
+  "name": "Receipt OCR Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "receipt-ocr",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "receipt-ocr-webhook"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.fileUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-file",
+      "name": "Download Receipt File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "imageInput": "binary",
+        "prompt": "Analiza este comprobante de pago y extrae la siguiente información en formato JSON:\n- date: fecha del comprobante (formato YYYY-MM-DD)\n- amount: monto total (solo número, sin símbolos)\n- type: tipo de comprobante (factura_a, factura_b, factura_c, recibo, etc.)\n- number: número del comprobante\n- cuit: CUIT del emisor (si está presente)\n- paymentMethod: método de pago (transferencia, efectivo, tarjeta, etc.)\n- description: descripción del servicio o concepto\n- confidence: nivel de confianza en la extracción (0-1)\n\nResponde SOLO con el JSON, sin texto adicional.",
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.1
+        }
+      },
+      "id": "openai-vision",
+      "name": "OpenAI Vision Analysis",
+      "type": "@n8n/n8n-nodes-openai.openAi",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the OpenAI response and validate data\nconst response = $input.first().json.message.content;\n\ntry {\n  const extractedData = JSON.parse(response);\n  \n  // Validate and clean the extracted data\n  const cleanedData = {\n    date: extractedData.date || new Date().toISOString().split('T')[0],\n    amount: parseFloat(extractedData.amount) || 0,\n    type: extractedData.type || 'comprobante',\n    number: extractedData.number || 'N/A',\n    cuit: extractedData.cuit || '',\n    paymentMethod: extractedData.paymentMethod || 'no_especificado',\n    description: extractedData.description || '',\n    confidence: extractedData.confidence || 0.8\n  };\n  \n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    extractedData: cleanedData,\n    originalFileUrl: $('Webhook Trigger').first().json.body.fileUrl,\n    psychologistId: $('Webhook Trigger').first().json.body.psychologistId,\n    success: true\n  };\n  \n} catch (error) {\n  return {\n    receiptId: $('Webhook Trigger').first().json.body.receiptId,\n    error: error.message,\n    success: false\n  };\n}"
+      },
+      "id": "process-data",
+      "name": "Process Extracted Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-condition",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "success-check",
+      "name": "Success Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://your-supabase-url.supabase.co/rest/v1/payment_receipts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.{{ $json.receiptId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "receipt_date",
+              "value": "={{ $json.extractedData.date }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.extractedData.amount }}"
+            },
+            {
+              "name": "receipt_type",
+              "value": "={{ $json.extractedData.type }}"
+            },
+            {
+              "name": "receipt_number",
+              "value": "={{ $json.extractedData.number }}"
+            },
+            {
+              "name": "patient_cuit",
+              "value": "={{ $json.extractedData.cuit }}"
+            },
+            {
+              "name": "payment_method",
+              "value": "={{ $json.extractedData.paymentMethod }}"
+            },
+            {
+              "name": "extracted_data",
+              "value": "={{ JSON.stringify($json.extractedData) }}"
+            },
+            {
+              "name": "extraction_status",
+              "value": "extracted"
+            },
+            {
+              "name": "validation_status",
+              "value": "needs_review"
+            },
+            {
+              "name": "validation_notes",
+              "value": "Procesado automáticamente por n8n + OpenAI Vision. Confianza: {{ $json.extractedData.confidence }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-success",
+      "name": "Update Receipt - Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        200
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://your-supabase-url.supabase.co/rest/v1/payment_receipts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.{{ $json.receiptId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "extraction_status",
+              "value": "error"
+            },
+            {
+              "name": "validation_notes",
+              "value": "Error en procesamiento n8n: {{ $json.error }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-error",
+      "name": "Update Receipt - Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": $json.success,\n  \"receiptId\": $json.receiptId,\n  \"message\": $json.success ? \"OCR processing completed successfully\" : \"Error in OCR processing\",\n  \"extractedData\": $json.extractedData || null,\n  \"error\": $json.error || null\n} }}",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "retry-condition",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "retry-check",
+      "name": "Should Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-retry",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        940,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Receipt File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Receipt File": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Vision Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Vision Analysis": {
+      "main": [
+        [
+          {
+            "node": "Process Extracted Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Extracted Data": {
+      "main": [
+        [
+          {
+            "node": "Success Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Check": {
+      "main": [
+        [
+          {
+            "node": "Update Receipt - Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Receipt - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Receipt - Success": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Receipt - Error": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-01-15T10:30:00.000Z",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1",
+  "triggerCount": 0,
+  "tags": []
+}
