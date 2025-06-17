@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Download, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calendar, FileText, Download, AlertTriangle, CheckCircle, Printer } from "lucide-react";
 import { useAccountingReports } from "@/hooks/useAccountingReports";
+import { exportAccountingReportAsCSV, printAccountingReport } from "@/utils/reportExporter";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
 
 interface MonthlyReportGeneratorProps {
@@ -12,19 +14,18 @@ interface MonthlyReportGeneratorProps {
 
 export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGeneratorProps) => {
   const { generateMonthlyReport, reports } = useAccountingReports(psychologistId);
+  const { psychologist } = useProfile();
   const [generating, setGenerating] = useState(false);
+  const [exportingReport, setExportingReport] = useState<string | null>(null);
 
-  // Usar fecha actual real - Junio 2025
-  const currentDate = new Date(); // Esto debería ser junio 2025
-  const currentMonth = currentDate.getMonth() + 1; // 6 para junio
-  const currentYear = currentDate.getFullYear(); // 2025
-
-  console.log('Current date info:', { currentMonth, currentYear, currentDate: currentDate.toISOString() });
+  // Use current date - June 2025
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
 
   const handleGenerateReport = async (month: number, year: number) => {
     setGenerating(true);
     try {
-      console.log(`Generating report for ${month}/${year}`);
       await generateMonthlyReport(month, year);
       toast({
         title: "✅ Reporte generado",
@@ -42,6 +43,64 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
     }
   };
 
+  const handleExportCSV = (report: any) => {
+    if (!psychologist) {
+      toast({
+        title: "Error",
+        description: "No se pudo obtener la información del psicólogo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setExportingReport(report.id);
+      exportAccountingReportAsCSV(report, psychologist);
+      toast({
+        title: "Exportado exitosamente",
+        description: "El reporte se ha exportado como CSV"
+      });
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      toast({
+        title: "Error",
+        description: "Error al exportar el reporte",
+        variant: "destructive"
+      });
+    } finally {
+      setExportingReport(null);
+    }
+  };
+
+  const handlePrintReport = (report: any) => {
+    if (!psychologist) {
+      toast({
+        title: "Error",
+        description: "No se pudo obtener la información del psicólogo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setExportingReport(report.id);
+      printAccountingReport(report, psychologist);
+      toast({
+        title: "Abriendo impresión",
+        description: "Se ha abierto la ventana de impresión"
+      });
+    } catch (error) {
+      console.error('Error printing report:', error);
+      toast({
+        title: "Error",
+        description: "Error al imprimir el reporte",
+        variant: "destructive"
+      });
+    } finally {
+      setExportingReport(null);
+    }
+  };
+
   const getMonthName = (month: number) => {
     const months = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -51,11 +110,9 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
   };
 
   const canGenerateReport = (month: number, year: number) => {
-    // Solo permitir generar reportes de meses anteriores completos
     if (year > currentYear) return false;
     if (year === currentYear && month >= currentMonth) return false;
     
-    // Verificar si ya existe el reporte
     const existingReport = reports.find(r => r.report_month === month && r.report_year === year);
     return !existingReport;
   };
@@ -64,7 +121,7 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
     return reports.find(r => r.report_month === month && r.report_year === year);
   };
 
-  // Generar lista de los últimos 6 meses disponibles para reportes
+  // Generate list of the last 6 available months for reports
   const availableMonths = [];
   for (let i = 1; i <= 6; i++) {
     const date = new Date(currentYear, currentMonth - 1 - i, 1);
@@ -133,11 +190,11 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
                         </div>
                       )}
 
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex flex-col gap-2 mt-3">
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="flex-1"
+                          className="w-full"
                           onClick={() => handleGenerateReport(period.month, period.year)}
                           disabled={generating}
                         >
@@ -145,11 +202,33 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
                           Regenerar
                         </Button>
                         
-                        {report.report_file_url && (
-                          <Button variant="outline" size="sm">
-                            <Download className="w-3 h-3" />
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleExportCSV(report)}
+                            disabled={exportingReport === report.id}
+                          >
+                            {exportingReport === report.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600 mr-1"></div>
+                            ) : (
+                              <Download className="w-3 h-3 mr-1" />
+                            )}
+                            CSV
                           </Button>
-                        )}
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handlePrintReport(report)}
+                            disabled={exportingReport === report.id}
+                          >
+                            <Printer className="w-3 h-3 mr-1" />
+                            Imprimir
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : period.canGenerate ? (
@@ -160,7 +239,7 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
                         className="w-full"
                         variant="outline"
                       >
-                        <FileText className="w-4 h-4 mr-1" />
+                        <FileText className="w-4 w-4 mr-1" />
                         {generating ? 'Generando...' : 'Generar Reporte'}
                       </Button>
                     </div>
@@ -180,12 +259,12 @@ export const MonthlyReportGenerator = ({ psychologistId }: MonthlyReportGenerato
           </div>
 
           <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-            <h4 className="font-medium text-emerald-800 mb-2">✨ Sistema Mensual Automatizado</h4>
+            <h4 className="font-medium text-emerald-800 mb-2">✨ Sistema Mensual Actualizado</h4>
             <div className="text-sm text-emerald-700 space-y-1">
-              <p>• Los comprobantes procesados por OCR se incluyen automáticamente</p>
-              <p>• Los reportes muestran datos del mes específico</p>
-              <p>• Se incluyen comprobantes aprobados y pendientes de revisión</p>
-              <p>• Alertas automáticas de límites de monotributo</p>
+              <p>• Exporta reportes como CSV para análisis en Excel</p>
+              <p>• Imprime reportes directamente desde el navegador</p>
+              <p>• Genera PDFs usando la función "Imprimir como PDF" del navegador</p>
+              <p>• Sistema más estable y sin dependencias problemáticas</p>
             </div>
           </div>
         </div>

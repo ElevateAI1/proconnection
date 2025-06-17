@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,7 +15,7 @@ export const useSpecialties = () => {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadSpecialties = async (professionType?: string) => {
+  const loadSpecialties = useCallback(async (professionType?: string) => {
     setLoading(true);
     try {
       let query = supabase
@@ -46,9 +46,9 @@ export const useSpecialties = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const saveProfileSpecialties = async (profileId: string, specialtyIds: string[]) => {
+  const saveProfileSpecialties = useCallback(async (profileId: string, specialtyIds: string[]) => {
     try {
       // Eliminar especialidades existentes
       await supabase
@@ -84,9 +84,9 @@ export const useSpecialties = () => {
       });
       return { error: error.message };
     }
-  };
+  }, []);
 
-  const getProfileSpecialties = async (profileId: string) => {
+  const getProfileSpecialties = useCallback(async (profileId: string) => {
     try {
       const { data, error } = await supabase
         .from('profile_specialties')
@@ -100,7 +100,7 @@ export const useSpecialties = () => {
       console.error('Error loading profile specialties:', error);
       return [];
     }
-  };
+  }, []);
 
   return {
     specialties,

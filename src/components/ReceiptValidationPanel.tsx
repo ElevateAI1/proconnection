@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +54,7 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
   };
 
   const handleApprove = async (receiptId: string) => {
-    await validateReceipt(receiptId, 'approved', validationNotes, editingData);
+    await validateReceipt(receiptId, 'approved', validationNotes);
     setSelectedReceipt(null);
     setEditingData({});
     setValidationNotes('');
@@ -69,7 +68,7 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
 
   const handleRetryOCR = async (receipt: any) => {
     if (receipt.original_file_url) {
-      await retryOCRProcessing(receipt.id, receipt.original_file_url);
+      await retryOCRProcessing(receipt.id);
     }
   };
 

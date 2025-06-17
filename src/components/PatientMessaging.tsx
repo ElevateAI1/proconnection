@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, ArrowLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useConversations } from "@/hooks/useConversations";
+import { useMarkMessagesAsRead } from "@/hooks/useMarkMessagesAsRead";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { MessageStatus } from "./MessageStatus";
 
 interface Message {
   id: string;
@@ -25,6 +27,7 @@ interface PatientMessagingProps {
 export const PatientMessaging = ({ onBack }: PatientMessagingProps) => {
   const { patient } = useProfile();
   const { sendMessage } = useConversations();
+  const { markMessagesAsRead } = useMarkMessagesAsRead();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -49,11 +52,20 @@ export const PatientMessaging = ({ onBack }: PatientMessagingProps) => {
   }, [patient]);
 
   useEffect(() => {
-    if (conversationId) {
+    if (conversationId && patient?.id) {
       fetchMessages();
-      markMessagesAsRead();
+      // Mark messages as read immediately when conversation loads
+      markMessagesAsRead(conversationId, patient.id).then((success) => {
+        if (success) {
+          // Update local state immediately
+          setMessages(prev => prev.map(msg => ({
+            ...msg,
+            read_at: msg.sender_id !== patient.id ? new Date().toISOString() : msg.read_at
+          })));
+        }
+      });
     }
-  }, [conversationId]);
+  }, [conversationId, patient?.id]);
 
   const fetchConversation = async () => {
     if (!patient?.id) return;
@@ -106,25 +118,6 @@ export const PatientMessaging = ({ onBack }: PatientMessagingProps) => {
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
-    }
-  };
-
-  const markMessagesAsRead = async () => {
-    if (!conversationId || !patient?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId)
-        .neq('sender_id', patient.id)
-        .is('read_at', null);
-
-      if (error) {
-        console.error('Error marking messages as read:', error);
-      }
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
     }
   };
 
@@ -243,12 +236,19 @@ export const PatientMessaging = ({ onBack }: PatientMessagingProps) => {
                       }`}
                     >
                       <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${message.sender_id === patient?.id ? "text-blue-100" : "text-slate-500"}`}>
-                        {new Date(message.created_at).toLocaleTimeString('es-ES', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
+                      <div className={`flex items-center justify-between mt-1 ${message.sender_id === patient?.id ? "text-blue-100" : "text-slate-500"}`}>
+                        <p className="text-xs">
+                          {new Date(message.created_at).toLocaleTimeString('es-ES', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                        <MessageStatus 
+                          isOwnMessage={message.sender_id === patient?.id}
+                          readAt={message.read_at}
+                          createdAt={message.created_at}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

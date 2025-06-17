@@ -8,6 +8,8 @@ import { Calendar, Clock, User, FileText, Upload, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAvailableSlots } from "@/hooks/useAvailableSlots";
 
 interface PatientAppointmentRequestFormProps {
   psychologistId: string;
@@ -29,6 +31,27 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
   });
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // -------- useAvailableSlots
+  const {
+    getAvailableSlots,
+    loading: slotsLoading,
+    refreshAvailability
+  } = useAvailableSlots({
+    psychologistId,
+    selectedDate: formData.preferredDate
+  });
+  const availableSlots = getAvailableSlots();
+
+  // -------- Actualizar available slots cuando cambia preferredDate
+  const handlePreferredDateChange = (date: string) => {
+    setFormData(prev => ({
+      ...prev,
+      preferredDate: date,
+      preferredTime: ""
+    }));
+    refreshAvailability();
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -132,12 +155,23 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.patientName || !formData.patientEmail || !formData.preferredDate) {
+    if (!formData.patientName || !formData.patientEmail || !formData.preferredDate || !formData.preferredTime) {
       toast({
         title: "Error",
         description: "Por favor completa todos los campos obligatorios",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Validar que el preferredTime es uno de los disponibles estrictamente
+    if (!availableSlots.includes(formData.preferredTime)) {
+      toast({
+        title: "Error",
+        description: "El horario seleccionado no es válido o ya no está disponible. Elige uno de la lista.",
+        variant: "destructive"
+      });
+      setFormData(prev => ({ ...prev, preferredTime: "" }));
       return;
     }
 
@@ -314,20 +348,38 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
                   id="preferredDate"
                   type="date"
                   value={formData.preferredDate}
-                  onChange={(e) => handleInputChange('preferredDate', e.target.value)}
+                  onChange={(e) => handlePreferredDateChange(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="preferredTime">Horario Preferido</Label>
-                <Input
-                  id="preferredTime"
-                  type="time"
+                <Label htmlFor="preferredTime">Horario Preferido *</Label>
+                <Select
                   value={formData.preferredTime}
-                  onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                />
+                  onValueChange={(value) => handleInputChange('preferredTime', value)}
+                  disabled={!formData.preferredDate || slotsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      !formData.preferredDate
+                        ? "Selecciona una fecha primero"
+                        : slotsLoading
+                        ? "Cargando horarios..."
+                        : availableSlots.length === 0
+                        ? "No hay horarios disponibles"
+                        : "Selecciona una hora"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             

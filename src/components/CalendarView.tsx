@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, X } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,6 +20,11 @@ interface Appointment {
     last_name: string;
   };
 }
+
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
 
 export const Calendar = () => {
   const { psychologist } = useProfile();
@@ -159,9 +164,23 @@ export const Calendar = () => {
     return labels[type] || type;
   };
 
-  const getAppointmentForTime = (time: string) => {
-    return appointmentsByTime[time] || null;
-  };
+  const getAppointmentInfoForTime = useCallback((time: string) => {
+    const slotStartMinutes = timeToMinutes(time);
+
+    for (const apt of appointments) {
+        const aptDate = new Date(apt.appointment_date);
+        const aptStartMinutes = aptDate.getHours() * 60 + aptDate.getMinutes();
+        const duration = apt.duration_minutes || 60;
+        const aptEndMinutes = aptStartMinutes + duration;
+        
+        if (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) {
+            const isContinuation = slotStartMinutes !== aptStartMinutes;
+            return { appointment: apt, isContinuation };
+        }
+    }
+
+    return { appointment: null, isContinuation: false };
+  }, [appointments]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -332,27 +351,25 @@ export const Calendar = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Debug info */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Debug Calendar:</strong> {appointments.length} citas encontradas para {formatSelectedDate()}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Psicólogo ID: {psychologist?.id} | Estado: {loading ? 'Cargando' : 'Cargado'}
-                </p>
-                {appointments.length > 0 && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Citas: {appointments.map(apt => {
-                      const time = new Date(apt.appointment_date).toLocaleTimeString('en-GB', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        hour12: false 
-                      });
-                      return `${time} (${apt.status})`;
-                    }).join(', ')}
+              {!loading && (
+                <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-center md:text-left">
+                  <p className="text-sm font-semibold text-slate-700">
+                    {appointments.length > 0 
+                      ? `Tienes ${appointments.length} ${appointments.length === 1 ? 'cita programada' : 'citas programadas'} para hoy.`
+                      : 'No tienes citas programadas para este día.'
+                    }
                   </p>
-                )}
-              </div>
+                  {appointments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+                      {appointments.map(apt => (
+                        <span key={apt.id} className="text-xs bg-blue-100 text-blue-800 font-medium px-2.5 py-0.5 rounded-full">
+                          {new Date(apt.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {loading ? (
                 <div className="text-center py-8">
@@ -362,73 +379,85 @@ export const Calendar = () => {
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {timeSlots.map((time) => {
-                    const appointment = getAppointmentForTime(time);
+                    const { appointment, isContinuation } = getAppointmentInfoForTime(time);
                     return (
-                      <div key={time} className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                      <div key={time} className={`flex items-center gap-4 p-3 rounded-lg border border-slate-200 transition-colors ${isContinuation ? 'bg-slate-50' : 'hover:bg-slate-50'}`}>
                         <div className="w-16 text-sm font-medium text-slate-600 text-center">
                           {time}
                         </div>
-                        {appointment ? (
-                          <div className="flex-1 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-                                <User className="w-4 h-4 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-slate-800">
-                                  {appointment.patient 
-                                    ? `${appointment.patient.first_name} ${appointment.patient.last_name}` 
-                                    : 'Paciente'
-                                  }
-                                </p>
-                                <p className="text-sm text-slate-600">{getTypeLabel(appointment.type)}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                                    {getStatusLabel(appointment.status)}
-                                  </span>
-                                  {appointment.meeting_url && appointment.status !== 'cancelled' && (
-                                    <div className="flex items-center gap-1 text-xs text-green-600">
-                                      <Video className="w-3 h-3" />
-                                      <span>Reunión virtual disponible</span>
+                        {(() => {
+                          if (appointment && !isContinuation) {
+                            return (
+                              <div className="flex-1 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
+                                    <User className="w-4 h-4 text-white" />
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-slate-800">
+                                      {appointment.patient 
+                                        ? `${appointment.patient.first_name} ${appointment.patient.last_name}` 
+                                        : 'Paciente'
+                                      }
+                                    </p>
+                                    <p className="text-sm text-slate-600">{getTypeLabel(appointment.type)}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                                        {getStatusLabel(appointment.status)}
+                                      </span>
+                                      {appointment.meeting_url && appointment.status !== 'cancelled' && (
+                                        <div className="flex items-center gap-1 text-xs text-green-600">
+                                          <Video className="w-3 h-3" />
+                                          <span>Reunión virtual disponible</span>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-slate-500">
+                                    {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
+                                  </span>
+                                  <div className="flex gap-2">
+                                    {appointment.meeting_url && appointment.status !== 'cancelled' && (
+                                      <button
+                                        onClick={() => handleJoinMeeting(appointment.meeting_url!)}
+                                        className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                                      >
+                                        <Video className="w-3 h-3" />
+                                        Unirse
+                                      </button>
+                                    )}
+                                    {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                      <CancelAppointmentModal
+                                        appointmentId={appointment.id}
+                                        onCancelled={fetchAppointments}
+                                        trigger={
+                                          <button className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
+                                            <X className="w-3 h-3" />
+                                            Cancelar
+                                          </button>
+                                        }
+                                      />
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-slate-500">
-                                {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
-                              </span>
-                              <div className="flex gap-2">
-                                {appointment.meeting_url && appointment.status !== 'cancelled' && (
-                                  <button
-                                    onClick={() => handleJoinMeeting(appointment.meeting_url!)}
-                                    className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
-                                  >
-                                    <Video className="w-3 h-3" />
-                                    Unirse
-                                  </button>
-                                )}
-                                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                                  <CancelAppointmentModal
-                                    appointmentId={appointment.id}
-                                    onCancelled={fetchAppointments}
-                                    trigger={
-                                      <button className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
-                                        <X className="w-3 h-3" />
-                                        Cancelar
-                                      </button>
-                                    }
-                                  />
-                                )}
+                            );
+                          }
+                          if (isContinuation) {
+                            return (
+                              <div className="flex-1 text-center text-sm text-slate-500 font-medium">
+                                Ocupado
                               </div>
+                            );
+                          }
+                          return (
+                            <div className="flex-1 text-slate-400 text-sm">
+                              Disponible
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex-1 text-slate-400 text-sm">
-                            Disponible
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })}

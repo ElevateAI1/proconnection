@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
+import { useRealtimeChannel } from './useRealtimeChannel';
 
 interface DashboardStats {
   todayAppointments: number;
@@ -21,6 +22,19 @@ export const useDashboardStats = (): DashboardStats => {
     error: null
   });
 
+  // Real-time subscription for messages to update unread count immediately
+  useRealtimeChannel({
+    channelName: `dashboard-messages-${psychologist?.id}`,
+    enabled: !!psychologist?.id,
+    table: 'messages',
+    onUpdate: () => {
+      console.log('Messages updated, refetching unread count...');
+      if (psychologist?.id) {
+        fetchUnreadMessages();
+      }
+    }
+  });
+
   useEffect(() => {
     if (!psychologist?.id) {
       setStats(prev => ({ ...prev, loading: false }));
@@ -29,6 +43,44 @@ export const useDashboardStats = (): DashboardStats => {
 
     fetchStats();
   }, [psychologist?.id]);
+
+  const fetchUnreadMessages = async () => {
+    if (!psychologist?.id) return;
+
+    try {
+      console.log('Fetching unread messages for psychologist:', psychologist.id);
+
+      // Simple direct query for unread messages
+      const { data: unreadMessages, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          conversation_id,
+          conversations!inner(
+            psychologist_id
+          )
+        `)
+        .eq('conversations.psychologist_id', psychologist.id)
+        .neq('sender_id', psychologist.id)
+        .is('read_at', null);
+
+      if (error) {
+        console.error('Error fetching unread messages:', error);
+        return;
+      }
+
+      const unreadCount = unreadMessages?.length || 0;
+      console.log('Unread messages count:', unreadCount);
+
+      setStats(prev => ({
+        ...prev,
+        unreadMessages: unreadCount
+      }));
+
+    } catch (error) {
+      console.error('Error fetching unread messages:', error);
+    }
+  };
 
   const fetchStats = async () => {
     if (!psychologist?.id) return;
@@ -66,34 +118,30 @@ export const useDashboardStats = (): DashboardStats => {
         throw patientsError;
       }
 
-      // Fetch unread messages
-      const { data: conversations, error: conversationsError } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('psychologist_id', psychologist.id);
-
-      if (conversationsError) {
-        console.error('Error fetching conversations:', conversationsError);
-        throw conversationsError;
-      }
+      // Fetch unread messages with direct join
+      const { data: unreadMessages, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          conversation_id,
+          conversations!inner(
+            psychologist_id
+          )
+        `)
+        .eq('conversations.psychologist_id', psychologist.id)
+        .neq('sender_id', psychologist.id)
+        .is('read_at', null);
 
       let unreadCount = 0;
-      if (conversations && conversations.length > 0) {
-        const conversationIds = conversations.map(c => c.id);
-        
-        const { data: unreadMessages, error: messagesError } = await supabase
-          .from('messages')
-          .select('id')
-          .in('conversation_id', conversationIds)
-          .neq('sender_id', psychologist.id)
-          .is('read_at', null);
-
-        if (messagesError) {
-          console.error('Error fetching unread messages:', messagesError);
-        } else {
-          unreadCount = unreadMessages?.length || 0;
-        }
+      if (!messagesError && unreadMessages) {
+        unreadCount = unreadMessages.length;
       }
+
+      console.log('Dashboard stats loaded:', {
+        todayAppointments: appointments?.length || 0,
+        activePatients: patients?.length || 0,
+        unreadMessages: unreadCount
+      });
 
       setStats({
         todayAppointments: appointments?.length || 0,

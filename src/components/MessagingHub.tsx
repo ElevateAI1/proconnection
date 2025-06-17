@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, Search } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useConversations } from "@/hooks/useConversations";
+import { useMarkMessagesAsRead } from "@/hooks/useMarkMessagesAsRead";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { MessageStatus } from "./MessageStatus";
 
 interface Conversation {
   id: string;
@@ -33,6 +35,7 @@ interface Message {
 export const MessagingHub = () => {
   const { psychologist } = useProfile();
   const { createOrGetConversation, sendMessage } = useConversations();
+  const { markMessagesAsRead } = useMarkMessagesAsRead();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,7 +65,7 @@ export const MessagingHub = () => {
       console.log('Messages updated, refetching...');
       if (selectedConversation) {
         fetchMessages(selectedConversation);
-        fetchConversations(); // Update conversations list
+        setTimeout(() => fetchConversations(), 100);
       }
     }
   });
@@ -74,11 +77,19 @@ export const MessagingHub = () => {
   }, [psychologist?.id]);
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && psychologist?.id) {
       fetchMessages(selectedConversation);
-      markMessagesAsRead(selectedConversation);
+      markMessagesAsRead(selectedConversation, psychologist.id).then((success) => {
+        if (success) {
+          setMessages(prev => prev.map(msg => ({
+            ...msg,
+            read_at: msg.sender_id !== psychologist.id ? new Date().toISOString() : msg.read_at
+          })));
+          setTimeout(() => fetchConversations(), 100);
+        }
+      });
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, psychologist?.id]);
 
   const fetchConversations = async () => {
     if (!psychologist?.id) return;
@@ -181,25 +192,6 @@ export const MessagingHub = () => {
     }
   };
 
-  const markMessagesAsRead = async (conversationId: string) => {
-    if (!psychologist?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId)
-        .neq('sender_id', psychologist.id)
-        .is('read_at', null);
-
-      if (error) {
-        console.error('Error marking messages as read:', error);
-      }
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !psychologist?.id) return;
 
@@ -222,6 +214,10 @@ export const MessagingHub = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleConversationSelect = (conversationId: string) => {
+    setSelectedConversation(conversationId);
   };
 
   const getLastMessage = (conversation: Conversation) => {
@@ -300,43 +296,46 @@ export const MessagingHub = () => {
           <CardContent className="p-0">
             <div className="space-y-1 max-h-96 overflow-y-auto">
               {filteredConversations.length > 0 ? (
-                filteredConversations.map((conversation) => (
-                  <button
-                    key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation.id)}
-                    className={`w-full p-4 text-left hover:bg-slate-50 transition-colors border-l-4 ${
-                      selectedConversation === conversation.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {conversation.patient.first_name[0]}{conversation.patient.last_name[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center mb-1">
-                          <p className="font-semibold text-slate-800 truncate">
-                            {conversation.patient.first_name} {conversation.patient.last_name}
+                filteredConversations.map((conversation) => {
+                  const unreadCount = getUnreadCount(conversation);
+                  return (
+                    <button
+                      key={conversation.id}
+                      onClick={() => handleConversationSelect(conversation.id)}
+                      className={`w-full p-4 text-left hover:bg-slate-50 transition-colors border-l-4 ${
+                        selectedConversation === conversation.id
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {conversation.patient.first_name[0]}{conversation.patient.last_name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {conversation.patient.first_name} {conversation.patient.last_name}
+                            </p>
+                            <span className="text-xs text-slate-500">
+                              {getLastMessageTime(conversation)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 truncate">
+                            {getLastMessage(conversation)}
                           </p>
-                          <span className="text-xs text-slate-500">
-                            {getLastMessageTime(conversation)}
-                          </span>
                         </div>
-                        <p className="text-sm text-slate-600 truncate">
-                          {getLastMessage(conversation)}
-                        </p>
+                        {unreadCount > 0 && (
+                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white font-semibold">
+                              {unreadCount}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {getUnreadCount(conversation) > 0 && (
-                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                          <span className="text-xs text-white font-semibold">
-                            {getUnreadCount(conversation)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-slate-500">
                   <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -386,12 +385,19 @@ export const MessagingHub = () => {
                               }`}
                             >
                               <p className="text-sm">{message.content}</p>
-                              <p className={`text-xs mt-1 ${message.sender_id === psychologist?.id ? "text-blue-100" : "text-slate-500"}`}>
-                                {new Date(message.created_at).toLocaleTimeString('es-ES', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </p>
+                              <div className={`flex items-center justify-between mt-1 ${message.sender_id === psychologist?.id ? "text-blue-100" : "text-slate-500"}`}>
+                                <p className="text-xs">
+                                  {new Date(message.created_at).toLocaleTimeString('es-ES', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </p>
+                                <MessageStatus 
+                                  isOwnMessage={message.sender_id === psychologist?.id}
+                                  readAt={message.read_at}
+                                  createdAt={message.created_at}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>

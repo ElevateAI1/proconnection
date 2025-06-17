@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,18 +12,28 @@ import { useVisibilityData } from '@/hooks/useVisibilityData';
 import { usePublicProfiles } from '@/hooks/usePublicProfiles';
 import { toast } from '@/hooks/use-toast';
 
+interface PublicProfileData {
+  custom_url: string;
+  is_active: boolean;
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
+  profile_data: any;
+  view_count?: number;
+}
+
 export const PublicProfileManager = () => {
   const { psychologist } = useProfile();
   const { seoConfig } = useVisibilityData();
   const { 
-    publicProfile, 
     loading, 
-    createOrUpdatePublicProfile, 
-    getMyPublicProfile,
-    toggleProfileStatus 
+    createOrUpdateExpandedProfile, 
+    getMyExpandedProfile,
   } = usePublicProfiles();
 
-  const [formData, setFormData] = useState({
+  const [publicProfile, setPublicProfile] = useState<PublicProfileData | null>(null);
+
+  const [formData, setFormData] = useState<PublicProfileData>({
     custom_url: '',
     is_active: false,
     seo_title: '',
@@ -34,8 +43,14 @@ export const PublicProfileManager = () => {
   });
 
   useEffect(() => {
-    getMyPublicProfile();
-  }, []);
+    const fetchProfile = async () => {
+      const profile = await getMyExpandedProfile();
+      if (profile) {
+        setPublicProfile(profile);
+      }
+    }
+    fetchProfile();
+  }, [getMyExpandedProfile]);
 
   useEffect(() => {
     if (publicProfile) {
@@ -69,7 +84,11 @@ export const PublicProfileManager = () => {
       return;
     }
 
-    await createOrUpdatePublicProfile(formData);
+    await createOrUpdateExpandedProfile(formData);
+    toast({
+        title: "Perfil actualizado",
+        description: "Tu perfil público ha sido guardado.",
+    });
   };
 
   const handleUrlChange = (value: string) => {
@@ -128,11 +147,7 @@ export const PublicProfileManager = () => {
             <Switch
               checked={formData.is_active}
               onCheckedChange={(checked) => {
-                if (publicProfile) {
-                  toggleProfileStatus(checked);
-                } else {
-                  setFormData(prev => ({ ...prev, is_active: checked }));
-                }
+                setFormData(prev => ({ ...prev, is_active: checked }));
               }}
             />
           </div>
@@ -145,7 +160,7 @@ export const PublicProfileManager = () => {
                   <BarChart3 className="w-4 h-4" />
                   <span className="font-medium">Vistas del perfil</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-800">{publicProfile.view_count}</p>
+                <p className="text-2xl font-bold text-blue-800">{publicProfile.view_count || 0}</p>
               </div>
               
               <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">

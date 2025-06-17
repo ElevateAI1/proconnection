@@ -7,6 +7,20 @@ interface UseAvailableSlotsProps {
   selectedDate: string;
 }
 
+// Helper para sumar minutos a un string "HH:mm"
+function addMinutes(time: string, minutesToAdd: number): string {
+  const [hour, minute] = time.split(':').map(Number);
+  const date = new Date(0, 0, 0, hour, minute + minutesToAdd, 0, 0);
+  // Siempre retorna en formato "HH:mm" con ceros iniciales
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+// Dado un horario inicial, retorna todos los slots de 30m ocupados por 1h
+function getSlotsOccupiedBy(startTime: string): string[] {
+  // Cada turno es 1h, bloquea el slot elegido y el siguiente
+  return [startTime, addMinutes(startTime, 30)];
+}
+
 export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailableSlotsProps) => {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,17 +38,13 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
     return uuidRegex.test(uuid);
   };
 
+  // Nuevo: traer citas y armar mapeo de slots ocupados considerando duración
   const fetchBookedSlots = useCallback(async () => {
     if (!psychologistId || 
         psychologistId.trim() === '' || 
         !selectedDate || 
         selectedDate.trim() === '' ||
         !isValidUUID(psychologistId)) {
-      console.log('Invalid parameters, skipping fetch:', { 
-        psychologistId: psychologistId || 'missing', 
-        selectedDate: selectedDate || 'missing',
-        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
-      });
       setBookedSlots([]);
       setLoading(false);
       return;
@@ -42,23 +52,14 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
 
     try {
       setLoading(true);
-      console.log('Fetching booked slots for:', { psychologistId, selectedDate });
 
-      // Crear el rango de fechas para el día seleccionado en zona horaria local
       const [year, month, day] = selectedDate.split('-');
       const startOfDay = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       startOfDay.setHours(0, 0, 0, 0);
-      
       const endOfDay = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       endOfDay.setHours(23, 59, 59, 999);
 
-      console.log('Date range for query:', {
-        start: startOfDay.toISOString(),
-        end: endOfDay.toISOString(),
-        localStart: startOfDay.toString(),
-        localEnd: endOfDay.toString()
-      });
-
+      // Traer todas las citas ese día
       const { data, error } = await supabase
         .from('appointments')
         .select('appointment_date')
@@ -68,25 +69,27 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
         .in('status', ['scheduled', 'confirmed', 'accepted']);
 
       if (error) {
-        console.error('Error fetching booked slots:', error);
         setBookedSlots([]);
         return;
       }
 
-      const bookedTimes = (data || []).map(apt => {
+      // A partir de las fechas de las citas, armar slots ocupados (cada cita ocupa 1h = 2 slots)
+      let occupiedSlots: string[] = [];
+      (data || []).forEach(apt => {
         const aptDate = new Date(apt.appointment_date);
         const timeString = aptDate.toLocaleTimeString('en-GB', { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: false 
         });
-        return timeString;
+        occupiedSlots = occupiedSlots.concat(getSlotsOccupiedBy(timeString));
       });
 
-      console.log('Successfully fetched booked slots:', bookedTimes);
-      setBookedSlots(bookedTimes);
+      // Filtrar duplicidades y valores inconsistentes (ej: 19:30+30m = 20:00 que no existe)
+      occupiedSlots = Array.from(new Set(occupiedSlots)).filter(s => timeSlots.includes(s));
+
+      setBookedSlots(occupiedSlots);
     } catch (error) {
-      console.error('Exception in fetchBookedSlots:', error);
       setBookedSlots([]);
     } finally {
       setLoading(false);
@@ -99,23 +102,34 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
         selectedDate && 
         selectedDate.trim() !== '' &&
         isValidUUID(psychologistId)) {
-      console.log('Valid parameters, fetching slots for:', { psychologistId, selectedDate });
       fetchBookedSlots();
     } else {
-      console.log('Invalid or missing parameters, clearing slots:', { 
-        psychologistId: psychologistId || 'missing', 
-        selectedDate: selectedDate || 'missing',
-        isValidUUID: psychologistId ? isValidUUID(psychologistId) : false 
-      });
       setBookedSlots([]);
       setLoading(false);
     }
   }, [fetchBookedSlots]);
 
+  // El slot está disponible si: ni él ni el siguiente de 30m están ocupados
   const isSlotAvailable = (time: string) => {
-    return !bookedSlots.includes(time);
+    const slotIndexes = timeSlots.map((t, idx) => ({ t, idx }))
+      .filter(item => item.t === time)
+      .map(item => item.idx);
+    if (slotIndexes.length === 0) return false;
+    const idx = slotIndexes[0];
+
+    // Si el slot siguiente existe, ambos deben estar libres (para reservar 1h desde `time`)
+    const involvedSlots = [timeSlots[idx]];
+    if (idx + 1 < timeSlots.length) {
+      involvedSlots.push(timeSlots[idx + 1]);
+    }
+    // Para el último slot (19:30), no permitir reservas porque no hay suficiente tiempo para 1 hora
+    if (involvedSlots.length < 2) return false;
+
+    // Si alguno está ocupado, no está disponible
+    return !involvedSlots.some((s) => bookedSlots.includes(s));
   };
 
+  // Solo ofrecer como disponibles slots donde se puedan tomar 1h entera
   const getAvailableSlots = () => {
     return timeSlots.filter(slot => isSlotAvailable(slot));
   };

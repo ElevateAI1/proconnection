@@ -480,6 +480,54 @@ export type Database = {
           },
         ]
       }
+      clinical_records: {
+        Row: {
+          created_at: string
+          diagnosis: string | null
+          id: string
+          main_symptoms: string | null
+          medication: string | null
+          next_steps: string | null
+          observations: string | null
+          patient_id: string
+          psychologist_id: string
+          session_date: string
+          session_type: string
+          treatment: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diagnosis?: string | null
+          id?: string
+          main_symptoms?: string | null
+          medication?: string | null
+          next_steps?: string | null
+          observations?: string | null
+          patient_id: string
+          psychologist_id: string
+          session_date: string
+          session_type?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diagnosis?: string | null
+          id?: string
+          main_symptoms?: string | null
+          medication?: string | null
+          next_steps?: string | null
+          observations?: string | null
+          patient_id?: string
+          psychologist_id?: string
+          session_date?: string
+          session_type?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -1165,9 +1213,13 @@ export type Database = {
           last_name: string
           license_number: string | null
           monotax_category: string | null
+          pdf_contact_info: Json | null
+          pdf_logo_url: string | null
+          pdf_primary_color: string | null
           phone: string | null
           plan_type: string | null
           professional_code: string
+          profile_image_url: string | null
           specialization: string | null
           subscription_end_date: string | null
           subscription_status: string | null
@@ -1185,9 +1237,13 @@ export type Database = {
           last_name: string
           license_number?: string | null
           monotax_category?: string | null
+          pdf_contact_info?: Json | null
+          pdf_logo_url?: string | null
+          pdf_primary_color?: string | null
           phone?: string | null
           plan_type?: string | null
           professional_code: string
+          profile_image_url?: string | null
           specialization?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
@@ -1205,9 +1261,13 @@ export type Database = {
           last_name?: string
           license_number?: string | null
           monotax_category?: string | null
+          pdf_contact_info?: Json | null
+          pdf_logo_url?: string | null
+          pdf_primary_color?: string | null
           phone?: string | null
           plan_type?: string | null
           professional_code?: string
+          profile_image_url?: string | null
           specialization?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null

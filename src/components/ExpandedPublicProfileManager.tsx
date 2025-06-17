@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +8,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { useExpandedPublicProfiles } from '@/hooks/useExpandedPublicProfiles';
+import { usePublicProfiles } from '@/hooks/usePublicProfiles';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useForm } from 'react-hook-form';
 import { Loader2, Eye, Save, Plus } from 'lucide-react';
+import { useProfile } from '@/hooks/useProfile';
+import { toast } from '@/hooks/use-toast';
 
 interface FormData {
   custom_url: string;
@@ -39,8 +40,9 @@ const professionTypes = [
 ];
 
 export const ExpandedPublicProfileManager = () => {
-  const { createOrUpdateExpandedProfile, getMyExpandedProfile, loading: profileLoading } = useExpandedPublicProfiles();
+  const { createOrUpdateExpandedProfile, getMyExpandedProfile, loading: profileLoading } = usePublicProfiles();
   const { specialties, loadSpecialties, saveProfileSpecialties, getProfileSpecialties, loading: specialtiesLoading } = useSpecialties();
+  const { psychologist } = useProfile();
   
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
@@ -63,43 +65,99 @@ export const ExpandedPublicProfileManager = () => {
       loadSpecialties(watchedProfessionType);
       setSelectedSpecialties([]); // Reset specialties when profession changes
     }
-  }, [watchedProfessionType]);
+  }, [watchedProfessionType, loadSpecialties]);
 
   useEffect(() => {
     if (watchedCustomUrl) {
-      setPreviewUrl(`${window.location.origin}/perfil/${watchedCustomUrl}`);
+      const sanitizedUrl = watchedCustomUrl
+        .toLowerCase()
+        .trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+        .replace(/\s+/g, '-') // Replace spaces with -
+        .replace(/[^a-z0-9-]/g, '') // Remove all non-alphanumeric characters except -
+        .replace(/-+/g, '-'); // Replace multiple - with single -
+      
+      if (sanitizedUrl !== watchedCustomUrl) {
+        setValue('custom_url', sanitizedUrl, { shouldValidate: true });
+      }
+      setPreviewUrl(`${window.location.origin}/perfil/${sanitizedUrl}`);
+    } else {
+        setPreviewUrl('');
     }
-  }, [watchedCustomUrl]);
+  }, [watchedCustomUrl, setValue]);
 
   useEffect(() => {
-    loadExistingProfile();
-  }, []);
+    const loadOrCreateProfile = async () => {
+      if (!psychologist) return;
 
-  const loadExistingProfile = async () => {
-    const profile = await getMyExpandedProfile();
-    if (profile) {
-      setCurrentProfileId(profile.id);
-      reset({
-        custom_url: profile.custom_url,
-        is_active: profile.is_active,
-        seo_title: profile.seo_title || '',
-        seo_description: profile.seo_description || '',
-        seo_keywords: profile.seo_keywords || '',
-        about_description: profile.about_description || '',
-        therapeutic_approach: profile.therapeutic_approach || '',
-        years_experience: profile.years_experience || undefined,
-        profession_type: profile.profession_type || 'psychologist'
-      });
+      const profile = await getMyExpandedProfile();
+      if (profile) {
+        setCurrentProfileId(profile.id);
+        reset({
+          custom_url: profile.custom_url,
+          is_active: profile.is_active,
+          seo_title: profile.seo_title || '',
+          seo_description: profile.seo_description || '',
+          seo_keywords: profile.seo_keywords || '',
+          about_description: profile.about_description || '',
+          therapeutic_approach: profile.therapeutic_approach || '',
+          years_experience: profile.years_experience || undefined,
+          profession_type: profile.profession_type || 'psychologist'
+        });
 
-      // Load specialties for this profile
-      if (profile.id) {
-        const profileSpecialties = await getProfileSpecialties(profile.id);
-        setSelectedSpecialties(profileSpecialties.map((s: any) => s.id));
+        if (profile.id) {
+          const profileSpecialties = await getProfileSpecialties(profile.id);
+          setSelectedSpecialties(profileSpecialties.map((s: any) => s.id));
+        }
+      } else {
+        // Create default profile
+        const rawUrl = `${psychologist.first_name}${psychologist.last_name}`;
+        const defaultUrl = rawUrl
+          .toLowerCase()
+          .trim()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+          .replace(/-+/g, '-');
+
+        const newProfileData = {
+          custom_url: defaultUrl,
+          is_active: true,
+          seo_title: `${psychologist.first_name} ${psychologist.last_name} - Perfil Profesional`,
+          seo_description: `Perfil profesional de ${psychologist.first_name} ${psychologist.last_name}.`,
+          seo_keywords: 'psicologo, terapia',
+          about_description: 'Profesional con dedicación y experiencia.',
+          therapeutic_approach: '',
+          years_experience: 0,
+          profession_type: 'psychologist',
+          specialties: []
+        };
+        const newProfile = await createOrUpdateExpandedProfile(newProfileData);
+        if (newProfile) {
+          toast({
+            title: "Perfil público creado automáticamente",
+            description: "Hemos creado un perfil básico para ti. Ya puedes personalizarlo.",
+          });
+          setCurrentProfileId(newProfile.id);
+          reset({
+            custom_url: newProfile.custom_url,
+            is_active: newProfile.is_active,
+            seo_title: newProfile.seo_title || '',
+            seo_description: newProfile.seo_description || '',
+            seo_keywords: newProfile.seo_keywords || '',
+            about_description: newProfile.about_description || '',
+            therapeutic_approach: newProfile.therapeutic_approach || '',
+            years_experience: newProfile.years_experience || undefined,
+            profession_type: newProfile.profession_type || 'psychologist'
+          });
+        }
       }
-    }
-  };
+    };
+    
+    loadOrCreateProfile();
+  }, [psychologist, getMyExpandedProfile, createOrUpdateExpandedProfile, getProfileSpecialties, reset]);
 
-  const onSubmit = async (formData: FormData) => {
+  const onSubmit = useCallback(async (formData: FormData) => {
     try {
       const result = await createOrUpdateExpandedProfile({
         ...formData,
@@ -114,7 +172,7 @@ export const ExpandedPublicProfileManager = () => {
     } catch (error) {
       console.error('Error saving profile:', error);
     }
-  };
+  }, [createOrUpdateExpandedProfile, saveProfileSpecialties, selectedSpecialties]);
 
   const toggleSpecialty = (specialtyId: string) => {
     setSelectedSpecialties(prev => 
@@ -157,7 +215,13 @@ export const ExpandedPublicProfileManager = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="profession_type">Tipo de Profesión</Label>
-                  <Select value={watch('profession_type')} onValueChange={(value) => setValue('profession_type', value)}>
+                  <Select 
+                    value={watch('profession_type')} 
+                    onValueChange={(value) => {
+                      setValue('profession_type', value);
+                      setSelectedSpecialties([]);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona tu profesión" />
                     </SelectTrigger>
@@ -194,6 +258,7 @@ export const ExpandedPublicProfileManager = () => {
                     className="rounded-l-none"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Se ajustará automáticamente a un formato de URL válido.</p>
                 {previewUrl && (
                   <div className="mt-2 flex items-center gap-2">
                     <Eye className="w-4 h-4" />

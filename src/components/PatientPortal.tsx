@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MessageSquare, FileText, User, CheckCircle, XCircle, AlertCircle, LogOut, Sparkles, Heart, Star } from "lucide-react";
+import { Calendar, Clock, MessageSquare, FileText, User, CheckCircle, XCircle, AlertCircle, LogOut, Sparkles } from "lucide-react";
 import { PatientMessaging } from "./PatientMessaging";
 import { DocumentsSection } from "./DocumentsSection";
 import { PatientAppointmentRequestForm } from "./PatientAppointmentRequestForm";
@@ -42,12 +43,40 @@ export const PatientPortal = () => {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const [psychologistName, setPsychologistName] = useState<string | null>(null);
 
   useEffect(() => {
     if (patient?.id) {
       fetchPatientData();
     }
   }, [patient]);
+
+  useEffect(() => {
+    const fetchPsychologistName = async () => {
+      if (patient?.psychologist_id) {
+        try {
+          const { data, error } = await supabase
+            .from("psychologists")
+            .select("first_name, last_name")
+            .eq("id", patient.psychologist_id)
+            .maybeSingle();
+          if (!error && data) {
+            let fullPsyName = "";
+            if (data.first_name) fullPsyName += data.first_name;
+            if (data.last_name) fullPsyName += (fullPsyName ? " " : "") + data.last_name;
+            setPsychologistName(fullPsyName || null);
+          } else {
+            setPsychologistName(null);
+          }
+        } catch {
+          setPsychologistName(null);
+        }
+      } else {
+        setPsychologistName(null);
+      }
+    };
+    fetchPsychologistName();
+  }, [patient?.psychologist_id]);
 
   const fetchPatientData = async () => {
     if (!patient?.id) return;
@@ -178,17 +207,20 @@ export const PatientPortal = () => {
 
   const getStatusBadge = (status: string) => {
     const config = {
-      pending: { label: "Pendiente", variant: "secondary" as const, icon: AlertCircle },
-      approved: { label: "Aprobada", variant: "default" as const, icon: CheckCircle },
-      rejected: { label: "Rechazada", variant: "destructive" as const, icon: XCircle }
+      pending: { label: "Pendiente", className: "bg-orange-100 text-orange-700 border-orange-200", icon: AlertCircle },
+      approved: { label: "Aprobada", className: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle },
+      rejected: { label: "Rechazada", className: "bg-red-100 text-red-700 border-red-200", icon: XCircle },
+      scheduled: { label: "Programada", className: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle },
+      confirmed: { label: "Confirmada", className: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle },
+      accepted: { label: "Aceptada", className: "bg-teal-100 text-teal-700 border-teal-200", icon: CheckCircle },
     };
 
-    const { label, variant, icon: Icon } = config[status as keyof typeof config] || 
-      { label: status, variant: "secondary" as const, icon: AlertCircle };
+    const { label, className, icon: Icon } = config[status as keyof typeof config] || 
+      { label: status, className: "bg-gray-100 text-gray-700 border-gray-200", icon: AlertCircle };
 
     return (
-      <Badge variant={variant} className="flex items-center gap-1">
-        <Icon className="w-3 h-3" />
+      <Badge variant="outline" className={`font-medium border ${className}`}>
+        <Icon className="w-3 h-3 mr-1" />
         {label}
       </Badge>
     );
@@ -208,30 +240,10 @@ export const PatientPortal = () => {
 
   if (profileLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-emerald-900 flex items-center justify-center relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-400/15 to-cyan-400/15 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 rounded-full blur-2xl animate-float" style={{animationDelay: '1s'}}></div>
-        </div>
-        
-        <div className="text-center z-10 relative">
-          <div className="relative mb-8">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-r from-purple-500 via-blue-500 to-emerald-500 rounded-full flex items-center justify-center shadow-2xl ring-4 ring-white/20 animate-pulse">
-              <Heart className="w-10 h-10 text-white animate-bounce" />
-            </div>
-            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-emerald-500/20 rounded-full blur-lg animate-ping"></div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl px-8 py-6 border border-white/20 shadow-2xl">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-3 h-3 bg-emerald-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-            </div>
-            <p className="text-xl font-semibold text-white mb-2">Cargando tu portal personal</p>
-            <p className="text-white/70">Preparando tu experiencia única...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-lg font-semibold text-gray-700">Cargando tu portal...</p>
         </div>
       </div>
     );
@@ -239,13 +251,16 @@ export const PatientPortal = () => {
 
   if (!patient) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-purple-900 to-blue-900 flex items-center justify-center">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-              <XCircle className="w-8 h-8 text-white" />
-            </div>
-            <p className="text-white font-semibold">No se pudo cargar la información del paciente</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-6 h-6" />
+              Error
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">No se pudo cargar la información del paciente. Por favor, intente de nuevo más tarde.</p>
           </CardContent>
         </Card>
       </div>
@@ -253,170 +268,120 @@ export const PatientPortal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 relative overflow-hidden">
-      {/* Enhanced background with animated elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/15 to-cyan-400/15 rounded-full blur-3xl animate-float" style={{animationDelay: '3s'}}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-400/10 to-teal-400/10 rounded-full blur-2xl animate-float" style={{animationDelay: '1.5s'}}></div>
-        
-        {/* Floating particles */}
-        <div className="absolute top-20 left-20 w-2 h-2 bg-white/30 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-        <div className="absolute top-40 right-32 w-1 h-1 bg-purple-300/40 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
-        <div className="absolute bottom-32 left-1/3 w-1.5 h-1.5 bg-blue-300/30 rounded-full animate-bounce" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-1/3 right-20 w-1 h-1 bg-emerald-300/40 rounded-full animate-bounce" style={{animationDelay: '0.5s'}}></div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 relative z-10">
-        <div className="mb-8 flex justify-between items-center animate-fade-in-up">
-          <div className="relative">
-            <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-emerald-500/30 rounded-2xl blur-lg"></div>
-            <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent">
-                    Hola, {patient.first_name}
-                  </h1>
-                  <p className="text-white/70 mt-1 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Bienvenido a tu portal personal
-                  </p>
-                </div>
-              </div>
+    <div className="min-h-screen bg-white text-gray-800">
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-8 flex flex-col md:flex-row justify-between md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-100">
+              <User className="w-8 h-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">
+                <span className="bg-gradient-to-r from-blue-600 to-emerald-500 text-transparent bg-clip-text">
+                  {(() => {
+                    const patientFullName = [patient?.first_name, patient?.last_name].filter(Boolean).join(' ').trim();
+                    if (psychologistName && patientFullName) {
+                      return `Hola, ${patientFullName}`;
+                    } else if (patientFullName) {
+                      return `Hola, ${patientFullName}`;
+                    }
+                    return "Hola, paciente";
+                  })()}
+                </span>
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {psychologistName ? `Paciente de ${psychologistName}` : 'Bienvenido a tu portal personal'}
+              </p>
             </div>
           </div>
-          
           <Button
             onClick={handleLogout}
             disabled={isLoggingOut}
             variant="outline"
-            className="bg-white/10 backdrop-blur-xl border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="w-full md:w-auto"
           >
             <LogOut size={16} className="mr-2" />
             {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
           </Button>
-        </div>
+        </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="relative animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-emerald-500/20 rounded-2xl blur-lg"></div>
-            <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-1 relative shadow-2xl">
-              <TabsTrigger value="overview" className="relative rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white">
-                Resumen
-              </TabsTrigger>
-              <TabsTrigger value="appointments" className="relative rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white">
-                Citas
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="relative rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white">
-                Mensajes
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="relative rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white">
-                Documentos
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-transparent p-0 h-auto rounded-none border-b border-gray-200">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none pb-2">Resumen</TabsTrigger>
+            <TabsTrigger value="appointments" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none pb-2">Citas</TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none pb-2">Mensajes</TabsTrigger>
+            <TabsTrigger value="documents" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none pb-2">Documentos</TabsTrigger>
+          </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Enhanced Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-              <Card className="group relative border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 transition-all duration-500 hover:scale-105 hover:shadow-purple-500/25">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg opacity-0 group-hover:opacity-100 blur transition-all duration-500"></div>
-                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/90">Próxima Cita</CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                    <Clock className="h-5 w-5 text-white" />
-                  </div>
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="border-l-4 border-blue-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Próxima Cita</CardTitle>
+                  <Clock className="h-4 w-4 text-blue-500" />
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent>
                   {nextAppointment ? (
                     <div>
-                      <div className="text-lg font-bold text-white">
+                      <div className="text-2xl font-bold">
                         {formatDate(nextAppointment.appointment_date)}
                       </div>
-                      <p className="text-xs text-white/60">
+                      <p className="text-xs text-gray-500">
                         {formatTime(nextAppointment.appointment_date)} - {getTypeLabel(nextAppointment.type)}
                       </p>
                     </div>
                   ) : (
-                    <div>
-                      <div className="text-lg font-bold text-white">Sin citas</div>
-                      <p className="text-xs text-white/60">
-                        No tienes citas programadas
-                      </p>
-                    </div>
+                    <p className="text-gray-600 pt-2">No tienes citas programadas.</p>
                   )}
                 </CardContent>
               </Card>
 
-              <Card className="group relative border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 transition-all duration-500 hover:scale-105 hover:shadow-emerald-500/25">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg opacity-0 group-hover:opacity-100 blur transition-all duration-500"></div>
-                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/90">Mensajes</CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg relative">
-                    <MessageSquare className="h-5 w-5 text-white" />
-                    {unreadMessages > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">{unreadMessages}</span>
-                      </div>
-                    )}
-                  </div>
+              <Card className="border-l-4 border-emerald-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Mensajes sin leer</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-emerald-500" />
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-lg font-bold text-white">{unreadMessages}</div>
-                  <p className="text-xs text-white/60">
-                    {unreadMessages === 0 ? 'No hay mensajes nuevos' : 'Mensajes nuevos'}
+                <CardContent>
+                  <div className="text-2xl font-bold">{unreadMessages}</div>
+                  <p className="text-xs text-gray-500">
+                    {unreadMessages === 0 ? 'No hay mensajes nuevos' : 'Mensajes esperando respuesta'}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="group relative border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 transition-all duration-500 hover:scale-105 hover:shadow-blue-500/25">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg opacity-0 group-hover:opacity-100 blur transition-all duration-500"></div>
-                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/90">Solicitudes</CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
+              <Card className="border-l-4 border-purple-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Solicitudes Pendientes</CardTitle>
+                  <Calendar className="h-4 w-4 text-purple-500" />
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-lg font-bold text-white">
+                <CardContent>
+                  <div className="text-2xl font-bold">
                     {appointmentRequests.filter(req => req.status === 'pending').length}
                   </div>
-                  <p className="text-xs text-white/60">
-                    Solicitudes pendientes
+                  <p className="text-xs text-gray-500">
+                    Solicitudes de cita por aprobar
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Enhanced Appointment Requests Status */}
             {appointmentRequests.length > 0 && (
-              <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 animate-fade-in-up" style={{animationDelay: '0.6s'}}>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500/50 to-red-500/50 rounded-lg blur"></div>
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center gap-3 text-white">
-                    <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                      <AlertCircle className="w-4 h-4 text-white" />
-                    </div>
-                    Estado de Solicitudes
-                    <Star className="w-5 h-5 text-yellow-400 animate-pulse" />
-                  </CardTitle>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Estado de Solicitudes Recientes</CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent>
                   <div className="space-y-3">
-                    {appointmentRequests.slice(0, 3).map((request, index) => (
+                    {appointmentRequests.slice(0, 3).map((request) => (
                       <div 
                         key={request.id} 
-                        className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg hover:bg-white/15 transition-all duration-300 animate-fade-in-left"
-                        style={{animationDelay: `${0.7 + index * 0.1}s`}}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div className="flex-1">
-                          <p className="font-semibold text-sm text-white">
+                          <p className="font-semibold text-sm text-gray-800">
                             {formatDate(request.preferred_date)} a las {request.preferred_time}
                           </p>
-                          <p className="text-xs text-white/60">
+                          <p className="text-xs text-gray-500">
                             {getTypeLabel(request.type)}
                           </p>
                         </div>
@@ -429,24 +394,16 @@ export const PatientPortal = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="appointments" className="space-y-6">
-            {/* Enhanced appointment request form */}
-            <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 animate-fade-in-up">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/50 to-purple-500/50 rounded-lg blur"></div>
-              <CardHeader className="relative">
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <Calendar className="w-4 h-4 text-white" />
-                  </div>
-                  Solicitar Nueva Cita
-                  <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                </CardTitle>
+          <TabsContent value="appointments" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Solicitar Nueva Cita</CardTitle>
               </CardHeader>
-              <CardContent className="relative">
+              <CardContent>
                 {!showRequestForm ? (
                   <Button 
                     onClick={() => setShowRequestForm(true)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
+                    className="w-full md:w-auto text-white bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 transition-all duration-300"
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     Nueva Solicitud de Cita
@@ -461,49 +418,43 @@ export const PatientPortal = () => {
               </CardContent>
             </Card>
 
-            {/* Enhanced confirmed appointments */}
             {appointments.length > 0 && (
-              <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/50 to-teal-500/50 rounded-lg blur"></div>
-                <CardHeader className="relative">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
                     Citas Confirmadas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent>
                   <div className="space-y-4">
-                    {appointments.map((appointment, index) => (
+                    {appointments.map((appointment) => (
                       <div 
                         key={appointment.id} 
-                        className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg hover:bg-white/15 transition-all duration-300 group animate-fade-in-right"
-                        style={{animationDelay: `${0.3 + index * 0.1}s`}}
+                        className="p-4 bg-gray-50 rounded-lg"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-white group-hover:text-emerald-200 transition-colors">
+                            <h4 className="font-semibold text-gray-800">
                               {formatDate(appointment.appointment_date)}
                             </h4>
-                            <p className="text-sm text-white/70">
+                            <p className="text-sm text-gray-600">
                               {formatTime(appointment.appointment_date)} - {getTypeLabel(appointment.type)}
                             </p>
                             {appointment.notes && (
-                              <p className="text-sm text-white/50 mt-1">
+                              <p className="text-sm text-gray-500 mt-1">
                                 {appointment.notes}
                               </p>
                             )}
                           </div>
-                          <Badge variant="default" className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
-                            {appointment.status === 'scheduled' ? 'Programada' : 
-                             appointment.status === 'confirmed' ? 'Confirmada' : 'Aceptada'}
-                          </Badge>
+                          {getStatusBadge(appointment.status)}
                         </div>
                         {appointment.meeting_url && (
                           <div className="mt-3">
                             <Button 
                               size="sm" 
+                              variant="secondary"
                               onClick={() => window.open(appointment.meeting_url, '_blank')}
-                              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
                             >
                               <span className="mr-2">🎥</span>
                               Unirse a la reunión
@@ -517,34 +468,31 @@ export const PatientPortal = () => {
               </Card>
             )}
 
-            {/* Enhanced appointment requests history */}
             {appointmentRequests.length > 0 && (
-              <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/50 to-pink-500/50 rounded-lg blur"></div>
-                <CardHeader className="relative">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-purple-400" />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-gray-500" />
                     Historial de Solicitudes
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent>
                   <div className="space-y-4">
-                    {appointmentRequests.map((request, index) => (
+                    {appointmentRequests.map((request) => (
                       <div 
                         key={request.id} 
-                        className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg hover:bg-white/15 transition-all duration-300 animate-fade-in-scale"
-                        style={{animationDelay: `${0.5 + index * 0.1}s`}}
+                        className="p-4 bg-gray-50 rounded-lg"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-white">
+                            <h4 className="font-semibold text-gray-800">
                               {formatDate(request.preferred_date)}
                             </h4>
-                            <p className="text-sm text-white/70">
+                            <p className="text-sm text-gray-600">
                               {request.preferred_time} - {getTypeLabel(request.type)}
                             </p>
                             {request.notes && (
-                              <p className="text-sm text-white/50 mt-1">
+                              <p className="text-sm text-gray-500 mt-1">
                                 {request.notes}
                               </p>
                             )}
@@ -559,19 +507,21 @@ export const PatientPortal = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="messages" className="animate-fade-in-up">
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl">
+          <TabsContent value="messages" className="mt-6">
+            <Card>
               <PatientMessaging onBack={() => setActiveTab("overview")} />
-            </div>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="documents" className="animate-fade-in-up">
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl">
+          <TabsContent value="documents" className="mt-6">
+            <Card>
               <DocumentsSection />
-            </div>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 };
+
+export default PatientPortal;

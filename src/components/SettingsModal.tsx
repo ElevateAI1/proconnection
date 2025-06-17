@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { ProfileImageUploader } from "@/components/ProfileImageUploader";
 import { toast } from "sonner";
 
 interface SettingsModalProps {
@@ -68,15 +69,23 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
     }
   };
 
+  const handleImageUpdated = (newUrl: string | null) => {
+    // Trigger a refetch to update the profile data
+    refetch();
+  };
+
   const handleSaveNotifications = async () => {
-    // Here you would typically save to a user preferences table
     toast.success("Configuración de notificaciones guardada");
   };
 
   const handleSavePrivacy = async () => {
-    // Here you would typically save to a user preferences table
     toast.success("Configuración de privacidad guardada");
   };
+
+  if (!psychologist) return null;
+
+  // Get the profile image URL safely
+  const profileImageUrl = (psychologist as any).profile_image_url || undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,8 +104,24 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
             <TabsTrigger value="privacy">Privacidad</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="space-y-4">
+          <TabsContent value="profile" className="space-y-6">
+            {/* Foto de perfil */}
             <div className="space-y-4">
+              <Label className="text-base font-medium">Foto de perfil</Label>
+              <ProfileImageUploader
+                currentImageUrl={profileImageUrl}
+                psychologistId={psychologist.id}
+                psychologistName={`${psychologist.first_name} ${psychologist.last_name}`}
+                onImageUpdated={handleImageUpdated}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Información personal */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Información personal</Label>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nombre</Label>
@@ -137,17 +162,17 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                   placeholder="Tu especialización"
                 />
               </div>
-              
-              <Separator />
-              
-              <Button 
-                onClick={handleSaveProfile} 
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? "Guardando..." : "Guardar Perfil"}
-              </Button>
             </div>
+            
+            <Separator />
+            
+            <Button 
+              onClick={handleSaveProfile} 
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Guardando..." : "Guardar Perfil"}
+            </Button>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">

@@ -17,7 +17,8 @@ import {
   LogOut, 
   ChevronDown, 
   ChevronRight,
-  Calculator
+  Calculator,
+  FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -35,13 +36,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting";
+type ViewType = "dashboard" | "patients" | "calendar" | "messages" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents";
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -83,6 +81,12 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
       id: "messages" as ViewType,
       label: "Mensajes",
       icon: MessageSquare,
+      available: true
+    },
+    {
+      id: "documents" as ViewType,
+      label: "Documentos",
+      icon: FileText,
       available: true
     },
     {
@@ -160,7 +164,7 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
         
         {psychologist?.professional_code && (
           <div className="px-4 group-data-[collapsible=icon]:hidden">
-            <ProfessionalCodeDisplay code={psychologist.professional_code} />
+            <ProfessionalCodeDisplay code={psychologist.professional_code} compact />
           </div>
         )}
       </SidebarHeader>

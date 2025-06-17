@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +47,7 @@ const PROFESSIONAL_CATEGORIES = {
 };
 
 export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPageProps) => {
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, signUp, loading, user } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(registrationOnly);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +71,14 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
     professionalType: "",
     otherProfessionalType: ""
   });
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (user) {
+      console.log('User is authenticated, redirecting to dashboard');
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -209,7 +216,11 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
       // Check if we have a user and email is confirmed
       if (result.data?.user && result.data.user.email_confirmed_at) {
         console.log('Sign in successful, user:', result.data.user.id);
-        navigate("/app");
+        // Don't navigate here - let the useEffect handle it when user state updates
+        toast({
+          title: "¡Bienvenido!",
+          description: "Inicio de sesión exitoso",
+        });
       } else if (result.data?.user && !result.data.user.email_confirmed_at) {
         console.log('User email not confirmed');
         // Error is already handled in signIn function

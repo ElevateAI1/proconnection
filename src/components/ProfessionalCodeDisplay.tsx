@@ -8,9 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 interface ProfessionalCodeDisplayProps {
   code: string;
   onRegenerateCode?: () => void;
+  compact?: boolean;
 }
 
-export const ProfessionalCodeDisplay = ({ code, onRegenerateCode }: ProfessionalCodeDisplayProps) => {
+export const ProfessionalCodeDisplay = ({ code, onRegenerateCode, compact = false }: ProfessionalCodeDisplayProps) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const { toast } = useToast();
 
@@ -50,6 +51,52 @@ export const ProfessionalCodeDisplay = ({ code, onRegenerateCode }: Professional
       setIsRegenerating(false);
     }
   };
+
+  if (compact) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-3">
+          <div className="space-y-2">
+            <div className="text-center">
+              <p className="text-xs font-medium text-slate-600 mb-1">Código Profesional</p>
+              <div className="text-lg font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded border border-blue-200">
+                {code}
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-500 text-center">
+              Comparte este código con tus pacientes
+            </p>
+            
+            <div className="flex gap-1">
+              <Button
+                onClick={copyToClipboard}
+                size="sm"
+                className="flex-1 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs"
+                variant="outline"
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copiar
+              </Button>
+              
+              {onRegenerateCode && (
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  size="sm"
+                  className="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs"
+                  variant="outline"
+                >
+                  <RefreshCw className={`w-3 h-3 mr-1 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  {isRegenerating ? '...' : 'Nuevo'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-0 shadow-lg">
