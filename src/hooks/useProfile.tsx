@@ -1,34 +1,11 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
+import { useProfileCache } from './useProfileCache';
+import { useProfileData, type Profile } from './useProfileData';
+import { usePsychologistData, type Psychologist } from './usePsychologistData';
+import { supabase } from '@/integrations/supabase/client';
 
-interface Profile {
-  id: string;
-  email: string;
-  user_type: 'psychologist' | 'patient' | 'admin';
-  created_at: string;
-  updated_at: string;
-}
-
-interface Psychologist {
-  id: string;
-  first_name: string;
-  last_name: string;
-  professional_code: string;
-  license_number?: string;
-  specialization?: string;
-  phone?: string;
-  subscription_status?: string;
-  trial_start_date?: string;
-  trial_end_date?: string;
-  subscription_end_date?: string;
-  plan_type?: string;
-  profession_type?: string;
-}
-
-interface Patient {
+export interface Patient {
   id: string;
   first_name: string;
   last_name: string;
@@ -38,33 +15,23 @@ interface Patient {
   notes?: string;
 }
 
-// Cache global simplificado
-let profileCache: {
-  profile: Profile | null;
-  psychologist: Psychologist | null;
-  patient: Patient | null;
-  userId: string | null;
-  lastFetch: number;
-} = {
-  profile: null,
-  psychologist: null,
-  patient: null,
-  userId: null,
-  lastFetch: 0
-};
+// Re-export types for backward compatibility
+export type { Profile, Psychologist };
 
 export const useProfile = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [psychologist, setPsychologist] = useState<Psychologist | null>(null);
+  const cache = useProfileCache();
+  const profileData = useProfileData();
+  const psychologistData = usePsychologistData();
+  
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
-      setProfile(null);
-      setPsychologist(null);
+      profileData.clearProfile();
+      psychologistData.clearPsychologist();
       setPatient(null);
       setLoading(false);
       return;
@@ -80,47 +47,29 @@ export const useProfile = () => {
       setLoading(true);
       setError(null);
 
-      // Verificar cache
-      const now = Date.now();
-      if (profileCache.userId === user.id && (now - profileCache.lastFetch) < 30000) {
-        setProfile(profileCache.profile);
-        setPsychologist(profileCache.psychologist);
-        setPatient(profileCache.patient);
-        setLoading(false);
-        return;
+      // Check cache first
+      const cached = cache.getCache(user.id);
+      if (cached) {
+        // Cache hit - we'll let the individual hooks handle their own state
+        // For now, we'll still fetch to keep state in sync
+        // In a more optimized version, we could set state directly
       }
 
       // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        setError('Error cargando perfil');
+      const profile = await profileData.fetchProfile(user.id);
+      if (!profile) {
         setLoading(false);
         return;
       }
 
-      setProfile(profileData);
-
       // Fetch role-specific data
-      if (profileData.user_type === 'psychologist') {
-        const { data: psychData, error: psychError } = await supabase
-          .from('psychologists')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+      let psychologist: Psychologist | null = null;
+      let patientData: Patient | null = null;
 
-        if (psychError) {
-          console.error('Error fetching psychologist:', psychError);
-        } else {
-          setPsychologist(psychData);
-        }
-      } else if (profileData.user_type === 'patient') {
-        const { data: patientData, error: patientError } = await supabase
+      if (profile.user_type === 'psychologist') {
+        psychologist = await psychologistData.fetchPsychologist(user.id);
+      } else if (profile.user_type === 'patient') {
+        const { data: patientResult, error: patientError } = await supabase
           .from('patients')
           .select('*')
           .eq('id', user.id)
@@ -129,18 +78,17 @@ export const useProfile = () => {
         if (patientError) {
           console.error('Error fetching patient:', patientError);
         } else {
-          setPatient(patientData);
+          patientData = patientResult;
+          setPatient(patientResult);
         }
       }
 
       // Update cache
-      profileCache = {
-        profile: profileData,
-        psychologist: profileData.user_type === 'psychologist' ? profileData : null,
-        patient: profileData.user_type === 'patient' ? profileData : null,
-        userId: user.id,
-        lastFetch: now
-      };
+      cache.setCache(user.id, {
+        profile,
+        psychologist,
+        patient: patientData
+      });
 
       setLoading(false);
     } catch (err) {
@@ -151,17 +99,20 @@ export const useProfile = () => {
   };
 
   const forceRefresh = () => {
-    profileCache.lastFetch = 0; // Invalidate cache
+    cache.invalidateCache();
     fetchProfile();
   };
 
+  // Combine states from all hooks
+  const combinedLoading = loading || profileData.loading || psychologistData.loading;
+  const combinedError = error || profileData.error || psychologistData.error;
+
   return {
-    profile,
-    psychologist,
+    profile: profileData.profile,
+    psychologist: psychologistData.psychologist,
     patient,
-    loading,
-    error,
+    loading: combinedLoading,
+    error: combinedError,
     forceRefresh
   };
 };
-

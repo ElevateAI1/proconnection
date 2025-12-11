@@ -1,15 +1,34 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimit, getRateLimitIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Rate limiting: 5 requests per minute
+const RATE_LIMIT_CONFIG = {
+  maxRequests: 5,
+  windowMs: 60 * 1000, // 1 minute
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Check rate limit
+  const identifier = getRateLimitIdentifier(req);
+  const rateLimitResult = await checkRateLimit(identifier, RATE_LIMIT_CONFIG);
+  
+  if (!rateLimitResult.allowed) {
+    const response = createRateLimitResponse(rateLimitResult);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
   }
 
   try {

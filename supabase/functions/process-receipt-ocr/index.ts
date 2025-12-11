@@ -1,269 +1,113 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateOCRRequest, validateReceiptExists, validateExtractionStatus } from './_utils/validators.ts';
+import { handleOCRError, createErrorResponse } from './_utils/error-handler.ts';
+import { processReceiptWithN8N } from './_utils/ocr-processor.ts';
+import { checkRateLimit, getRateLimitIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+// Rate limiting configuration: 10 requests per minute
+const RATE_LIMIT_CONFIG = {
+  maxRequests: 10,
+  windowMs: 60 * 1000, // 1 minute
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Check rate limit
+  const identifier = getRateLimitIdentifier(req);
+  const rateLimitResult = await checkRateLimit(identifier, RATE_LIMIT_CONFIG);
+  
+  if (!rateLimitResult.allowed) {
+    const response = createRateLimitResponse(rateLimitResult);
+    // Add CORS headers to rate limit response
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
   }
 
   let requestBody: any = null;
   let receiptId: string | null = null;
 
   try {
-    requestBody = await req.json()
-    console.log('=== OCR PROCESSING REQUEST START ===')
-    console.log('Request body received:', JSON.stringify(requestBody, null, 2))
+    requestBody = await req.json();
+    console.log('=== OCR PROCESSING REQUEST START ===');
+    console.log('Request body received:', JSON.stringify(requestBody, null, 2));
 
-    const { fileUrl, receiptId: reqReceiptId } = requestBody
-    receiptId = reqReceiptId
-
-    if (!fileUrl || !receiptId) {
-      console.error('❌ Missing required parameters:', { fileUrl: !!fileUrl, receiptId: !!receiptId })
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing required parameters: fileUrl and receiptId are required',
-          received: { hasFileUrl: !!fileUrl, hasReceiptId: !!receiptId },
-          success: false
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    // Validate request
+    const validation = validateOCRRequest(requestBody);
+    if (!validation.valid) {
+      return createErrorResponse(validation.error || 'Invalid request', 400);
     }
 
-    console.log('✅ Processing receipt OCR for:', receiptId)
-    console.log('File URL:', fileUrl)
+    const { fileUrl, receiptId: reqReceiptId } = validation.data!;
+    receiptId = reqReceiptId;
+
+    console.log('✅ Processing receipt OCR for:', receiptId);
+    console.log('File URL:', fileUrl);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    // Verificar que el receipt existe
+    // Verify receipt exists
     const { data: existingReceipt, error: fetchError } = await supabaseClient
       .from('payment_receipts')
       .select('id, original_file_url, extraction_status, created_at')
       .eq('id', receiptId)
-      .single()
+      .single();
 
-    if (fetchError || !existingReceipt) {
-      console.error('❌ Receipt not found:', fetchError)
-      return new Response(
-        JSON.stringify({ 
-          error: 'Receipt not found',
-          receiptId: receiptId,
-          success: false
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    if (fetchError || !validateReceiptExists(existingReceipt)) {
+      console.error('❌ Receipt not found:', fetchError);
+      return createErrorResponse('Receipt not found', 404, receiptId);
     }
 
-    console.log('✅ Found receipt:', existingReceipt.id)
-    console.log('Current extraction status:', existingReceipt.extraction_status)
+    console.log('✅ Found receipt:', existingReceipt.id);
+    console.log('Current extraction status:', existingReceipt.extraction_status);
 
-    // Si ya está procesado exitosamente, no procesar de nuevo
-    if (existingReceipt.extraction_status === 'extracted') {
-      console.log('ℹ️ Receipt already processed successfully')
+    // Check if already processed
+    if (!validateExtractionStatus(existingReceipt.extraction_status)) {
+      console.log('ℹ️ Receipt already processed successfully');
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           success: true,
           message: 'Receipt already processed',
-          receiptId: receiptId
+          receiptId: receiptId,
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
 
-    // Actualizar estado a "processing"
+    // Update status to "processing"
     const { error: updateError1 } = await supabaseClient
       .from('payment_receipts')
-      .update({ 
+      .update({
         extraction_status: 'processing',
         validation_status: 'pending',
-        validation_notes: 'Iniciando procesamiento OCR...'
+        validation_notes: 'Iniciando procesamiento OCR...',
       })
-      .eq('id', receiptId)
+      .eq('id', receiptId);
 
     if (updateError1) {
-      console.error('⚠️ Error updating receipt to processing:', updateError1)
+      console.error('⚠️ Error updating receipt to processing:', updateError1);
     } else {
-      console.log('✅ Receipt status updated to processing')
+      console.log('✅ Receipt status updated to processing');
     }
 
-    // Verificar n8n webhook
-    const n8nWebhook = Deno.env.get('N8N_WEBHOOK_URL')
-    console.log('N8N_WEBHOOK_URL configured:', !!n8nWebhook)
-    
-    if (n8nWebhook) {
-      console.log('=== CALLING N8N WEBHOOK ===')
-      
-      // Preparar URL del archivo
-      let fileUrlToUse = fileUrl
-      
-      // Si es de Supabase storage, crear URL firmada
-      if (fileUrl.includes('supabase.co/storage/v1/object/public/payment-proofs/')) {
-        try {
-          const fileName = fileUrl.split('/payment-proofs/')[1]
-          console.log('Creating signed URL for file:', fileName)
-          
-          const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
-            .from('payment-proofs')
-            .createSignedUrl(fileName, 3600)
-          
-          if (signedUrlError) {
-            console.error('⚠️ Error creating signed URL:', signedUrlError)
-          } else if (signedUrlData?.signedUrl) {
-            fileUrlToUse = signedUrlData.signedUrl
-            console.log('✅ Using signed URL for better access')
-          }
-        } catch (signedUrlErr) {
-          console.error('⚠️ Error handling signed URL creation:', signedUrlErr)
-        }
-      }
-      
-      const webhookPayload = {
-        receiptId: receiptId,
-        fileUrl: fileUrlToUse,
-        originalFileUrl: fileUrl,
-        timestamp: new Date().toISOString(),
-        source: 'edge_function'
-      }
-      
-      console.log('Sending payload to n8n:', JSON.stringify(webhookPayload, null, 2))
-      
-      try {
-        const webhookResponse = await fetch(n8nWebhook, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(webhookPayload),
-          signal: AbortSignal.timeout(60000) // 60 segundos
-        })
-        
-        console.log('N8N webhook response status:', webhookResponse.status)
-        
-        if (webhookResponse.ok) {
-          const responseText = await webhookResponse.text()
-          console.log('N8N webhook response:', responseText)
-          
-          let responseData;
-          try {
-            responseData = JSON.parse(responseText);
-          } catch (parseError) {
-            console.log('Response is not JSON, treating as text success');
-            responseData = { message: responseText };
-          }
-          
-          // Verificar si la respuesta incluye datos extraídos
-          if (responseData.success && responseData.extractedData) {
-            console.log('✅ N8N processing completed successfully with extracted data:', responseData.extractedData)
-            
-            // Obtener mes y año actual para posible inclusión en reportes mensuales
-            const extractedDate = responseData.extractedData.date ? new Date(responseData.extractedData.date) : new Date()
-            const extractedMonth = extractedDate.getMonth() + 1
-            const extractedYear = extractedDate.getFullYear()
-            
-            console.log(`Receipt date info: ${extractedDate.toISOString()}, Month: ${extractedMonth}, Year: ${extractedYear}`)
-            
-            return new Response(
-              JSON.stringify({ 
-                success: true, 
-                message: 'OCR processing completed successfully via n8n',
-                receiptId: receiptId,
-                extractedData: responseData.extractedData,
-                amount: responseData.extractedData.amount,
-                date: responseData.extractedData.date,
-                extractedMonth,
-                extractedYear,
-                confidence: responseData.extractedData.confidence,
-                n8nResponse: responseData
-              }),
-              { 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            )
-          } else {
-            console.log('✅ N8N webhook completed but checking for data...')
-            return new Response(
-              JSON.stringify({ 
-                success: true, 
-                message: 'OCR processing initiated via n8n',
-                receiptId: receiptId,
-                n8nResponse: responseData
-              }),
-              { 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            )
-          }
-        } else {
-          const errorText = await webhookResponse.text()
-          console.error('❌ N8N webhook failed with status:', webhookResponse.status)
-          console.error('N8N webhook error response:', errorText)
-          throw new Error(`N8N webhook failed: ${webhookResponse.status} - ${errorText}`)
-        }
-      } catch (webhookError) {
-        console.error('❌ Error calling n8n webhook:', webhookError)
-        throw webhookError
-      }
-    } else {
-      console.log('ℹ️ N8N_WEBHOOK_URL not configured, this is required for OCR processing')
-      throw new Error('N8N webhook not configured')
-    }
-
+    // Process with N8N
+    return await processReceiptWithN8N(fileUrl, receiptId);
   } catch (error) {
-    console.error('=== ERROR IN PROCESS-RECEIPT-OCR ===')
-    console.error('Error details:', error)
-    console.error('Error stack:', error.stack)
-    
-    // Actualizar estado de error en la base de datos
-    if (receiptId) {
-      try {
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
-        
-        await supabaseClient
-          .from('payment_receipts')
-          .update({ 
-            extraction_status: 'error',
-            validation_status: 'needs_review',
-            validation_notes: `Error en procesamiento OCR: ${error.message}. Timestamp: ${new Date().toISOString()}`
-          })
-          .eq('id', receiptId)
-          
-        console.log('✅ Updated receipt status to error')
-      } catch (updateError) {
-        console.error('❌ Error updating receipt status:', updateError)
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        receiptId: receiptId,
-        success: false,
-        timestamp: new Date().toISOString(),
-        details: 'Check edge function logs for more information'
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return await handleOCRError(error as Error, receiptId);
   }
-})
+});

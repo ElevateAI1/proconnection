@@ -41,40 +41,26 @@ export const useTicketSystem = () => {
 
     try {
       setLoading(true);
+      setError(null);
       
-      // Simular datos de tickets por ahora (implementar tabla real después)
-      const mockTickets: SupportTicket[] = [
-        {
-          id: 'SP-001',
-          psychologist_id: psychologist.id,
-          title: 'Problema con sincronización de calendario',
-          description: 'El calendario no se actualiza correctamente cuando agrego nuevas citas.',
-          type: 'technical',
-          priority: 'high',
-          status: 'resolved',
-          created_at: '2024-01-15T10:00:00Z',
-          updated_at: '2024-01-15T10:30:00Z',
-          response_time: 15,
-          resolved_at: '2024-01-15T10:30:00Z'
-        },
-        {
-          id: 'SP-002',
-          psychologist_id: psychologist.id,
-          title: 'Consulta sobre reportes avanzados',
-          description: 'Me gustaría saber cómo interpretar las métricas de satisfacción en los reportes.',
-          type: 'general',
-          priority: 'medium',
-          status: 'in_progress',
-          created_at: '2024-01-20T14:00:00Z',
-          updated_at: '2024-01-20T14:08:00Z',
-          response_time: 8
-        }
-      ];
+      const { data, error: fetchError } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('psychologist_id', psychologist.id)
+        .order('created_at', { ascending: false });
 
-      setTickets(mockTickets);
+      if (fetchError) {
+        console.error('Error fetching tickets:', fetchError);
+        setError('Error al cargar tickets');
+        setTickets([]);
+        return;
+      }
+
+      setTickets(data || []);
     } catch (err) {
       console.error('Error fetching tickets:', err);
       setError('Error al cargar tickets');
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -92,21 +78,34 @@ export const useTicketSystem = () => {
 
     try {
       setSubmitting(true);
+      setError(null);
       
-      // Simular creación de ticket
-      const newTicket: SupportTicket = {
-        id: `SP-${Date.now()}`,
-        psychologist_id: psychologist.id,
-        title: ticketData.title,
-        description: ticketData.description,
-        type: ticketData.type,
-        priority: ticketData.priority,
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const { data: newTicket, error: createError } = await supabase
+        .from('support_tickets')
+        .insert({
+          psychologist_id: psychologist.id,
+          title: ticketData.title,
+          description: ticketData.description,
+          type: ticketData.type,
+          priority: ticketData.priority,
+          status: 'open'
+        })
+        .select()
+        .single();
 
-      setTickets(prev => [newTicket, ...prev]);
+      if (createError) {
+        console.error('Error creating ticket:', createError);
+        const errorMessage = createError.message || 'Error al crear ticket';
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return { data: null, error: errorMessage };
+      }
+
+      // Refresh tickets list
+      await fetchTickets();
       
       toast({
         title: "Ticket creado",
