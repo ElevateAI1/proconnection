@@ -10,7 +10,7 @@ import { SubscriptionPlans } from './SubscriptionPlans';
 
 export const TrialStatus = () => {
   const { psychologist } = useProfile();
-  const { isPlusUser, isProUser } = usePlanCapabilities();
+  const { isProConnectionUser, isTeamsUser, isPlusUser, isProUser } = usePlanCapabilities();
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -91,32 +91,32 @@ export const TrialStatus = () => {
     );
   }
 
-  // Si tiene suscripción activa (Plus o Pro)
-  if (psychologist?.subscription_status === 'active' && (isPlusUser() || isProUser())) {
+  // Si tiene suscripción activa (ProConnection o Teams)
+  if (psychologist?.subscription_status === 'active' && (isProConnectionUser() || isTeamsUser())) {
     return (
       <Card className="border-0 shadow-lg border-l-4 border-l-green-500 py-0 my-[31px]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-green-700">
-            {isProUser() ? <Crown className="w-5 h-5" /> : <Star className="w-5 h-5" />}
+            {isTeamsUser() ? <Crown className="w-5 h-5" /> : <Star className="w-5 h-5" />}
             Plan Activo
             <PlanBadge />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-slate-600 mb-4">
-            {isProUser() 
+            {isTeamsUser() 
               ? '¡Excelente! Tienes acceso a todas las funciones premium de ProConnection.'
-              : '¡Genial! Tu plan Plus está activo. Considera actualizar a Pro para funciones avanzadas.'
+              : '¡Genial! Tu plan ProConnection está activo. Considera actualizar a Teams para funciones avanzadas de equipo.'
             }
           </p>
-          {isPlusUser() && (
+          {isProConnectionUser() && (
             <Button 
               variant="outline" 
               className="border-purple-500 text-purple-600 hover:bg-purple-50"
               onClick={() => setShowPlans(true)}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
-              Actualizar a Pro
+              Actualizar a Teams
             </Button>
           )}
         </CardContent>
@@ -140,7 +140,7 @@ export const TrialStatus = () => {
               Tu período de prueba ha terminado. Selecciona un plan para continuar usando ProConnection.
             </p>
             <Button 
-              className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:shadow-lg"
+              className="w-full bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
               onClick={() => setShowPlans(true)}
             >
               <CreditCard className="w-4 h-4 mr-2" />
@@ -186,7 +186,7 @@ export const TrialStatus = () => {
             
             <Button 
               variant={isLastDays ? "default" : "outline"} 
-              className={`w-full ${isLastDays ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:shadow-lg' : ''}`}
+              className={`w-full ${isLastDays ? 'bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200' : ''}`}
               onClick={() => setShowPlans(true)}
             >
               <CreditCard className="w-4 h-4 mr-2" />

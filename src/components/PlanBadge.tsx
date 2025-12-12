@@ -4,7 +4,7 @@ import { Crown, Star } from 'lucide-react';
 import { usePlanCapabilities } from '@/hooks/usePlanCapabilities';
 
 export const PlanBadge = () => {
-  const { isPlusUser, isProUser, loading } = usePlanCapabilities();
+  const { isTeamsUser, isProConnectionUser, isDevUser, loading } = usePlanCapabilities();
 
   if (loading) {
     return (
@@ -14,27 +14,36 @@ export const PlanBadge = () => {
     );
   }
 
-  if (isProUser()) {
+  if (isDevUser()) {
     return (
-      <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+      <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white">
         <Crown className="w-3 h-3 mr-1" />
-        Pro
+        DEV
       </Badge>
     );
   }
 
-  if (isPlusUser()) {
+  if (isTeamsUser()) {
     return (
-      <Badge className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white">
+      <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white">
+        <Crown className="w-3 h-3 mr-1" />
+        Teams
+      </Badge>
+    );
+  }
+
+  if (isProConnectionUser()) {
+    return (
+      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white">
         <Star className="w-3 h-3 mr-1" />
-        Plus
+        ProConnection
       </Badge>
     );
   }
 
   return (
     <Badge variant="outline">
-      Trial
+      Starter
     </Badge>
   );
 };

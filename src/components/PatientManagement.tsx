@@ -153,7 +153,7 @@ export const PatientManagement = () => {
         <h2 className="text-3xl font-bold text-slate-800">Gestión de Pacientes</h2>
         <Button 
           onClick={() => setIsAddingPatient(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-emerald-500 hover:shadow-lg transition-all duration-200"
+          className="flex items-center gap-2 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
         >
           <Plus className="w-4 h-4" />
           Agregar Paciente
@@ -269,6 +269,7 @@ export const PatientManagement = () => {
                 onClick={handleAddPatient}
                 disabled={isSubmitting}
                 aria-label="Agregar paciente"
+                className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
               >
                 {isSubmitting ? (
                   <>
@@ -335,7 +336,7 @@ export const PatientManagement = () => {
                     {/* Botón principal para ver perfil completo */}
                     <Button 
                       onClick={() => handleViewPatient(patient.id)}
-                      className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:shadow-lg transition-all duration-200"
+                      className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Ver Perfil Completo
@@ -386,7 +387,7 @@ export const PatientManagement = () => {
               {!searchTerm && (
                 <Button 
                   onClick={() => setIsAddingPatient(true)}
-                  className="mt-4 bg-gradient-to-r from-blue-500 to-emerald-500"
+                  className="mt-4 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Agregar Primer Paciente

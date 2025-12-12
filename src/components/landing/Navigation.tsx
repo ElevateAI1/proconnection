@@ -34,10 +34,17 @@ export const ImprovedNavigation = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 bg-gradient-to-r from-blue-soft via-green-mint to-peach-pale"
+            >
               <Heart className="w-6 h-6 text-white group-hover:animate-pulse" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent hover:from-purple-600 hover:to-pink-600 transition-all duration-500">
+            <h1 
+              className="text-2xl font-bold bg-gradient-to-r from-blue-soft via-green-mint via-peach-pale to-blue-soft bg-clip-text text-transparent animate-text-shine"
+              style={{
+                backgroundSize: '200% auto'
+              }}
+            >
               ProConnection
             </h1>
           </div>
@@ -81,9 +88,10 @@ export const ImprovedNavigation = () => {
               </Button>
             </Link>
             <Link to="/register">
-              <Button className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-purple-500 hover:to-pink-500 hover:scale-105 hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
-                <span className="relative z-10">Comenzar Ahora</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              <Button 
+                className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
+              >
+                Comenzar Ahora
               </Button>
             </Link>
           </div>
@@ -141,9 +149,10 @@ export const ImprovedNavigation = () => {
                   </Button>
                 </Link>
                 <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-purple-500 hover:to-pink-500 hover:scale-105 hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
-                    <span className="relative z-10">Comenzar Ahora</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  <Button 
+                    className="w-full bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
+                  >
+                    Comenzar Ahora
                   </Button>
                 </Link>
               </div>

@@ -5,13 +5,106 @@ import { useProfile } from './useProfile';
 import { useAuth } from './useAuth';
 
 interface PlanCapabilities {
+  basic_features: boolean;
   seo_profile: boolean;
   advanced_reports: boolean;
-  early_access: boolean;
   priority_support: boolean;
+  financial_features: boolean;
+  advanced_documents: boolean;
+  team_features: boolean;
+  early_access: boolean;
   visibility_consulting: boolean;
-  basic_features: boolean;
+  api_integrations: boolean;
+  dedicated_support: boolean;
 }
+
+// Función helper para determinar capacidades desde plan_type
+const getCapabilitiesFromPlanType = (planType: string): PlanCapabilities => {
+  const plan = planType.toLowerCase();
+  
+  // Starter: solo basic_features
+  if (plan === 'starter') {
+    return {
+      basic_features: true,
+      seo_profile: false,
+      advanced_reports: false,
+      priority_support: false,
+      financial_features: false,
+      advanced_documents: false,
+      team_features: false,
+      early_access: false,
+      visibility_consulting: false,
+      api_integrations: false,
+      dedicated_support: false
+    };
+  }
+  
+  // ProConnection: starter + proconnection features
+  if (plan === 'proconnection') {
+    return {
+      basic_features: true,
+      seo_profile: true,
+      advanced_reports: true,
+      priority_support: true,
+      financial_features: true,
+      advanced_documents: true,
+      team_features: false,
+      early_access: false,
+      visibility_consulting: false,
+      api_integrations: false,
+      dedicated_support: false
+    };
+  }
+  
+  // Teams: todas las capacidades
+  if (plan === 'teams') {
+    return {
+      basic_features: true,
+      seo_profile: true,
+      advanced_reports: true,
+      priority_support: true,
+      financial_features: true,
+      advanced_documents: true,
+      team_features: true,
+      early_access: true,
+      visibility_consulting: true,
+      api_integrations: true,
+      dedicated_support: true
+    };
+  }
+  
+  // DEV: todas las capacidades (tier especial para pruebas)
+  if (plan === 'dev') {
+    return {
+      basic_features: true,
+      seo_profile: true,
+      advanced_reports: true,
+      priority_support: true,
+      financial_features: true,
+      advanced_documents: true,
+      team_features: true,
+      early_access: true,
+      visibility_consulting: true,
+      api_integrations: true,
+      dedicated_support: true
+    };
+  }
+  
+  // Default: starter
+  return {
+    basic_features: true,
+    seo_profile: false,
+    advanced_reports: false,
+    priority_support: false,
+    financial_features: false,
+    advanced_documents: false,
+    team_features: false,
+    early_access: false,
+    visibility_consulting: false,
+    api_integrations: false,
+    dedicated_support: false
+  };
+};
 
 export const usePlanCapabilities = () => {
   const { psychologist, forceRefresh: refreshProfile } = useProfile();
@@ -52,23 +145,22 @@ export const usePlanCapabilities = () => {
       if (data && typeof data === 'object' && !Array.isArray(data)) {
         const planData = data as Record<string, unknown>;
         validCapabilities = {
+          basic_features: Boolean(planData.basic_features),
           seo_profile: Boolean(planData.seo_profile),
           advanced_reports: Boolean(planData.advanced_reports),
-          early_access: Boolean(planData.early_access),
           priority_support: Boolean(planData.priority_support),
+          financial_features: Boolean(planData.financial_features),
+          advanced_documents: Boolean(planData.advanced_documents),
+          team_features: Boolean(planData.team_features),
+          early_access: Boolean(planData.early_access),
           visibility_consulting: Boolean(planData.visibility_consulting),
-          basic_features: Boolean(planData.basic_features)
+          api_integrations: Boolean(planData.api_integrations),
+          dedicated_support: Boolean(planData.dedicated_support)
         };
       } else {
-        console.log('No valid capabilities data, setting defaults');
-        validCapabilities = {
-          seo_profile: false,
-          advanced_reports: false,
-          early_access: false,
-          priority_support: false,
-          visibility_consulting: false,
-          basic_features: false
-        };
+        // Fallback: determinar capacidades desde plan_type si no hay datos de RPC
+        const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
+        validCapabilities = getCapabilitiesFromPlanType(planType);
       }
       
       console.log('Final capabilities set:', validCapabilities);
@@ -86,12 +178,17 @@ export const usePlanCapabilities = () => {
     // Si es usuario demo, usar capacidades simuladas
     if (user?.id === 'demo-user-123') {
       setCapabilities({
+        basic_features: true,
         seo_profile: true,
         advanced_reports: true,
-        early_access: true,
         priority_support: true,
+        financial_features: true,
+        advanced_documents: true,
+        team_features: true,
+        early_access: true,
         visibility_consulting: true,
-        basic_features: true
+        api_integrations: true,
+        dedicated_support: true
       });
       setLoading(false);
       return;
@@ -178,23 +275,58 @@ export const usePlanCapabilities = () => {
     return result;
   }, [capabilities]);
 
+
+  const isStarterUser = useCallback(() => {
+    const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
+    return planType === 'starter';
+  }, [psychologist?.plan_type]);
+
+  const isProConnectionUser = useCallback(() => {
+    const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
+    return planType === 'proconnection';
+  }, [psychologist?.plan_type]);
+
+  const isTeamsUser = useCallback(() => {
+    const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
+    return planType === 'teams' || planType === 'dev';
+  }, [psychologist?.plan_type]);
+
+  const isDevUser = useCallback(() => {
+    const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
+    return planType === 'dev';
+  }, [psychologist?.plan_type]);
+
+  const hasTierOrHigher = useCallback((requiredTier: 'starter' | 'proconnection' | 'teams' | 'dev'): boolean => {
+    // DEV tiene acceso a todo
+    const currentPlan = psychologist?.plan_type?.toLowerCase() || 'starter';
+    if (currentPlan === 'dev') return true;
+    
+    const tierOrder = ['starter', 'proconnection', 'teams'];
+    const currentIndex = tierOrder.indexOf(currentPlan);
+    const requiredIndex = tierOrder.indexOf(requiredTier);
+    return currentIndex >= requiredIndex;
+  }, [psychologist?.plan_type]);
+
+  // Mantener compatibilidad con código existente (deprecated)
   const isPlusUser = useCallback(() => {
-    const result = capabilities?.basic_features && !capabilities?.seo_profile;
-    console.log('isPlusUser check:', result, capabilities);
-    return result;
-  }, [capabilities]);
+    return isProConnectionUser();
+  }, [isProConnectionUser]);
 
   const isProUser = useCallback(() => {
-    const result = capabilities?.seo_profile && capabilities?.advanced_reports;
-    console.log('isProUser check:', result, capabilities);
-    return result;
-  }, [capabilities]);
+    return isTeamsUser();
+  }, [isTeamsUser]);
 
   return {
     capabilities,
     loading,
     error,
     hasCapability,
+    isStarterUser,
+    isProConnectionUser,
+    isTeamsUser,
+    isDevUser,
+    hasTierOrHigher,
+    // Deprecated: mantener por compatibilidad
     isPlusUser,
     isProUser,
     refreshCapabilities

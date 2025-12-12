@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS public.psychologists (
   trial_start_date TIMESTAMP WITH TIME ZONE,
   trial_end_date TIMESTAMP WITH TIME ZONE,
   subscription_end_date TIMESTAMP WITH TIME ZONE,
-  plan_type TEXT CHECK (plan_type IN ('basic', 'plus', 'premium')),
+  plan_type TEXT CHECK (plan_type IN ('starter', 'proconnection', 'teams')),
   affiliate_code_id UUID,
   affiliate_earnings DECIMAL(10,2) DEFAULT 0,
   total_referrals INTEGER DEFAULT 0,

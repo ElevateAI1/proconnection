@@ -242,7 +242,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-emerald-500 text-white rounded-lg hover:shadow-lg transition-all duration-200 font-medium">
+        <Button className="px-6 py-2 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 font-medium">
           <Plus className="w-4 h-4 mr-2" />
           Nueva Cita
         </Button>
@@ -363,7 +363,7 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
             <Button
               type="submit"
               disabled={loading || slotsLoading}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-500"
+              className="flex-1 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
             >
               {loading ? "Creando..." : "Crear Cita"}
             </Button>

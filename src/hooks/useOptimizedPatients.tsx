@@ -67,18 +67,35 @@ export const useOptimizedPatients = (psychologistId?: string) => {
       setLoading(true);
       setError(null);
 
-      const insertData: PatientInsert = {
-        ...patientData,
-        psychologist_id: psychologistId
-      };
+      // Use the edge function API to create patient (which handles auth user and profile creation)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
 
-      const { error } = await supabase
-        .from('patients')
-        .insert(insertData as any);
+      // Get API key from environment or use a default (you should set this in your .env)
+      const apiKey = import.meta.env.VITE_API_KEY || 'tu-api-key-secreta-123';
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/edge-function-proconnection/patients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'x-api-key': apiKey
+        },
+        body: JSON.stringify({
+          first_name: patientData.first_name,
+          last_name: patientData.last_name,
+          phone: patientData.phone || null,
+          age: patientData.age || null,
+          notes: patientData.notes || null,
+          psychologist_id: psychologistId
+        })
+      });
 
-      if (error) {
-        console.error('Error adding patient:', error);
-        throw new Error('Error al agregar paciente');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || 'Error al agregar paciente');
       }
 
       // Refetch patients to get the complete list with proper IDs

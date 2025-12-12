@@ -5,6 +5,7 @@ import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import { useUnifiedDashboardStats } from "@/hooks/useUnifiedDashboardStats";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
 import { Calendar } from "@/components/CalendarView";
@@ -232,17 +233,6 @@ export default function Index() {
       setCurrentView(view);
     };
 
-    const handleActivatePlus = async () => {
-      try {
-        await activatePlusPlan();
-        await forceRefresh();
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error) {
-        console.error('Error activating Plus plan:', error);
-      }
-    };
 
     return (
       <SidebarProvider>
@@ -265,18 +255,25 @@ export default function Index() {
                   </span>
                   {(unifiedStats.planType || psychologist?.plan_type) && (
                     <span className="text-xs bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 px-3 py-1 rounded-full font-semibold border border-blue-200">
-                      {(unifiedStats.planType || psychologist?.plan_type)?.toUpperCase()}
+                      {(() => {
+                        const planType = (unifiedStats.planType || psychologist?.plan_type || '').toLowerCase();
+                        if (planType === 'proconnection') return 'PROCONNECTION';
+                        if (planType === 'teams') return 'TEAMS';
+                        if (planType === 'dev') return 'DEV';
+                        return 'STARTER';
+                      })()}
                     </span>
                   )}
-                  {(!psychologist?.plan_type || !['plus', 'pro'].includes(psychologist.plan_type.toLowerCase())) && (
-                    <Button
-                      onClick={handleActivatePlus}
-                      size="sm"
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs px-3 py-1 h-7"
-                      aria-label="Activar plan Plus"
-                    >
-                      ⚡ Activar Plus
-                    </Button>
+                  {(!psychologist?.plan_type || !['proconnection', 'teams'].includes(psychologist.plan_type.toLowerCase())) && (
+                    <Link to="/plans">
+                      <Button
+                        size="sm"
+                        className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 text-xs px-3 py-1 h-7"
+                        aria-label="Ver planes de suscripción"
+                      >
+                        ⚡ Ver Planes
+                      </Button>
+                    </Link>
                   )}
                 </div>
               </header>

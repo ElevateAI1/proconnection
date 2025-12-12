@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope, Shield, Lock as LockIcon, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createTestPatient } from "@/utils/debugPatient";
 
@@ -19,6 +19,9 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
   const [isSignUp, setIsSignUp] = useState(registrationOnly);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const authRef = useRef<HTMLDivElement>(null);
+  
   const [signInData, setSignInData] = useState({
     email: "",
     password: "",
@@ -32,6 +35,28 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
     phone: "",
     professionalCode: "",
   });
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (authRef.current) {
+      observer.observe(authRef.current);
+    }
+
+    return () => {
+      if (authRef.current) {
+        observer.unobserve(authRef.current);
+      }
+    };
+  }, []);
+
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -83,10 +108,14 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
           title: "¡Bienvenido!",
           description: "Inicio de sesión exitoso",
         });
-        // Redirect to dashboard immediately
         navigate("/dashboard", { replace: true });
       } else if (result.data?.user && !result.data.user.email_confirmed_at) {
         console.log('User email not confirmed');
+        toast({
+          title: "Email no confirmado",
+          description: "Por favor confirma tu email antes de iniciar sesión",
+          variant: "destructive"
+        });
       } else {
         console.error('No user data received');
         toast({
@@ -150,12 +179,10 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
         return;
       }
 
-      console.log('Sign up successful, user:', result.data?.user?.id);
       toast({
         title: "¡Cuenta creada!",
         description: "Revisa tu email para confirmar tu cuenta",
       });
-
     } catch (error: any) {
       console.error('Exception during sign up:', error);
       toast({
@@ -168,34 +195,10 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
 
   const handleTestPatient = async () => {
     try {
-      console.log('=== CREATING TEST PATIENT ===');
-      const result = await createTestPatient();
-      
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: "No se pudo crear el usuario de prueba",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log('Test patient created:', result);
-      
-      const loginResult = await signIn(result.email, result.password);
-      
-      if (loginResult.error) {
-        toast({
-          title: "Error",
-          description: "No se pudo iniciar sesión con el usuario de prueba",
-          variant: "destructive"
-        });
-        return;
-      }
-      
+      await createTestPatient();
       toast({
         title: "¡Usuario de prueba creado!",
-        description: `Email: ${result.email} | Password: ${result.password}`,
+        description: "Iniciando sesión...",
       });
       
       // Redirect to dashboard
@@ -212,50 +215,120 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-0 shadow-xl bg-white/95 backdrop-blur-sm">
-        <CardHeader className="pb-6 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <Heart className="w-8 h-8 text-white" />
+    <div 
+      ref={authRef}
+      className="min-h-screen bg-white-warm flex items-center justify-center p-4"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl w-full items-center">
+        {/* Left: Illustration with floating UI cards */}
+        <div className={`hidden lg:flex flex-col items-center justify-center space-y-8 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
+          {/* Floating UI cards illustration */}
+          <div className="relative w-full max-w-md">
+            {/* Main privacy card */}
+            <div className="relative bg-white-warm border-4 border-lavender-soft/50 rounded-2xl p-6 shadow-[12px_12px_0px_0px_rgba(201,194,230,0.15)] transform hover:scale-105 transition-transform duration-300">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-peach-pale/30 rounded-full flex items-center justify-center border-2 border-peach-pale">
+                  <Heart className="w-6 h-6 text-blue-petrol" />
+                </div>
+                <div>
+                  <h3 className="font-serif-display text-lg font-bold text-blue-petrol">Privacidad</h3>
+                  <p className="font-sans-geometric text-sm text-blue-petrol/70">Tu información protegida</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-mint" />
+                  <span className="font-sans-geometric text-sm text-blue-petrol/80">Confidencialidad total</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-mint" />
+                  <span className="font-sans-geometric text-sm text-blue-petrol/80">Datos seguros</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-mint" />
+                  <span className="font-sans-geometric text-sm text-blue-petrol/80">Solo tú y tu profesional</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating security card */}
+            <div className="absolute -top-8 -right-8 bg-white-warm border-4 border-blue-soft/50 rounded-xl p-4 shadow-[8px_8px_0px_0px_rgba(108,175,240,0.2)] transform hover:rotate-2 transition-transform duration-300">
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-blue-petrol" />
+                <span className="font-sans-geometric text-sm font-bold text-blue-petrol">Seguro</span>
+              </div>
+            </div>
+
+            {/* Floating trust card */}
+            <div className="absolute -bottom-6 -left-6 bg-white-warm border-4 border-green-mint/50 rounded-xl p-4 shadow-[8px_8px_0px_0px_rgba(185,228,201,0.2)] transform hover:rotate-[-2deg] transition-transform duration-300">
+              <div className="flex items-center gap-3">
+                <LockIcon className="w-5 h-5 text-blue-petrol" />
+                <span className="font-sans-geometric text-sm font-bold text-blue-petrol">Protegido</span>
+              </div>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-800">
+
+          {/* Trust badges */}
+          <div className="flex flex-wrap gap-4 justify-center">
+            <div className="px-4 py-2 bg-peach-pale/30 border-2 border-peach-pale rounded-lg">
+              <span className="font-sans-geometric text-sm font-bold text-blue-petrol">💜 Confidencial</span>
+            </div>
+            <div className="px-4 py-2 bg-lavender-soft/30 border-2 border-lavender-soft rounded-lg">
+              <span className="font-sans-geometric text-sm font-bold text-blue-petrol">🔒 Privado</span>
+            </div>
+            <div className="px-4 py-2 bg-green-mint/30 border-2 border-green-mint rounded-lg">
+              <span className="font-sans-geometric text-sm font-bold text-blue-petrol">🛡️ Seguro</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Auth Card */}
+        <div className={`w-full max-w-md mx-auto ${isVisible ? 'animate-card-enter' : 'opacity-0'}`} style={{ animationDelay: '200ms' }}>
+          <div className="bg-white-warm border-4 border-lavender-soft/50 rounded-2xl p-8 sm:p-10 shadow-[12px_12px_0px_0px_rgba(201,194,230,0.15)]">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-peach-pale/30 rounded-full flex items-center justify-center border-4 border-peach-pale">
+                  <Heart className="w-8 h-8 text-blue-petrol" />
+                </div>
+              </div>
+              <h1 className="font-serif-display text-4xl sm:text-5xl font-bold text-blue-petrol mb-3">
             {isSignUp ? "Registro de Paciente" : "Iniciar Sesión"}
-          </CardTitle>
-          <p className="text-slate-600 mt-2">
+              </h1>
+              <p className="font-sans-geometric text-lg text-blue-petrol/70">
             {isSignUp ? "Crea tu cuenta de paciente" : "Bienvenido de vuelta"}
           </p>
-        </CardHeader>
-        <CardContent>
+            </div>
+
           {!isSignUp ? (
-            <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-medium">Correo Electrónico</Label>
+                  <Label htmlFor="email" className="font-sans-geometric font-semibold text-blue-petrol">Correo Electrónico</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                   <Input 
                     id="email" 
                     type="email" 
                     name="email"
                     placeholder="correo@ejemplo.com" 
-                    className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                      className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                     value={signInData.email}
                     onChange={handleSignInChange}
                     required
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700 font-medium">Contraseña</Label>
+                  <Label htmlFor="password" className="font-sans-geometric font-semibold text-blue-petrol">Contraseña</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="********"
-                    className="pl-9 pr-10 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                      className="pl-12 pr-12 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                     value={signInData.password}
                     onChange={handleSignInChange}
                     required
@@ -265,15 +338,16 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
                     variant="ghost"
                     size="icon"
                     onClick={togglePasswordVisibility}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-petrol/50 hover:text-blue-petrol hover:bg-transparent"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </Button>
                 </div>
               </div>
+
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg" 
+                  className="w-full bg-lavender-soft text-blue-petrol border-4 border-lavender-soft shadow-[6px_6px_0px_0px_rgba(201,194,230,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(201,194,230,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200" 
                 disabled={loading}
               >
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
@@ -282,31 +356,31 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               <Button 
                 type="button"
                 onClick={handleTestPatient}
-                className="w-full bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg mt-2"
+                  className="w-full bg-white-warm text-blue-petrol border-4 border-peach-pale/50 shadow-[6px_6px_0px_0px_rgba(247,210,196,0.3)] hover:shadow-[3px_3px_0px_0px_rgba(247,210,196,0.3)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200 mt-3"
                 disabled={loading}
               >
                 🧪 Probar como Paciente
               </Button>
               
-              <div className="text-center pt-4 border-t border-slate-200">
-                <p className="text-sm text-slate-600">
+                <div className="text-center pt-4 border-t-2 border-blue-petrol/10">
+                  <p className="font-sans-geometric text-sm text-blue-petrol/70 mb-2">
                   ¿Eres un profesional?{" "}
                   <a
                     href="/auth"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                      className="font-bold text-blue-petrol hover:text-blue-soft transition-colors"
                   >
                     Inicia sesión como profesional
                   </a>
                 </p>
               </div>
 
-              <div className="text-center pt-4">
-                <p className="text-sm text-slate-600">
+                <div className="text-center pt-2">
+                  <p className="font-sans-geometric text-sm text-blue-petrol/70">
                   ¿No tienes cuenta?{" "}
                   <button
                     type="button"
                     onClick={() => setIsSignUp(true)}
-                    className="text-purple-600 hover:text-purple-700 font-medium"
+                      className="font-bold text-blue-petrol hover:text-lavender-soft transition-colors"
                   >
                     Crear cuenta
                   </button>
@@ -314,18 +388,18 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               </div>
             </form>
           ) : (
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleSignUp} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-slate-700 font-medium">Nombre</Label>
+                    <Label htmlFor="firstName" className="font-sans-geometric font-semibold text-blue-petrol">Nombre</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                     <Input
                       id="firstName"
                       type="text"
                       name="firstName"
                       placeholder="María"
-                      className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                        className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                       value={signUpData.firstName}
                       onChange={handleSignUpChange}
                       required
@@ -333,15 +407,15 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-slate-700 font-medium">Apellido</Label>
+                    <Label htmlFor="lastName" className="font-sans-geometric font-semibold text-blue-petrol">Apellido</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                     <Input
                       id="lastName"
                       type="text"
                       name="lastName"
                       placeholder="González"
-                      className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                        className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                       value={signUpData.lastName}
                       onChange={handleSignUpChange}
                       required
@@ -351,15 +425,15 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-slate-700 font-medium">Teléfono</Label>
+                  <Label htmlFor="phone" className="font-sans-geometric font-semibold text-blue-petrol">Teléfono</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                   <Input
                     id="phone"
                     type="tel"
                     name="phone"
                     placeholder="+54 11 1234-5678"
-                    className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                      className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                     value={signUpData.phone}
                     onChange={handleSignUpChange}
                   />
@@ -367,15 +441,15 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-medium">Correo Electrónico</Label>
+                  <Label htmlFor="email" className="font-sans-geometric font-semibold text-blue-petrol">Correo Electrónico</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                   <Input 
                     id="email" 
                     type="email" 
                     name="email"
                     placeholder="correo@ejemplo.com" 
-                    className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                      className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                     value={signUpData.email}
                     onChange={handleSignUpChange}
                     required
@@ -384,15 +458,15 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="professionalCode" className="text-slate-700 font-medium">Código de Profesional</Label>
+                  <Label htmlFor="professionalCode" className="font-sans-geometric font-semibold text-blue-petrol">Código de Profesional</Label>
                 <div className="relative">
-                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Stethoscope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                   <Input
                     id="professionalCode"
                     type="text"
                     name="professionalCode"
                     placeholder="Ingresa el código de tu profesional"
-                    className="pl-9 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                      className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                     value={signUpData.professionalCode}
                     onChange={handleSignUpChange}
                     required
@@ -400,17 +474,17 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-700 font-medium">Contraseña</Label>
+                    <Label htmlFor="password" className="font-sans-geometric font-semibold text-blue-petrol">Contraseña</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       name="password"
-                      placeholder="********"
-                      className="pl-9 pr-10 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                        placeholder="Mínimo 6 caracteres"
+                        className="pl-12 pr-12 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                       value={signUpData.password}
                       onChange={handleSignUpChange}
                       required
@@ -420,22 +494,22 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
                       variant="ghost"
                       size="icon"
                       onClick={togglePasswordVisibility}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-petrol/50 hover:text-blue-petrol hover:bg-transparent"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-slate-700 font-medium">Confirmar</Label>
+                    <Label htmlFor="confirmPassword" className="font-sans-geometric font-semibold text-blue-petrol">Confirmar</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
-                      placeholder="********"
-                      className="pl-9 pr-10 border-slate-200 focus:border-purple-400 focus:ring-purple-400"
+                        placeholder="Confirma tu contraseña"
+                        className="pl-12 pr-12 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-lavender-soft focus:ring-4 focus:ring-lavender-soft/20 font-sans-geometric text-blue-petrol"
                       value={signUpData.confirmPassword}
                       onChange={handleSignUpChange}
                       required
@@ -445,41 +519,41 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
                       variant="ghost"
                       size="icon"
                       onClick={toggleConfirmPasswordVisibility}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-petrol/50 hover:text-blue-petrol hover:bg-transparent"
                     >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </Button>
-                  </div>
+                    </div>
                 </div>
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg" 
+                  className="w-full bg-lavender-soft text-blue-petrol border-4 border-lavender-soft shadow-[6px_6px_0px_0px_rgba(201,194,230,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(201,194,230,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200" 
                 disabled={loading}
               >
                 {loading ? "Creando cuenta..." : "Crear Cuenta"}
               </Button>
 
               <div className="text-center pt-4">
-                <p className="text-sm text-slate-600">
+                  <p className="font-sans-geometric text-sm text-blue-petrol/70">
                   ¿Ya tienes cuenta?{" "}
                   <button
                     type="button"
                     onClick={() => setIsSignUp(false)}
-                    className="text-purple-600 hover:text-purple-700 font-medium"
+                      className="font-bold text-blue-petrol hover:text-lavender-soft transition-colors"
                   >
                     Iniciar sesión
                   </button>
                 </p>
               </div>
 
-              <div className="text-center pt-4 border-t border-slate-200">
-                <p className="text-sm text-slate-600">
+                <div className="text-center pt-4 border-t-2 border-blue-petrol/10">
+                  <p className="font-sans-geometric text-sm text-blue-petrol/70">
                   ¿Eres un profesional?{" "}
                   <a
                     href="/auth"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                      className="font-bold text-blue-petrol hover:text-blue-soft transition-colors"
                   >
                     Inicia sesión como profesional
                   </a>
@@ -487,9 +561,16 @@ export const PatientAuthPage = ({ registrationOnly = false }: PatientAuthPagePro
               </div>
             </form>
           )}
-        </CardContent>
-      </Card>
+
+            {/* Privacy notice */}
+            <div className="mt-6 pt-6 border-t-2 border-blue-petrol/10">
+              <p className="font-sans-geometric text-xs text-blue-petrol/60 text-center">
+                🔒 Tus datos están protegidos con encriptación de nivel bancario
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-

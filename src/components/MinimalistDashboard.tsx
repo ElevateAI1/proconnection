@@ -36,40 +36,40 @@ const QuickAction = ({ icon, title, description, count, onClick, variant = "defa
   const getVariantStyles = () => {
     switch (variant) {
       case "urgent":
-        return "border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 shadow-orange-100";
+        return "border-peach-pale/50 bg-white-warm/90 backdrop-blur-md hover:bg-white-warm shadow-lg shadow-peach-pale/20";
       case "success":
-        return "border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 shadow-emerald-100";
+        return "border-green-mint/50 bg-white-warm/90 backdrop-blur-md hover:bg-white-warm shadow-lg shadow-green-mint/20";
       default:
-        return "border-slate-200 bg-gradient-to-br from-white to-slate-50 hover:from-slate-50 hover:to-slate-100 shadow-slate-100";
+        return "border-celeste-gray/50 bg-white-warm/90 backdrop-blur-md hover:bg-white-warm shadow-lg shadow-blue-soft/10";
     }
   };
 
   return (
     <Card 
-      className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-0 shadow-md ${getVariantStyles()}`}
+      className={`cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border rounded-2xl ${getVariantStyles()}`}
       onClick={onClick}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-2xl flex items-center justify-center shadow-lg shadow-blue-soft/30">
               <div className="text-white">
                 {icon}
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800 text-base mb-1">{title}</h3>
-              <p className="text-sm text-slate-600">{description}</p>
+              <h3 className="font-semibold text-blue-petrol text-base mb-1">{title}</h3>
+              <p className="text-sm text-blue-petrol/70">{description}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {count !== undefined && count > 0 && (
-              <Badge variant="secondary" className="text-sm font-semibold px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-md">
+              <Badge className="text-sm font-semibold px-4 py-1.5 bg-blue-soft text-white border-0 shadow-md rounded-full">
                 {count}
               </Badge>
             )}
-            <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center hover:bg-slate-200 transition-colors">
-              <ChevronRight className="w-4 h-4 text-slate-600" />
+            <div className="w-10 h-10 bg-gray-light/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-celeste-gray/50 hover:scale-110 hover:shadow-lg transition-all duration-300 group">
+              <ChevronRight className="w-5 h-5 text-blue-petrol group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300" />
             </div>
           </div>
         </div>
@@ -91,33 +91,33 @@ const StatCard = ({ title, value, icon, trend, color = "warm", onClick }: StatCa
   const getColorStyles = () => {
     switch (color) {
       case "emerald":
-        return "text-emerald-600 bg-gradient-to-br from-emerald-100 to-green-100";
+        return "text-blue-petrol bg-green-mint/30 backdrop-blur-sm";
       case "amber":
-        return "text-amber-600 bg-gradient-to-br from-amber-100 to-orange-100";
+        return "text-blue-petrol bg-peach-pale/30 backdrop-blur-sm";
       case "stone":
-        return "text-slate-600 bg-gradient-to-br from-slate-100 to-gray-100";
+        return "text-blue-petrol bg-celeste-gray/30 backdrop-blur-sm";
       case "warm":
       default:
-        return "text-blue-600 bg-gradient-to-br from-blue-100 to-indigo-100";
+        return "text-blue-petrol bg-blue-soft/30 backdrop-blur-sm";
     }
   };
 
   return (
     <Card 
-      className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-white to-slate-50 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`border border-celeste-gray/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white-warm/90 backdrop-blur-md rounded-2xl ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">{title}</p>
-            <p className="text-3xl font-bold text-slate-800">{value}</p>
+            <p className="text-xs font-semibold text-blue-petrol/70 uppercase tracking-wider">{title}</p>
+            <p className="text-3xl font-bold text-blue-petrol">{value}</p>
             {trend && (
-              <p className="text-xs text-slate-500 font-medium">{trend}</p>
+              <p className="text-xs text-blue-petrol/60 font-medium">{trend}</p>
             )}
           </div>
           <div className={`w-16 h-16 ${getColorStyles()} rounded-2xl flex items-center justify-center shadow-lg`}>
-            <div className="text-2xl">
+            <div className="text-2xl text-blue-petrol">
               {icon}
             </div>
           </div>
@@ -185,44 +185,59 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
 
   const subscriptionInfo = getSubscriptionStatus();
 
+  const formatPlanType = (planType?: string | null) => {
+    if (!planType) return 'STARTER';
+    const plan = planType.toLowerCase();
+    if (plan === 'proconnection') return 'PROCONNECTION';
+    if (plan === 'teams') return 'TEAMS';
+    if (plan === 'dev') return 'DEV';
+    return 'STARTER';
+  };
+
   return (
-    <div className="space-y-8 p-6">
-      {/* Header mejorado */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold">
-            <span className="text-slate-800">{getGreeting()}, </span>
-            <span className="relative inline-block">
-              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-purple-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-shine">
-                {unifiedStats.psychologistName || 'Profesional'}
+    <div className="relative overflow-hidden">
+      {/* Elementos flotantes de fondo */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-soft/15 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute top-40 right-20 w-96 h-96 bg-green-mint/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-lavender-soft/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+      
+      <div className="space-y-10 p-6 sm:p-8 lg:p-12 relative z-10">
+        {/* Header neogolpista */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+              <span className="text-blue-petrol">{getGreeting()}, </span>
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-blue-soft via-celeste-gray to-blue-soft bg-clip-text text-transparent">
+                  {unifiedStats.psychologistName || 'Profesional'}
+                </span>
               </span>
-            </span>
-          </h1>
-          <p className="text-slate-600 text-lg font-medium">
-            {new Date().toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
+            </h1>
+            <p className="text-blue-petrol/70 text-lg sm:text-xl font-medium">
+              {new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge className="text-sm px-5 py-2.5 bg-blue-soft/15 backdrop-blur-sm border border-blue-soft/30 text-blue-petrol font-semibold rounded-full shadow-sm">
+              {formatPlanType(unifiedStats.planType || psychologist?.plan_type)}
+            </Badge>
+            <Badge className={`text-sm px-5 py-2.5 font-semibold rounded-full backdrop-blur-sm border ${subscriptionInfo.color.includes('emerald') ? 'bg-green-mint/20 border-green-mint/40 text-blue-petrol' : subscriptionInfo.color.includes('amber') ? 'bg-peach-pale/20 border-peach-pale/40 text-blue-petrol' : 'bg-celeste-gray/20 border-celeste-gray/40 text-blue-petrol'}`}>
+              {subscriptionInfo.status}
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-sm px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-700 font-semibold">
-            {(unifiedStats.planType || psychologist?.plan_type || 'Plus').toUpperCase()}
-          </Badge>
-          <Badge variant="secondary" className={`text-sm px-4 py-2 font-semibold ${subscriptionInfo.color}`}>
-            {subscriptionInfo.status}
-          </Badge>
-        </div>
-      </div>
 
       {/* Acciones rápidas - Tareas de HOY */}
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-slate-800">Tareas de hoy</h2>
-          <Badge variant="secondary" className="text-sm px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border-0 font-semibold">
+        <div className="flex items-center gap-4">
+          <div className="w-1.5 h-10 bg-gradient-to-b from-blue-soft via-celeste-gray to-green-mint rounded-full shadow-lg shadow-blue-soft/30"></div>
+          <h2 className="text-3xl font-bold text-blue-petrol tracking-tight">Tareas de hoy</h2>
+          <Badge className="text-sm px-4 py-1.5 bg-peach-pale/20 backdrop-blur-sm border border-peach-pale/40 text-blue-petrol font-semibold rounded-full">
             {todayAppointments + pendingCount} pendientes
           </Badge>
         </div>
@@ -250,9 +265,9 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
 
       {/* Estadísticas principales */}
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-8 bg-gradient-to-b from-emerald-500 to-green-600 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-slate-800">Resumen general</h2>
+        <div className="flex items-center gap-4">
+          <div className="w-1.5 h-10 bg-gradient-to-b from-green-mint via-blue-soft to-celeste-gray rounded-full shadow-lg shadow-green-mint/30"></div>
+          <h2 className="text-3xl font-bold text-blue-petrol tracking-tight">Resumen general</h2>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -293,9 +308,9 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
 
       {/* Acciones secundarias */}
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-slate-800">Gestión rápida</h2>
+        <div className="flex items-center gap-4">
+          <div className="w-1.5 h-10 bg-gradient-to-b from-lavender-soft via-blue-soft to-celeste-gray rounded-full shadow-lg shadow-lavender-soft/30"></div>
+          <h2 className="text-3xl font-bold text-blue-petrol tracking-tight">Gestión rápida</h2>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -329,45 +344,46 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
         </div>
       </div>
 
-      {/* Estado del sistema - Solo si hay información importante */}
-      {(pendingReceipts > 0 || pendingCount > 0) && (
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-orange-800 text-lg font-bold">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-white" />
+        {/* Estado del sistema - Solo si hay información importante */}
+        {(pendingReceipts > 0 || pendingCount > 0) && (
+          <Card className="border border-peach-pale/50 shadow-xl bg-white-warm/90 backdrop-blur-md rounded-2xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-4 text-blue-petrol text-xl font-bold">
+                <div className="w-12 h-12 bg-gradient-to-br from-peach-pale to-sand-light rounded-2xl flex items-center justify-center shadow-lg shadow-peach-pale/30">
+                  <AlertCircle className="w-7 h-7 text-blue-petrol" />
+                </div>
+                Atención requerida
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                {pendingCount > 0 && (
+                  <div 
+                    className="flex items-center justify-between p-5 bg-white-warm backdrop-blur-sm rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border border-peach-pale/30"
+                    onClick={() => onNavigate?.('appointment-requests')}
+                  >
+                    <span className="text-blue-petrol font-semibold text-base">Solicitudes de cita pendientes</span>
+                    <Badge className="bg-peach-pale text-blue-petrol border-0 px-4 py-1.5 font-semibold rounded-full shadow-md">
+                      {pendingCount}
+                    </Badge>
+                  </div>
+                )}
+                {pendingReceipts > 0 && (
+                  <div 
+                    className="flex items-center justify-between p-5 bg-white-warm backdrop-blur-sm rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border border-peach-pale/30"
+                    onClick={() => onNavigate?.('accounting')}
+                  >
+                    <span className="text-blue-petrol font-semibold text-base">Comprobantes pendientes</span>
+                    <Badge className="bg-peach-pale text-blue-petrol border-0 px-4 py-1.5 font-semibold rounded-full shadow-md">
+                      {pendingReceipts}
+                    </Badge>
+                  </div>
+                )}
               </div>
-              Atención requerida
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-4">
-              {pendingCount > 0 && (
-                <div 
-                  className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
-                  onClick={() => onNavigate?.('appointment-requests')}
-                >
-                  <span className="text-orange-700 font-medium">Solicitudes de cita pendientes</span>
-                  <Badge variant="secondary" className="bg-gradient-to-r from-orange-500 to-amber-600 text-white border-0 px-3 py-1 font-semibold">
-                    {pendingCount}
-                  </Badge>
-                </div>
-              )}
-              {pendingReceipts > 0 && (
-                <div 
-                  className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
-                  onClick={() => onNavigate?.('accounting')}
-                >
-                  <span className="text-orange-700 font-medium">Comprobantes pendientes</span>
-                  <Badge variant="secondary" className="bg-gradient-to-r from-orange-500 to-amber-600 text-white border-0 px-3 py-1 font-semibold">
-                    {pendingReceipts}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

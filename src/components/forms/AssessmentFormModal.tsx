@@ -231,7 +231,7 @@ export const AssessmentFormModal = ({ isOpen, onClose, psychologistId }: Assessm
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-500 to-emerald-500">
+            <Button type="submit" disabled={loading} className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0">
               {loading ? "Guardando..." : "Crear Evaluación"}
             </Button>
           </div>

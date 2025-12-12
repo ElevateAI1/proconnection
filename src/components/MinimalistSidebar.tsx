@@ -59,6 +59,21 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
 
   const pendingReceipts = receipts.filter(r => r.validation_status === 'pending').length;
 
+  // Determinar el plan actual del usuario y funciones helper
+  const currentPlan = psychologist?.plan_type?.toLowerCase() || 'starter';
+  const hasTierOrHigher = (requiredTier: string) => {
+    // DEV tiene acceso a todo
+    if (currentPlan === 'dev') return true;
+    
+    const tierOrder = ['starter', 'proconnection', 'teams'];
+    const currentIndex = tierOrder.indexOf(currentPlan);
+    const requiredIndex = tierOrder.indexOf(requiredTier.toLowerCase());
+    return currentIndex >= requiredIndex;
+  };
+  
+  const hasProConnection = hasTierOrHigher('proconnection');
+  const hasTeams = currentPlan === 'teams' || currentPlan === 'dev';
+
   // Navegación principal - Solo las funciones más importantes
   const mainMenuItems = [
     {
@@ -90,8 +105,9 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
       id: "accounting" as ViewType,
       label: "Finanzas",
       icon: DollarSign,
-      available: true,
-      badge: pendingReceipts > 0 ? pendingReceipts.toString() : undefined
+      available: hasTierOrHigher('proconnection'),
+      badge: pendingReceipts > 0 ? pendingReceipts.toString() : undefined,
+      requiredPlan: 'proconnection'
     }
   ];
 
@@ -130,42 +146,37 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
       label: "Perfil SEO",
       icon: Search,
       available: capabilities?.seo_profile || false,
-      requiredPlan: 'plus' // Requiere Plus o superior
+      requiredPlan: 'proconnection' // Requiere ProConnection o superior
     },
     {
       id: "reports" as ViewType,
       label: "Reportes",
       icon: BarChart3,
       available: capabilities?.advanced_reports || false,
-      requiredPlan: 'plus' // Requiere Plus o superior
+      requiredPlan: 'proconnection' // Requiere ProConnection o superior
     },
     {
       id: "support" as ViewType,
       label: "Soporte",
       icon: Settings,
       available: capabilities?.priority_support || false,
-      requiredPlan: 'plus' // Requiere Plus o superior
+      requiredPlan: 'proconnection' // Requiere ProConnection o superior
     },
     {
       id: "early-access" as ViewType,
       label: "Early Access",
       icon: Zap,
       available: capabilities?.early_access || false,
-      requiredPlan: 'pro' // Requiere Pro
+      requiredPlan: 'teams' // Requiere Teams
     },
     {
       id: "visibility" as ViewType,
       label: "Consultoría Visibilidad",
       icon: Eye,
       available: capabilities?.visibility_consulting || false,
-      requiredPlan: 'pro' // Requiere Pro
+      requiredPlan: 'teams' // Requiere Teams
     }
   ];
-
-  // Determinar el plan actual del usuario
-  const currentPlan = psychologist?.plan_type?.toLowerCase() || 'starter';
-  const hasPlus = ['plus', 'pro'].includes(currentPlan);
-  const hasPro = currentPlan === 'pro';
 
   return (
     <Sidebar collapsible="icon" className="border-r border-slate-200 bg-gradient-to-b from-white to-slate-50 shadow-xl">
@@ -259,28 +270,28 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
                       >
                         <item.icon className="w-4 h-4" />
                         <span className="font-medium">{item.label}</span>
-                        {item.requiredPlan === 'plus' && (
+                        {item.requiredPlan === 'proconnection' && (
                           <Badge 
                             variant="outline" 
                             className={`ml-auto text-xs px-2 py-1 font-semibold ${
-                              hasPlus 
+                              hasProConnection 
                                 ? 'border-amber-200 text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50' 
                                 : 'border-amber-300 text-amber-800 bg-gradient-to-r from-amber-100 to-orange-100'
                             }`}
                           >
-                            PLUS
+                            PRO
                           </Badge>
                         )}
-                        {item.requiredPlan === 'pro' && (
+                        {item.requiredPlan === 'teams' && (
                           <Badge 
                             variant="outline" 
                             className={`ml-auto text-xs px-2 py-1 font-semibold ${
-                              hasPro 
+                              hasTeams 
                                 ? 'border-purple-200 text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50' 
                                 : 'border-purple-300 text-purple-800 bg-gradient-to-r from-purple-100 to-indigo-100'
                             }`}
                           >
-                            PRO
+                            TEAMS
                           </Badge>
                         )}
                       </SidebarMenuButton>

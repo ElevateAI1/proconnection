@@ -269,8 +269,13 @@ export const ExpandedSettingsModal = ({ isOpen, onClose }: ExpandedSettingsModal
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span>Plan:</span>
-                    <Badge className={getPlanBadgeColor(subscriptionInfo?.plan_type || 'plus')}>
-                      {subscriptionInfo?.plan_type?.toUpperCase() || 'PLUS'}
+                    <Badge className={getPlanBadgeColor(subscriptionInfo?.plan_type || 'starter')}>
+                      {(() => {
+                        const planType = (subscriptionInfo?.plan_type || 'starter').toLowerCase();
+                        if (planType === 'proconnection') return 'PROCONNECTION';
+                        if (planType === 'teams') return 'TEAMS';
+                        return 'STARTER';
+                      })()}
                     </Badge>
                   </div>
                   
@@ -325,10 +330,16 @@ export const ExpandedSettingsModal = ({ isOpen, onClose }: ExpandedSettingsModal
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {subscriptionInfo?.plan_type === 'plus' && (
+                  {subscriptionInfo?.plan_type === 'starter' && (
                     <Button className="w-full" variant="outline">
                       <Crown className="w-4 h-4 mr-2" />
-                      Actualizar a Plan PRO
+                      Actualizar a ProConnection
+                    </Button>
+                  )}
+                  {subscriptionInfo?.plan_type === 'proconnection' && (
+                    <Button className="w-full" variant="outline">
+                      <Crown className="w-4 h-4 mr-2" />
+                      Actualizar a Teams
                     </Button>
                   )}
                   

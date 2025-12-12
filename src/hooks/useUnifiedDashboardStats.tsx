@@ -42,18 +42,18 @@ export const useUnifiedDashboardStats = (psychologistId?: string) => {
       return;
     }
 
-    // Si es usuario demo, usar datos simulados
-    if (user?.id === 'demo-user-123') {
-      // Simular carga rápida del perfil
-      setTimeout(() => {
-        setStats(prev => ({
-          ...prev,
-          psychologistName: 'Dr. María González',
-          planType: 'pro',
-          subscriptionStatus: 'active',
-          profileLoading: false
-        }));
-      }, 200);
+      // Si es usuario demo, usar datos simulados
+      if (user?.id === 'demo-user-123') {
+        // Simular carga rápida del perfil
+        setTimeout(() => {
+          setStats(prev => ({
+            ...prev,
+            psychologistName: 'Dr. María González',
+            planType: 'teams',
+            subscriptionStatus: 'active',
+            profileLoading: false
+          }));
+        }, 200);
 
       // Simular carga de estadísticas
       setTimeout(() => {
@@ -103,7 +103,7 @@ export const useUnifiedDashboardStats = (psychologistId?: string) => {
       setStats(prev => ({
         ...prev,
         psychologistName: fullName,
-        planType: psychData.plan_type || 'plus',
+        planType: psychData.plan_type || 'starter',
         subscriptionStatus: psychData.subscription_status || 'trial',
         profileLoading: false
       }));

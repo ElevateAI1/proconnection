@@ -44,7 +44,7 @@ export const API_DOCUMENTATION = {
             phone: 'string (opcional)',
             specialization: 'string (opcional)',
             license_number: 'string (opcional)',
-            plan_type: 'plus | pro (opcional, default: plus)',
+            plan_type: 'starter | proconnection | teams (opcional, default: starter)',
             subscription_status: 'trial | active | expired | cancelled (opcional, default: trial)'
           },
           response: {
@@ -122,7 +122,7 @@ export const API_DOCUMENTATION = {
             phone: 'string (opcional)',
             specialization: 'string (opcional)',
             license_number: 'string (opcional)',
-            plan_type: 'plus | pro (opcional)',
+            plan_type: 'starter | proconnection | teams (opcional)',
             subscription_status: 'trial | active | expired | cancelled (opcional)'
           }
         },
@@ -164,7 +164,7 @@ export const API_DOCUMENTATION = {
           path: '/api-subscriptions/{psychologist_id}/plan',
           description: 'Cambiar tipo de plan',
           body: {
-            plan_type: 'plus | pro (requerido)'
+            plan_type: 'starter | proconnection | teams (requerido)'
           }
         },
         {
@@ -247,7 +247,7 @@ async function createPsychologist(interaction, firstName, lastName, email) {
         first_name: firstName,
         last_name: lastName,
         email: email,
-        plan_type: 'plus'
+        plan_type: 'starter'
       })
     });
 
