@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Play, Check } from 'lucide-react';
+import { InteractiveDashboard } from './InteractiveDashboard';
 
 export const HeroEditorial = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -62,8 +63,8 @@ export const HeroEditorial = () => {
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-12 items-center">
           {/* Left: Content */}
           <div className={`space-y-8 ${isVisible ? 'animate-card-enter' : 'opacity-0'}`}>
             {/* Title - Serif Display */}
@@ -139,31 +140,12 @@ export const HeroEditorial = () => {
             </div>
           </div>
 
-          {/* Right: 3D Mockup */}
+          {/* Right: Interactive Dashboard */}
           <div className={`relative ${isVisible ? 'animate-card-enter' : 'opacity-0'}`} style={{ animationDelay: '200ms' }}>
             <div className="relative" style={{ perspective: '1000px' }}>
-              {/* Floating 3D Dashboard Mockup */}
+              {/* Floating 3D Dashboard */}
               <div className="relative transform hover:rotate-y-6 transition-transform duration-500" style={{ transformStyle: 'preserve-3d' }}>
-                <div className="relative bg-white-warm rounded-2xl shadow-2xl border-4 border-blue-petrol/20 p-8">
-                  {/* Mockup content */}
-                  <div className="space-y-4">
-                    <div className="h-8 bg-purple/20 rounded-lg" />
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="h-32 bg-emerald/20 rounded-lg" />
-                      <div className="h-32 bg-gold/20 rounded-lg" />
-                      <div className="h-32 bg-purple/20 rounded-lg" />
-                    </div>
-                    <div className="h-48 bg-slate-100 rounded-lg border-2 border-slate-200" />
-                  </div>
-                  
-                  {/* Floating UI elements */}
-                  <div className="absolute -top-4 -right-4 bg-green-mint text-blue-petrol px-3 py-1 rounded-lg border-2 border-blue-petrol/30 shadow-lg font-sans-geometric font-bold text-sm animate-bounce">
-                    ✓ Pagos automáticos
-                  </div>
-                  <div className="absolute -bottom-4 -left-4 bg-blue-soft text-white-warm px-3 py-1 rounded-lg border-2 border-blue-petrol/30 shadow-lg font-sans-geometric font-bold text-sm animate-bounce" style={{ animationDelay: '0.5s' }}>
-                    📅 Agenda llena
-                  </div>
-                </div>
+                <InteractiveDashboard />
               </div>
 
               {/* Glow effects */}

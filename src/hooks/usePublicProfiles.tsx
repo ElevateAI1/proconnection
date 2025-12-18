@@ -137,37 +137,126 @@ export const usePublicProfiles = () => {
 
 export const getPublicProfileByUrlDetailed = async (customUrl: string) => {
     try {
-      console.log(`[getPublicProfileByUrlDetailed] V4: Start fetching for: ${customUrl}`);
+      // Normalizar la URL (lowercase, trim)
+      const normalizedUrl = customUrl.toLowerCase().trim();
+      console.log(`[getPublicProfileByUrlDetailed] V5: Start fetching for: "${normalizedUrl}" (original: "${customUrl}")`);
 
       // Increment view count in parallel, no need to wait
-      supabase.rpc('increment_profile_view', { profile_url: customUrl }).then(({ error }) => {
-        if (error) console.warn(`[getPublicProfileByUrlDetailed] V4: RPC increment_profile_view failed (non-critical):`, error);
+      supabase.rpc('increment_profile_view', { profile_url: normalizedUrl }).then(({ error }) => {
+        if (error) console.warn(`[getPublicProfileByUrlDetailed] V5: RPC increment_profile_view failed (non-critical):`, error);
       });
 
-      console.log(`[getPublicProfileByUrlDetailed] V4: Fetching from public_profile_detailed_view...`);
+      // Intentar primero con la vista detallada
+      console.log(`[getPublicProfileByUrlDetailed] V5: Attempting to fetch from public_profile_detailed_view...`);
       
-      const { data: profile, error } = await supabase
-        .from('public_profile_detailed_view')
-        .select('*')
-        .eq('custom_url', customUrl)
+      let profile = null;
+      let error = null;
+
+      try {
+        const { data, error: viewError } = await supabase
+          .from('public_profile_detailed_view')
+          .select('*')
+          .ilike('custom_url', normalizedUrl) // Case-insensitive search
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (viewError) {
+          console.warn('[getPublicProfileByUrlDetailed] V5: View query failed, trying direct table query:', viewError);
+          error = viewError;
+        } else if (data) {
+          console.log('[getPublicProfileByUrlDetailed] V5: Successfully fetched from view:', data);
+          return data;
+        }
+      } catch (viewException) {
+        console.warn('[getPublicProfileByUrlDetailed] V5: Exception querying view, falling back to direct table:', viewException);
+      }
+
+      // Fallback: buscar directamente en la tabla y hacer join manual
+      console.log(`[getPublicProfileByUrlDetailed] V5: Falling back to direct table query...`);
+      
+      const { data: publicProfile, error: profileError } = await supabase
+        .from('public_psychologist_profiles')
+        .select(`
+          *,
+          psychologists!inner (
+            id,
+            first_name,
+            last_name,
+            specialization,
+            professional_code
+          )
+        `)
+        .ilike('custom_url', normalizedUrl)
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error) {
-        console.error('[getPublicProfileByUrlDetailed] V4: Error fetching detailed profile view:', error);
+      if (profileError) {
+        console.error('[getPublicProfileByUrlDetailed] V5: Error fetching profile from table:', profileError);
         return null;
       }
 
-      if (!profile) {
-        console.warn(`[getPublicProfileByUrlDetailed] V4: Profile not found in view for url: ${customUrl}`);
+      if (!publicProfile) {
+        console.warn(`[getPublicProfileByUrlDetailed] V5: Profile not found for url: "${normalizedUrl}"`);
+        console.warn(`[getPublicProfileByUrlDetailed] V5: Make sure the profile exists and is_active = true`);
         return null;
       }
-      
-      console.log('[getPublicProfileByUrlDetailed] V4: Successfully fetched combined profile data:', profile);
-      return profile;
+
+      // Obtener especialidades del perfil
+      const { data: specialties } = await supabase
+        .from('profile_specialties')
+        .select(`
+          specialty_id,
+          professional_specialties!inner (
+            id,
+            name,
+            category,
+            icon
+          )
+        `)
+        .eq('profile_id', publicProfile.id);
+
+      // Construir el objeto de respuesta similar a la vista
+      const psychologist = Array.isArray(publicProfile.psychologists) 
+        ? publicProfile.psychologists[0] 
+        : publicProfile.psychologists;
+
+      const selectedSpecialties = specialties?.map((s: any) => ({
+        id: s.professional_specialties.id,
+        name: s.professional_specialties.name,
+        category: s.professional_specialties.category,
+        icon: s.professional_specialties.icon
+      })) || [];
+
+      const combinedProfile = {
+        id: publicProfile.id,
+        custom_url: publicProfile.custom_url,
+        is_active: publicProfile.is_active,
+        seo_title: publicProfile.seo_title,
+        seo_description: publicProfile.seo_description,
+        seo_keywords: publicProfile.seo_keywords,
+        about_description: publicProfile.about_description,
+        therapeutic_approach: publicProfile.therapeutic_approach,
+        years_experience: publicProfile.years_experience,
+        profession_type: publicProfile.profession_type,
+        profile_data: publicProfile.profile_data,
+        view_count: publicProfile.view_count,
+        last_viewed_at: publicProfile.last_viewed_at,
+        first_name: psychologist?.first_name || null,
+        last_name: psychologist?.last_name || null,
+        specialization: psychologist?.specialization || null,
+        professional_code: psychologist?.professional_code || null,
+        selected_specialties: selectedSpecialties,
+        config_title: null,
+        config_description: null,
+        config_keywords: null,
+        config_custom_url: null
+      };
+
+      console.log('[getPublicProfileByUrlDetailed] V5: Successfully constructed profile from direct query:', combinedProfile);
+      return combinedProfile;
       
     } catch (error: any) {
-      console.error('[getPublicProfileByUrlDetailed] V4: CATCH BLOCK: An unexpected error occurred', error);
+      console.error('[getPublicProfileByUrlDetailed] V5: CATCH BLOCK: An unexpected error occurred', error);
       return null;
     }
   };

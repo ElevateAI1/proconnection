@@ -141,16 +141,36 @@ export const useAccountingReports = (psychologistId?: string) => {
 
   const fetchMonotaxCategories = async () => {
     try {
+      console.log('=== FETCHING MONOTAX CATEGORIES ===');
       const { data, error } = await supabase
         .from('monotax_categories')
         .select('*')
         .eq('is_active', true)
         .order('category_code');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching monotax categories:', error);
+        throw error;
+      }
+
+      console.log(`Fetched ${data?.length || 0} monotax categories:`, data);
       setCategories(data || []);
+      
+      if (!data || data.length === 0) {
+        console.warn('⚠️ No se encontraron categorías de monotributo. Ejecuta la migración 20250121000001_create_monotax_categories.sql');
+        toast({
+          title: "Categorías no disponibles",
+          description: "No se encontraron categorías de monotributo. Contacta al administrador.",
+          variant: "destructive"
+        });
+      }
     } catch (err) {
       console.error('Error fetching monotax categories:', err);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las categorías de monotributo",
+        variant: "destructive"
+      });
     }
   };
 

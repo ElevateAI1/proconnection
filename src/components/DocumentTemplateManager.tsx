@@ -10,8 +10,10 @@ import { useDocumentTemplates } from '@/hooks/useDocumentTemplates';
 import { TemplateEditor } from './template-editor/TemplateEditor';
 import { TemplatePreview } from './template-editor/TemplatePreview';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useProfile } from '@/hooks/useProfile';
 
 export const DocumentTemplateManager: React.FC = () => {
+  const { psychologist } = useProfile();
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useDocumentTemplates();
   const [showEditor, setShowEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -107,6 +109,11 @@ export const DocumentTemplateManager: React.FC = () => {
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value)}
                     placeholder="Ej: Evaluación Inicial"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newTemplateName.trim() && psychologist?.id && !loading) {
+                        handleCreateNew();
+                      }
+                    }}
                   />
                 </div>
                 <div>
@@ -124,12 +131,21 @@ export const DocumentTemplateManager: React.FC = () => {
                   </select>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleCreateNew} disabled={!newTemplateName.trim()}>
+                  <Button 
+                    onClick={handleCreateNew} 
+                    disabled={!newTemplateName.trim() || !psychologist?.id || loading}
+                    className="w-full md:w-auto"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Crear Plantilla
                   </Button>
                 </div>
               </div>
+              {!psychologist?.id && (
+                <p className="text-sm text-amber-600 mt-2">
+                  Cargando información del psicólogo...
+                </p>
+              )}
             </div>
 
             {/* Templates list */}

@@ -29,23 +29,23 @@ export const PublicProfileSpecialties = ({ selectedSpecialties }: PublicProfileS
   }, {} as Record<string, Specialty[]>);
 
   return (
-    <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-glass animate-fade-in-scale">
+    <Card className="bg-white-warm border-2 border-blue-petrol/20 shadow-lg animate-fade-in-scale">
       <CardContent className="p-8">
-        <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-yellow-400" />
+        <h3 className="text-2xl font-bold text-blue-petrol mb-6 flex items-center gap-3">
+          <Sparkles className="w-6 h-6 text-blue-petrol" />
           Especialidades
         </h3>
         
         <div className="space-y-6">
           {Object.entries(groupedSpecialties).map(([category, specialties]) => (
             <div key={category} className="space-y-3">
-              <h4 className="text-lg font-semibold text-white/90">{category}</h4>
+              <h4 className="text-lg font-semibold text-blue-petrol">{category}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {specialties.map((specialty) => (
-                  <div key={specialty.id} className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all duration-300">
+                  <div key={specialty.id} className="bg-gradient-to-br from-blue-soft/10 to-green-mint/10 p-4 rounded-lg border-2 border-blue-petrol/20 hover:border-blue-petrol/40 hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{specialty.icon}</span>
-                      <span className="text-white">{specialty.name}</span>
+                      <span className="text-blue-petrol font-medium">{specialty.name}</span>
                     </div>
                   </div>
                 ))}

@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { CheckCircle } from 'lucide-react';
+import { PaymentDemo } from './PaymentDemo';
+import { CalendarDemo } from './CalendarDemo';
+import { AFIPDemo } from './AFIPDemo';
 
 interface FeatureCardProps {
   title: string;
@@ -108,48 +111,12 @@ const FeatureCard = ({ title, subtitle, benefit, impact, illustration, index }: 
           </div>
         </div>
 
-        {/* Right: Floating UI Mockup */}
+        {/* Right: Interactive Demo */}
         <div className="relative" style={{ perspective: '1000px' }}>
-          <div className="relative bg-white-warm rounded-xl shadow-xl border-4 border-blue-petrol/20 p-6 transform hover:rotate-y-2 transition-transform duration-300" style={{ transformStyle: 'preserve-3d' }}>
-            {/* Mock UI content based on illustration type */}
-            {illustration === 'payments' && (
-              <div className="space-y-3">
-                  <div className="h-4 bg-blue-soft/30 rounded w-3/4" />
-                  <div className="h-20 bg-green-mint/30 rounded-lg border-2 border-green-mint/40" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="h-12 bg-sand-light/30 rounded border-2 border-sand-light/40" />
-                    <div className="h-12 bg-lavender-soft/30 rounded border-2 border-lavender-soft/40" />
-                </div>
-              </div>
-            )}
-            {illustration === 'calendar' && (
-              <div className="space-y-3">
-                  <div className="h-4 bg-blue-soft/30 rounded w-2/3" />
-                  <div className="grid grid-cols-7 gap-1">
-                    {[...Array(21)].map((_, i) => (
-                      <div key={i} className={`h-8 rounded ${i % 7 === 0 ? 'bg-blue-soft/30' : 'bg-gray-light'}`} />
-                    ))}
-                  </div>
-                  <div className="h-16 bg-blue-soft/20 rounded border-2 border-blue-soft/30" />
-              </div>
-            )}
-            {illustration === 'afip' && (
-              <div className="space-y-3">
-                  <div className="h-4 bg-lavender-soft/30 rounded w-full" />
-                  <div className="space-y-2">
-                    <div className="h-3 bg-lavender-soft/25 rounded w-full" />
-                    <div className="h-3 bg-lavender-soft/25 rounded w-5/6" />
-                    <div className="h-3 bg-lavender-soft/25 rounded w-4/6" />
-                  </div>
-                  <div className="h-24 bg-gray-light rounded border-2 border-gray-warm/30" />
-                  <div className="h-8 bg-lavender-soft/30 rounded w-1/3" />
-              </div>
-            )}
-
-            {/* Floating chips */}
-            <div className="absolute -top-3 -right-3 bg-green-mint text-blue-petrol px-2 py-1 rounded border-2 border-blue-petrol/30 shadow-lg font-sans-geometric text-xs font-bold animate-bounce">
-              ✓ Automático
-            </div>
+          <div className="transform hover:rotate-y-2 transition-transform duration-300" style={{ transformStyle: 'preserve-3d' }}>
+            {illustration === 'payments' && <PaymentDemo />}
+            {illustration === 'calendar' && <CalendarDemo />}
+            {illustration === 'afip' && <AFIPDemo />}
           </div>
         </div>
       </div>

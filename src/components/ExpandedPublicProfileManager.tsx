@@ -398,12 +398,30 @@ export const ExpandedPublicProfileManager = () => {
             </div>
 
             {/* Activación */}
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={watch('is_active')}
-                onCheckedChange={(value) => setValue('is_active', value)}
-              />
-              <Label>Perfil público activo</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={watch('is_active')}
+                  onCheckedChange={(value) => setValue('is_active', value)}
+                />
+                <Label>Perfil público activo</Label>
+              </div>
+              {watch('is_active') && previewUrl && (
+                <div className="ml-8 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700 font-medium mb-1">✓ Perfil activo y accesible</p>
+                  <p className="text-xs text-green-600">
+                    Tu perfil será visible en: <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="underline font-mono">{previewUrl}</a>
+                  </p>
+                </div>
+              )}
+              {!watch('is_active') && (
+                <div className="ml-8 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-700 font-medium mb-1">⚠ Perfil inactivo</p>
+                  <p className="text-xs text-yellow-600">
+                    Activa el perfil para que sea visible públicamente. Mientras esté inactivo, la URL no funcionará.
+                  </p>
+                </div>
+              )}
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full">

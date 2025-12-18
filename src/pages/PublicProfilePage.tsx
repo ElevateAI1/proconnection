@@ -111,15 +111,14 @@ export const PublicProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-emerald-600/20 animate-pulse"></div>
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
+      <div className="min-h-screen bg-gradient-to-br from-white-warm via-blue-soft/10 to-green-mint/10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-soft/10 via-transparent to-green-mint/10"></div>
         
         <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-6"></div>
-              <p className="text-white/80 text-lg">Cargando perfil profesional premium...</p>
+              <div className="w-16 h-16 border-4 border-blue-petrol/20 border-t-blue-petrol rounded-full animate-spin mx-auto mb-6"></div>
+              <p className="text-blue-petrol/80 text-lg">Cargando perfil profesional...</p>
             </div>
           </div>
         </div>
@@ -129,23 +128,23 @@ export const PublicProfilePage = () => {
 
   if (notFound || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-emerald-600/20"></div>
+      <div className="min-h-screen bg-gradient-to-br from-white-warm via-blue-soft/10 to-green-mint/10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-soft/10 via-transparent to-green-mint/10"></div>
         
         <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="w-32 h-32 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-8 border border-white/20">
-              <Users className="w-16 h-16 text-white/60" />
+            <div className="w-32 h-32 bg-gradient-to-br from-blue-soft/30 to-green-mint/30 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-blue-petrol/20">
+              <Users className="w-16 h-16 text-blue-petrol/60" />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-6">
+            <h1 className="text-4xl font-bold text-blue-petrol mb-6">
               Perfil no encontrado
             </h1>
-            <p className="text-xl text-white/80 mb-8">
+            <p className="text-xl text-blue-petrol/70 mb-8">
               El perfil profesional que buscas no existe o no está disponible públicamente.
             </p>
             <Button
               onClick={() => window.location.href = '/'}
-              className="bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 text-white px-8 py-3"
+              className="bg-blue-petrol hover:bg-blue-petrol/90 text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 px-8 py-3"
             >
               Volver al inicio
             </Button>
@@ -193,12 +192,12 @@ export const PublicProfilePage = () => {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-        {/* Premium animated background */}
+      <div className="min-h-screen bg-gradient-to-br from-white-warm via-blue-soft/10 to-green-mint/10 relative overflow-hidden">
+        {/* Background elements */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-emerald-600/10 animate-pulse"></div>
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
-          <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-transparent"></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-soft/15 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-96 h-96 bg-green-mint/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-lavender-soft/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
         </div>
 
         <PublicProfileHeader />

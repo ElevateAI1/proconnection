@@ -34,9 +34,9 @@ export const PatientDetailView = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {/* Header Skeleton */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-lg">
+        <div className="bg-gradient-to-r from-white to-slate-50 border-b border-slate-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center space-x-4">
@@ -67,7 +67,7 @@ export const PatientDetailView = () => {
 
   if (!patient) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-lg">
             <CardContent className="p-12 text-center">
@@ -92,151 +92,130 @@ export const PatientDetailView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header Section */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate(-1)}
-                className="hover:bg-slate-100/70 rounded-lg p-2 transition-all duration-200"
-                size="sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                    {patient.first_name} {patient.last_name}
-                  </h1>
-                  <p className="text-slate-600 text-sm flex items-center gap-2">
-                    <Calendar className="w-3 h-3" />
-                    Paciente desde {new Date(patient.created_at).toLocaleDateString('es-ES')}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {profile?.user_type === 'psychologist' && (
-              <Button 
-                onClick={() => navigate(`/patients/edit/${patientId}`)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                size="sm"
-              >
-                <Pencil className="w-3 h-3 mr-2" />
-                Editar Paciente
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        <Tabs 
-          defaultValue="info" 
-          className="w-full" 
-          onValueChange={setActiveTab}
-        >
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 p-1 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/50 h-auto">
-            <TabsTrigger 
-              value="info" 
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/25 hover:bg-slate-100/80 font-medium text-slate-700 text-sm"
-            >
-              <div className="w-4 h-4 rounded flex items-center justify-center">
-                <User className="w-3 h-3" />
-              </div>
-              <span className="font-medium">Información</span>
-            </TabsTrigger>
-            
-            <TabsTrigger 
-              value="appointments"
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25 hover:bg-slate-100/80 font-medium text-slate-700 text-sm"
-            >
-              <div className="w-4 h-4 rounded flex items-center justify-center">
+      <div className="flex-1 bg-gradient-to-br from-white to-slate-50">
+        {/* Header Section - Igual que el dashboard */}
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-gradient-to-r from-white to-slate-50 px-6 shadow-sm">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="hover:bg-slate-100/70 rounded-lg p-2 transition-all duration-200"
+            size="sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center space-x-3 flex-1">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-soft via-celeste-gray to-blue-soft rounded-lg flex items-center justify-center shadow-md">
+              <User className="w-5 h-5 text-blue-petrol" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-blue-petrol">
+                {patient.first_name} {patient.last_name}
+              </h1>
+              <p className="text-xs text-blue-petrol/70 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-              </div>
-              <span className="font-medium">Citas</span>
-            </TabsTrigger>
-            
-            {profile?.user_type === 'psychologist' && (
-              <>
-                <TabsTrigger 
-                  value="documents"
-                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25 hover:bg-slate-100/80 font-medium text-slate-700 text-sm"
-                >
-                  <div className="w-4 h-4 rounded flex items-center justify-center">
-                    <FileText className="w-3 h-3" />
-                  </div>
-                  <span className="font-medium">Documentos</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="billing"
-                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-orange-500/25 hover:bg-slate-100/80 font-medium text-slate-700 text-sm"
-                >
-                  <div className="w-4 h-4 rounded flex items-center justify-center">
-                    <CreditCard className="w-3 h-3" />
-                  </div>
-                  <span className="font-medium">Facturación</span>
-                </TabsTrigger>
-              </>
-            )}
-          </TabsList>
+                Paciente desde {new Date(patient.created_at).toLocaleDateString('es-ES')}
+              </p>
+            </div>
+          </div>
+          {profile?.user_type === 'psychologist' && (
+            <Button 
+              onClick={() => navigate(`/patients/edit/${patientId}`)}
+              className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
+              size="sm"
+            >
+              <Pencil className="w-3 h-3 mr-2" />
+              Editar Paciente
+            </Button>
+          )}
+        </header>
 
-          <div className="mt-6">
+        {/* Content Area - Igual que el dashboard */}
+        <div className="flex flex-1 flex-col gap-4 p-3 sm:p-4">
+          <Tabs 
+            defaultValue="info" 
+            className="w-full" 
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 p-1 bg-white-warm/90 backdrop-blur-xl rounded-xl shadow-lg border border-celeste-gray/50 h-auto mb-4">
+              <TabsTrigger 
+                value="info" 
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-blue-petrol data-[state=active]:text-white-warm data-[state=active]:shadow-md hover:bg-blue-soft/20 font-medium text-blue-petrol text-sm"
+              >
+                <User className="w-3 h-3" />
+                <span className="font-medium">Información</span>
+              </TabsTrigger>
+              
+              <TabsTrigger 
+                value="appointments"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-blue-petrol data-[state=active]:text-white-warm data-[state=active]:shadow-md hover:bg-green-mint/20 font-medium text-blue-petrol text-sm"
+              >
+                <Calendar className="w-3 h-3" />
+                <span className="font-medium">Citas</span>
+              </TabsTrigger>
+              
+              {profile?.user_type === 'psychologist' && (
+                <>
+                  <TabsTrigger 
+                    value="documents"
+                    className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-blue-petrol data-[state=active]:text-white-warm data-[state=active]:shadow-md hover:bg-lavender-soft/20 font-medium text-blue-petrol text-sm"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span className="font-medium">Documentos</span>
+                  </TabsTrigger>
+                  
+                  <TabsTrigger 
+                    value="billing"
+                    className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ease-out data-[state=active]:bg-blue-petrol data-[state=active]:text-white-warm data-[state=active]:shadow-md hover:bg-peach-pale/20 font-medium text-blue-petrol text-sm"
+                  >
+                    <CreditCard className="w-3 h-3" />
+                    <span className="font-medium">Facturación</span>
+                  </TabsTrigger>
+                </>
+              )}
+            </TabsList>
+
             <TabsContent value="info" className="mt-0">
-              <div className="animate-fade-in-up">
-                <PatientInfo 
-                  patient={patient} 
-                  onUpdate={handlePatientUpdate}
-                  patientId={patientId!}
-                />
-              </div>
+              <PatientInfo 
+                patient={patient} 
+                onUpdate={handlePatientUpdate}
+                patientId={patientId!}
+              />
             </TabsContent>
 
             <TabsContent value="appointments" className="mt-0">
-              <div className="animate-fade-in-up">
-                <PatientAppointments patientId={patientId!} />
-              </div>
+              <PatientAppointments patientId={patientId!} />
             </TabsContent>
             
             <TabsContent value="documents" className="mt-0">
-              <div className="animate-fade-in-up">
-                <PatientDocuments 
-                  documents={documents}
-                  patientId={patientId}
-                  onRefresh={refetchDocuments}
-                  patient={patient}
-                />
-              </div>
+              <PatientDocuments 
+                documents={documents}
+                patientId={patientId}
+                onRefresh={refetchDocuments}
+                patient={patient}
+              />
             </TabsContent>
 
             <TabsContent value="billing" className="mt-0">
               {profile?.user_type === 'psychologist' ? (
-                <div className="animate-fade-in-up">
-                  <PatientBilling patientId={patientId} />
-                </div>
+                <PatientBilling patientId={patientId} />
               ) : (
-                <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-lg">
+                <Card className="border border-celeste-gray/50 shadow-lg bg-white-warm/90 backdrop-blur-md rounded-2xl">
                   <CardContent className="p-12 text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <CreditCard className="w-10 h-10 text-slate-500" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-soft/30 to-celeste-gray/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CreditCard className="w-10 h-10 text-blue-petrol" />
                     </div>
-                    <h3 className="text-xl font-semibold text-slate-700 mb-2">Acceso Restringido</h3>
-                    <p className="text-slate-500">
+                    <h3 className="text-xl font-semibold text-blue-petrol mb-2">Acceso Restringido</h3>
+                    <p className="text-blue-petrol/70">
                       Solo los psicólogos pueden ver la información de facturación.
                     </p>
                   </CardContent>
                 </Card>
               )}
             </TabsContent>
-          </div>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

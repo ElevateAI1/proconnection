@@ -127,9 +127,37 @@ export const TemplateUsageManager: React.FC<TemplateUsageManagerProps> = ({
         );
 
       case 'form':
+        if (!selectedTemplate) {
+          return (
+            <div className="text-center py-8">
+              <p className="text-slate-600">No se seleccionó ninguna plantilla</p>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setCurrentView('selector');
+                  setSelectedTemplate(null);
+                }}
+                className="mt-4"
+              >
+                Volver
+              </Button>
+            </div>
+          );
+        }
+        
+        // Normalize template structure
+        const normalizedTemplate = {
+          ...selectedTemplate,
+          template_content: selectedTemplate.template_content || {
+            name: selectedTemplate.name,
+            document_type: selectedTemplate.document_type,
+            sections: selectedTemplate.template_content?.sections || []
+          }
+        };
+        
         return (
           <TemplateForm
-            template={selectedTemplate}
+            template={normalizedTemplate}
             patientId={patientId}
             onSave={handleFormSave}
             onCancel={() => {

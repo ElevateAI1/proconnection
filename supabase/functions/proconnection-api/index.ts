@@ -139,7 +139,25 @@ async function handlePatients(req: Request, supabase: any, segments: string[]) {
         user_metadata: { user_type: 'patient' }
       })
 
-      if (authError) return errorResponse('Failed to create user account')
+      if (authError) {
+        console.error('Error creating auth user:', authError)
+        return errorResponse(`Failed to create user account: ${authError.message}`)
+      }
+
+      // Create profile first (required for patients table foreign key)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authUser.user.id,
+          email: tempEmail,
+          user_type: 'patient'
+        })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        await supabase.auth.admin.deleteUser(authUser.user.id)
+        return errorResponse(`Failed to create profile: ${profileError.message}`)
+      }
 
       const patientData = {
         id: authUser.user.id,
@@ -158,8 +176,11 @@ async function handlePatients(req: Request, supabase: any, segments: string[]) {
         .single()
 
       if (patientCreateError) {
+        console.error('Error creating patient:', patientCreateError)
+        // Cleanup: delete profile and auth user if patient creation failed
+        await supabase.from('profiles').delete().eq('id', authUser.user.id)
         await supabase.auth.admin.deleteUser(authUser.user.id)
-        return errorResponse('Failed to create patient profile')
+        return errorResponse(`Failed to create patient profile: ${patientCreateError.message}`)
       }
 
       return new Response(
@@ -285,7 +306,25 @@ async function handlePsychologists(req: Request, supabase: any, segments: string
         user_metadata: { user_type: 'psychologist' }
       })
 
-      if (authError) return errorResponse('Failed to create user account')
+      if (authError) {
+        console.error('Error creating auth user:', authError)
+        return errorResponse(`Failed to create user account: ${authError.message}`)
+      }
+
+      // Create profile first (required for psychologists table foreign key)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authUser.user.id,
+          email: tempEmail,
+          user_type: 'psychologist'
+        })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        await supabase.auth.admin.deleteUser(authUser.user.id)
+        return errorResponse(`Failed to create profile: ${profileError.message}`)
+      }
 
       const psychologistData = {
         id: authUser.user.id,
@@ -306,8 +345,11 @@ async function handlePsychologists(req: Request, supabase: any, segments: string
         .single()
 
       if (psychError) {
+        console.error('Error creating psychologist:', psychError)
+        // Cleanup: delete profile and auth user if psychologist creation failed
+        await supabase.from('profiles').delete().eq('id', authUser.user.id)
         await supabase.auth.admin.deleteUser(authUser.user.id)
-        return errorResponse('Failed to create psychologist profile')
+        return errorResponse(`Failed to create psychologist profile: ${psychError.message}`)
       }
 
       return new Response(
@@ -385,7 +427,25 @@ async function handleAccounts(req: Request, supabase: any, segments: string[]) {
           email_confirm: true
         })
 
-        if (authError) return errorResponse(`Failed to create user account: ${authError.message}`)
+        if (authError) {
+          console.error('Error creating auth user:', authError)
+          return errorResponse(`Failed to create user account: ${authError.message}`)
+        }
+
+        // Create profile first (required for psychologists table foreign key)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authUser.user.id,
+            email: createData.email,
+            user_type: 'psychologist'
+          })
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError)
+          await supabase.auth.admin.deleteUser(authUser.user.id)
+          return errorResponse(`Failed to create profile: ${profileError.message}`)
+        }
 
         const psychologistData = {
           id: authUser.user.id,
@@ -406,8 +466,11 @@ async function handleAccounts(req: Request, supabase: any, segments: string[]) {
           .single()
 
         if (psychError) {
+          console.error('Error creating psychologist:', psychError)
+          // Cleanup: delete profile and auth user if psychologist creation failed
+          await supabase.from('profiles').delete().eq('id', authUser.user.id)
           await supabase.auth.admin.deleteUser(authUser.user.id)
-          return errorResponse('Failed to create psychologist profile')
+          return errorResponse(`Failed to create psychologist profile: ${psychError.message}`)
         }
 
         return successResponse({
@@ -444,7 +507,25 @@ async function handleAccounts(req: Request, supabase: any, segments: string[]) {
           email_confirm: true
         })
 
-        if (authError) return errorResponse(`Failed to create user account: ${authError.message}`)
+        if (authError) {
+          console.error('Error creating auth user:', authError)
+          return errorResponse(`Failed to create user account: ${authError.message}`)
+        }
+
+        // Create profile first (required for patients table foreign key)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authUser.user.id,
+            email: createData.email,
+            user_type: 'patient'
+          })
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError)
+          await supabase.auth.admin.deleteUser(authUser.user.id)
+          return errorResponse(`Failed to create profile: ${profileError.message}`)
+        }
 
         const patientData = {
           id: authUser.user.id,
@@ -463,8 +544,11 @@ async function handleAccounts(req: Request, supabase: any, segments: string[]) {
           .single()
 
         if (patientCreateError) {
+          console.error('Error creating patient:', patientCreateError)
+          // Cleanup: delete profile and auth user if patient creation failed
+          await supabase.from('profiles').delete().eq('id', authUser.user.id)
           await supabase.auth.admin.deleteUser(authUser.user.id)
-          return errorResponse('Failed to create patient profile')
+          return errorResponse(`Failed to create patient profile: ${patientCreateError.message}`)
         }
 
         return successResponse({
@@ -734,31 +818,37 @@ serve(async (req) => {
     const url = new URL(req.url)
     const segments = url.pathname.split('/').filter(Boolean)
     
-    // Remover el nombre de la función si está presente
-    if (segments[0] === 'proconnection-api' || segments[0] === 'edge-function-proconnection') {
-      segments.shift()
-    }
+    // Buscar el índice del nombre de la función
+    const functionNameIndex = segments.findIndex(
+      seg => seg === 'proconnection-api' || seg === 'edge-function-proconnection'
+    )
     
-    const resource = segments[0]
+    // Si encontramos el nombre de la función, tomar los segments después de ella
+    // Si no, usar todos los segments
+    const resourceSegments = functionNameIndex !== -1
+      ? segments.slice(functionNameIndex + 1)
+      : segments
+    
+    const resource = resourceSegments[0]
 
-    console.log(`ProConnection API: ${req.method} /${segments.join('/')}`)
+    console.log(`ProConnection API: ${req.method} /${segments.join('/')} -> resource: ${resource}, segments: [${resourceSegments.join(', ')}]`)
 
     // Routing
     switch (resource) {
       case 'patients':
-        return await handlePatients(req, supabase, segments)
+        return await handlePatients(req, supabase, resourceSegments)
       
       case 'psychologists':
-        return await handlePsychologists(req, supabase, segments)
+        return await handlePsychologists(req, supabase, resourceSegments)
       
       case 'accounts':
-        return await handleAccounts(req, supabase, segments)
+        return await handleAccounts(req, supabase, resourceSegments)
       
       case 'stats':
-        return await handleStats(req, supabase, segments)
+        return await handleStats(req, supabase, resourceSegments)
       
       case 'subscriptions':
-        return await handleSubscriptions(req, supabase, segments)
+        return await handleSubscriptions(req, supabase, resourceSegments)
       
       default:
         return errorResponse('Invalid resource. Supported: patients, psychologists, accounts, stats, subscriptions', 400)

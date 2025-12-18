@@ -44,6 +44,17 @@ export default function Index() {
   const [showTrialModal, setShowTrialModal] = useState(false);
   const navigate = useNavigate();
 
+  // Leer query parameter para cambiar la vista
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewParam = urlParams.get('view');
+    if (viewParam && ['dashboard', 'patients', 'calendar', 'documents', 'appointment-requests'].includes(viewParam)) {
+      setCurrentView(viewParam as ViewType);
+      // Limpiar el query parameter después de leerlo
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Handle email verification from URL
   useEmailVerification();
 

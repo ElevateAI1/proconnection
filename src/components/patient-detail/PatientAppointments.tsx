@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ interface PatientAppointmentsProps {
 
 export const PatientAppointments = ({ patientId }: PatientAppointmentsProps) => {
   const { psychologist } = useProfile();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -153,8 +155,30 @@ export const PatientAppointments = ({ patientId }: PatientAppointmentsProps) => 
     );
   }
 
+  const handleAddAppointment = () => {
+    // Guardar el patientId en localStorage para que el calendario pueda usarlo
+    if (patientId) {
+      localStorage.setItem('selectedPatientId', patientId);
+    }
+    // Navegar al dashboard y cambiar la vista a calendar
+    navigate('/?view=calendar');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Botón para agregar cita - Solo visible para psicólogos */}
+      {psychologist && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleAddAppointment}
+            className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Agregar Cita
+          </Button>
+        </div>
+      )}
+
       {/* Header con estadísticas */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-0 shadow-lg">

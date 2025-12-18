@@ -3,9 +3,9 @@ import { Shield } from 'lucide-react';
 
 export const PublicProfileFooter = () => {
   return (
-    <footer className="text-center py-8 border-t border-white/10">
+    <footer className="text-center py-8 border-t border-blue-petrol/20 bg-white-warm/50">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center gap-2 text-white/60">
+        <div className="flex items-center gap-2 text-blue-petrol/70">
           <Shield className="w-5 h-5" />
           <span className="text-sm">
             Perfil profesional verificado y protegido por
@@ -13,11 +13,11 @@ export const PublicProfileFooter = () => {
         </div>
         <a 
           href="/" 
-          className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+          className="text-blue-petrol hover:text-blue-soft font-semibold transition-colors"
         >
-          ProConnection Premium
+          ProConnection
         </a>
-        <p className="text-white/40 text-xs max-w-2xl">
+        <p className="text-blue-petrol/60 text-xs max-w-2xl">
           Plataforma líder en gestión profesional • Tecnología segura • Confidencialidad garantizada
         </p>
       </div>

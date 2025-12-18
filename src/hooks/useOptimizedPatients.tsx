@@ -89,7 +89,7 @@ export const useOptimizedPatients = (psychologistId?: string) => {
           phone: patientData.phone || null,
           age: patientData.age || null,
           notes: patientData.notes || null,
-          psychologist_id: psychologistId
+        psychologist_id: psychologistId
         })
       });
 

@@ -18,13 +18,15 @@ import { usePaymentReceipts } from "@/hooks/usePaymentReceipts";
 import { ReceiptValidationPanel } from "./ReceiptValidationPanel";
 import { MonthlyReportGenerator } from "./MonthlyReportGenerator";
 import { MonotaxCategorySelector } from "./MonotaxCategorySelector";
+import { InvoiceGenerator } from "./InvoiceGenerator";
+import { InvoiceList } from "./InvoiceList";
 
 interface AccountingDashboardProps {
   psychologistId: string;
 }
 
 export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps) => {
-  const { reports, categories, currentCategory, checkLimitAlerts } = useAccountingReports(psychologistId);
+  const { reports, categories, currentCategory, checkLimitAlerts, updateMonotaxCategory } = useAccountingReports(psychologistId);
   const { receipts } = usePaymentReceipts(psychologistId);
 
   console.log('=== ACCOUNTING DASHBOARD DEBUG ===');
@@ -139,7 +141,7 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
         <MonotaxCategorySelector 
           currentCategory={currentCategory}
           categories={categories}
-          onCategoryChange={(code) => {}}
+          onCategoryChange={updateMonotaxCategory}
         />
       </div>
 
@@ -236,6 +238,12 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
 
       {/* Panel de validación de comprobantes */}
       <ReceiptValidationPanel psychologistId={psychologistId} />
+
+      {/* Generador de facturas */}
+      <InvoiceGenerator psychologistId={psychologistId} />
+
+      {/* Lista de facturas */}
+      <InvoiceList psychologistId={psychologistId} />
 
       {/* Generador de reportes mensuales */}
       <MonthlyReportGenerator psychologistId={psychologistId} />

@@ -30,10 +30,10 @@ interface Template {
   id: string;
   name: string;
   document_type: string;
-  template_content: {
-    name: string;
-    document_type: string;
-    sections: TemplateSection[];
+  template_content?: {
+    name?: string;
+    document_type?: string;
+    sections?: TemplateSection[];
   };
 }
 
@@ -65,8 +65,10 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    template.template_content.sections.forEach(section => {
-      section.fields.forEach(field => {
+    const sections = template.template_content?.sections || [];
+    sections.forEach(section => {
+      const fields = section.fields || [];
+      fields.forEach(field => {
         if (field.required && (!formData[field.id] || formData[field.id] === '')) {
           newErrors[field.id] = `${field.label} es requerido`;
         }
@@ -266,11 +268,18 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePreview}>
+          <Button 
+            variant="outline" 
+            onClick={handlePreview}
+            disabled={!template.template_content?.sections || template.template_content.sections.length === 0}
+          >
             <Eye className="w-4 h-4 mr-2" />
             Vista Previa
           </Button>
-          <Button onClick={handleSave}>
+          <Button 
+            onClick={handleSave}
+            disabled={!template.template_content?.sections || template.template_content.sections.length === 0}
+          >
             <Save className="w-4 h-4 mr-2" />
             Guardar Documento
           </Button>
@@ -278,16 +287,31 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
       </div>
 
       <div className="space-y-6">
-        {template.template_content.sections.map((section) => (
-          <Card key={section.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {section.fields.map(renderField)}
+        {template.template_content?.sections && template.template_content.sections.length > 0 ? (
+          template.template_content.sections.map((section) => (
+            <Card key={section.id}>
+              <CardHeader>
+                <CardTitle className="text-lg">{section.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {section.fields?.map(renderField) || []}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center">
+                <p className="text-slate-600 mb-4">
+                  Esta plantilla aún no tiene secciones configuradas.
+                </p>
+                <p className="text-sm text-slate-500">
+                  Por favor, edita la plantilla desde la pestaña "Plantillas" para agregar campos y secciones.
+                </p>
+              </div>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
     </div>
   );
