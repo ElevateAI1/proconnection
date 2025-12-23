@@ -4,12 +4,14 @@ import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import Index from "./pages/Index";
 import { LandingPage } from "./pages/LandingPage";
-import { AuthPage } from "./components/AuthPage";
+import { AuthPage } from "./pages/AuthPage";
 
 // Lazy load components for code splitting
 const DemoPage = lazy(() => import("./pages/DemoPage").then(m => ({ default: m.DemoPage })));
+const IntroPage = lazy(() => import("./pages/IntroPage").then(m => ({ default: m.IntroPage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then(m => ({ default: m.RegisterPage })));
-const PatientAuthPage = lazy(() => import("./components/PatientAuthPage").then(m => ({ default: m.PatientAuthPage })));
+const ProfessionalAuthPage = lazy(() => import("./pages/ProfessionalAuthPage").then(m => ({ default: m.ProfessionalAuthPage })));
+const PatientAuthPage = lazy(() => import("./pages/PatientAuthPage").then(m => ({ default: m.PatientAuthPage })));
 const PatientRegisterPage = lazy(() => import("./pages/PatientRegisterPage").then(m => ({ default: m.PatientRegisterPage })));
 const AdminLogin = lazy(() => import("./pages/AdminLogin").then(m => ({ default: m.AdminLogin })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
@@ -38,11 +40,14 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/intro" element={<IntroPage />} />
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/professional" element={<ProfessionalAuthPage />} />
           <Route path="/auth/patient" element={<PatientAuthPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/register/patient" element={<PatientRegisterPage />} />
+          <Route path="/register/professional" element={<ProfessionalAuthPage />} />
+          <Route path="/register/patient" element={<PatientAuthPage />} />
           <Route path="/dashboard" element={<Index />} />
           <Route path="/app" element={<Index />} />
           <Route path="/plans" element={<PlansPage />} />

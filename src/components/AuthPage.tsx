@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope, Shield, Lock as LockIcon, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 
 interface AuthPageProps {
   affiliateCode?: string | null;
@@ -356,6 +356,18 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
           <div className="bg-white-warm border-4 border-blue-petrol/30 rounded-2xl p-8 sm:p-10 shadow-[12px_12px_0px_0px_rgba(62,95,120,0.15)]">
             {/* Header */}
             <div className="text-center mb-8">
+              <div className="flex justify-end mb-2">
+                <Link to="/">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-petrol/60 hover:text-blue-petrol hover:bg-blue-petrol/5"
+                  >
+                    <Home className="w-4 h-4 mr-2" />
+                    <span className="text-sm">Volver al inicio</span>
+                  </Button>
+                </Link>
+              </div>
               <h1 className="font-serif-display text-4xl sm:text-5xl font-bold text-blue-petrol mb-3">
                 {isSignUp ? "Crear Cuenta" : "Iniciar Sesión"}
               </h1>
@@ -415,15 +427,6 @@ export const AuthPage = ({ affiliateCode, registrationOnly = false }: AuthPagePr
                   disabled={loading}
                 >
                   {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                </Button>
-
-                <Button 
-                  type="button"
-                  onClick={() => navigate('/auth/patient')}
-                  className="w-full bg-white-warm text-blue-petrol border-4 border-blue-petrol/30 shadow-[6px_6px_0px_0px_rgba(62,95,120,0.15)] hover:shadow-[3px_3px_0px_0px_rgba(62,95,120,0.15)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200 mt-3"
-                  disabled={loading}
-                >
-                  💜 Soy Paciente
                 </Button>
                 
                 <div className="text-center pt-4">

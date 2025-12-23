@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { AuthPage } from "@/components/AuthPage";
+import { PatientAuthPage } from "@/components/PatientAuthPage";
+import { UserTypeSelectionModal } from "@/components/UserTypeSelectionModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, ArrowRight, CheckCircle, Star, Shield, Headphones, Clock, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UserCheck, ArrowRight, CheckCircle, Star, Shield, Headphones, Clock, CreditCard, Home } from "lucide-react";
 
 export const RegisterPage = () => {
   const [searchParams] = useSearchParams();
@@ -17,6 +20,8 @@ export const RegisterPage = () => {
   } | null>(null);
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeValidationComplete, setCodeValidationComplete] = useState(false);
+  const [showUserTypeModal, setShowUserTypeModal] = useState(true);
+  const [userType, setUserType] = useState<"professional" | "patient" | null>(null);
 
   const referralCode = searchParams.get('ref');
 
@@ -88,9 +93,37 @@ export const RegisterPage = () => {
     }
   };
 
+  const handleCloseModal = () => {
+    // Si cierran sin seleccionar, el modal se cierra automáticamente
+  };
+
+  // Si aún no se ha seleccionado el tipo de usuario, mostrar solo el modal
+  if (showUserTypeModal) {
+    return (
+      <UserTypeSelectionModal
+        isOpen={showUserTypeModal}
+        onClose={handleCloseModal}
+        redirectTo="register"
+        referralCode={referralCode}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <div className="container mx-auto px-4 py-8">
+        {/* Back to Home Button */}
+        <div className="flex justify-end mb-4">
+          <Link to="/">
+            <Button
+              variant="outline"
+              className="text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              <span>Volver al inicio</span>
+            </Button>
+          </Link>
+        </div>
         
         {/* Header with Enhanced Trial Messaging */}
         <div className="text-center mb-12">
@@ -232,7 +265,11 @@ export const RegisterPage = () => {
               {/* Auth Component */}
               {(!referralCode || codeValidationComplete) && (
                 <div className="lg:order-2">
-                  <AuthPage affiliateCode={referralCode} registrationOnly={true} />
+                  {userType === "professional" ? (
+                    <AuthPage affiliateCode={referralCode} registrationOnly={true} />
+                  ) : userType === "patient" ? (
+                    <PatientAuthPage registrationOnly={true} />
+                  ) : null}
                 </div>
               )}
             </div>
@@ -241,7 +278,11 @@ export const RegisterPage = () => {
           // Centered layout without referral code
           <div className="max-w-lg mx-auto">
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-              <AuthPage affiliateCode={null} registrationOnly={true} />
+              {userType === "professional" ? (
+                <AuthPage affiliateCode={null} registrationOnly={true} />
+              ) : userType === "patient" ? (
+                <PatientAuthPage registrationOnly={true} />
+              ) : null}
             </div>
           </div>
         )}

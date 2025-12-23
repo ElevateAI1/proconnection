@@ -87,7 +87,7 @@ export const ImprovedNavigation = () => {
                 Iniciar Sesión
               </Button>
             </Link>
-            <Link to="/register">
+            <Link to="/intro">
               <Button 
                 className="bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
               >
@@ -148,7 +148,7 @@ export const ImprovedNavigation = () => {
                     Iniciar Sesión
                   </Button>
                 </Link>
-                <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link to="/intro" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button 
                     className="w-full bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
                   >

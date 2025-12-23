@@ -129,14 +129,16 @@ export const HeroEditorial = () => {
                   Probá gratis 14 días
                 </Button>
               </Link>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto font-sans-geometric text-lg px-8 py-6 border-2 border-blue-petrol/50 bg-white-warm text-blue-petrol shadow-[8px_8px_0px_0px_rgba(62,95,120,0.2)] hover:shadow-[4px_4px_0px_0px_rgba(62,95,120,0.2)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Ver demo (60 seg)
-              </Button>
+              <Link to="/demo">
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto font-sans-geometric text-lg px-8 py-6 border-2 border-blue-petrol/50 bg-white-warm text-blue-petrol shadow-[8px_8px_0px_0px_rgba(62,95,120,0.2)] hover:shadow-[4px_4px_0px_0px_rgba(62,95,120,0.2)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  Ver demo (60 seg)
+                </Button>
+              </Link>
             </div>
           </div>
 

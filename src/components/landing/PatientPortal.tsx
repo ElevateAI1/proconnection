@@ -126,10 +126,10 @@ export const PatientPortal = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white-warm flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando tu portal...</p>
+          <div className="w-12 h-12 border-4 border-blue-petrol border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-petrol font-semibold">Cargando tu portal...</p>
         </div>
       </div>
     );
@@ -137,10 +137,10 @@ export const PatientPortal = () => {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white-warm flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-800 mb-4">Acceso no autorizado</h1>
-          <p className="text-slate-600">Por favor, inicia sesión para acceder a tu portal.</p>
+          <h1 className="text-3xl font-bold text-blue-petrol mb-4">Acceso no autorizado</h1>
+          <p className="text-blue-petrol/70 font-medium">Por favor, inicia sesión para acceder a tu portal.</p>
         </div>
       </div>
     );
@@ -152,24 +152,29 @@ export const PatientPortal = () => {
   const pendingPayment = receipts.find(r => r.validation_status === 'pending');
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white-warm relative overflow-hidden">
+      {/* Elementos flotantes de fondo - igual que el dashboard profesional */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-soft/15 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute top-40 right-20 w-96 h-96 bg-green-mint/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-lavender-soft/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+      
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
+      <header className="bg-white-warm/90 backdrop-blur-md shadow-sm border-b border-celeste-gray/30 relative z-10">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-soft via-celeste-gray to-green-mint rounded-lg flex items-center justify-center shadow-lg shadow-blue-soft/30">
                 <span className="text-white font-bold text-sm">PC</span>
               </div>
-              <span className="text-lg font-semibold text-slate-800">ProConnection</span>
+              <span className="text-lg font-bold text-blue-petrol">ProConnection</span>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-soft/30">
                   {patientName.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-slate-700 font-medium">{patientName}</span>
+                <span className="text-blue-petrol font-semibold">{patientName}</span>
               </div>
               <Button 
                 variant="outline" 
@@ -178,7 +183,7 @@ export const PatientPortal = () => {
                   await signOut();
                   window.location.href = '/auth';
                 }}
-                className="hover:scale-105 transition-transform duration-200"
+                className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                 aria-label="Cerrar sesión"
               >
                 <LogOut className="w-4 h-4 mr-2" />
@@ -189,18 +194,32 @@ export const PatientPortal = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Welcome */}
+      <div className="max-w-6xl mx-auto px-6 py-8 relative z-10">
+        {/* Welcome - estilo neogolpista */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            Hola, {patientName.split(' ')[0]} 👋
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-3">
+            <span className="text-blue-petrol">Hola, </span>
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-r from-blue-soft via-celeste-gray to-blue-soft bg-clip-text text-transparent">
+                {patientName.split(' ')[0]}
+              </span>
+            </span>
+            <span className="text-blue-petrol"> 👋</span>
           </h1>
-          <p className="text-slate-600">
+          <p className="text-blue-petrol/70 text-lg sm:text-xl font-medium mb-4">
+            {new Date().toLocaleDateString('es-ES', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+          <p className="text-blue-petrol/80 text-lg">
             Aquí podés gestionar tus citas y pagos de forma segura
           </p>
           {psychologistInfo && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
+            <div className="mt-4 p-4 bg-blue-soft/20 backdrop-blur-sm border-2 border-blue-soft/30 rounded-xl shadow-lg">
+              <p className="text-sm text-blue-petrol font-semibold">
                 <strong>Tu profesional:</strong> {psychologistInfo.first_name} {psychologistInfo.last_name}
               </p>
             </div>
@@ -210,10 +229,12 @@ export const PatientPortal = () => {
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Próximas citas */}
-          <Card className="border-0 shadow-lg">
+          <Card className="border-2 border-celeste-gray/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white-warm/90 backdrop-blur-md rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
+              <CardTitle className="flex items-center gap-2 text-blue-petrol font-bold">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-xl flex items-center justify-center shadow-lg shadow-blue-soft/30">
+                  <Calendar className="w-5 h-5 text-white" />
+                </div>
                 Mis próximas citas
               </CardTitle>
             </CardHeader>
@@ -241,32 +262,32 @@ export const PatientPortal = () => {
                     };
 
                     return (
-                      <div key={appointment.id} className="bg-slate-50 rounded-lg p-4">
+                      <div key={appointment.id} className="bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <div className="font-semibold text-slate-800">
+                            <div className="font-semibold text-blue-petrol text-lg">
                               {dateStr}
                             </div>
-                            <div className="text-slate-600">{timeStr}</div>
+                            <div className="text-blue-petrol/70 font-medium">{timeStr}</div>
                             {appointment.psychologist && (
-                              <div className="text-sm text-slate-500 mt-1">
+                              <div className="text-sm text-blue-petrol/60 mt-1">
                                 Con {appointment.psychologist.first_name} {appointment.psychologist.last_name}
                               </div>
                             )}
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             appointment.status === 'confirmed' || appointment.status === 'accepted'
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-green-mint/30 text-blue-petrol border border-green-mint/50' 
+                              : 'bg-peach-pale/30 text-blue-petrol border border-peach-pale/50'
                           }`}>
                             {statusLabels[appointment.status] || appointment.status}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
+                        <div className="flex items-center gap-2 text-sm text-blue-petrol/70 mb-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             !isOnline
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-purple-100 text-purple-800'
+                              ? 'bg-blue-soft/30 text-blue-petrol border border-blue-soft/50' 
+                              : 'bg-lavender-soft/30 text-blue-petrol border border-lavender-soft/50'
                           }`}>
                             {!isOnline ? 'Presencial' : 'Online'}
                           </span>
@@ -275,7 +296,7 @@ export const PatientPortal = () => {
                               size="sm" 
                               variant="outline"
                               onClick={() => window.open(appointment.meeting_url, '_blank')}
-                              className="text-xs"
+                              className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                               aria-label="Unirse a reunión"
                             >
                               Unirse
@@ -288,10 +309,12 @@ export const PatientPortal = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-600 mb-4">No tenés citas programadas</p>
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-soft/30">
+                    <Calendar className="w-8 h-8 text-white" />
+                  </div>
+                  <p className="text-blue-petrol/70 font-medium mb-4">No tenés citas programadas</p>
                   <Button 
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                    className="bg-blue-petrol text-white-warm border-4 border-blue-petrol shadow-[6px_6px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-3 px-6 rounded-lg transition-all duration-200"
                     onClick={() => setShowAppointmentModal(true)}
                   >
                     Pedir turno
@@ -302,25 +325,29 @@ export const PatientPortal = () => {
           </Card>
 
           {/* Pagos */}
-          <Card className="border-0 shadow-lg">
+          <Card className="border-2 border-celeste-gray/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white-warm/90 backdrop-blur-md rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-orange-500" />
+              <CardTitle className="flex items-center gap-2 text-blue-petrol font-bold">
+                <div className="w-10 h-10 bg-gradient-to-br from-peach-pale to-sand-light rounded-xl flex items-center justify-center shadow-lg shadow-peach-pale/30">
+                  <CreditCard className="w-5 h-5 text-blue-petrol" />
+                </div>
                 Pagos
               </CardTitle>
             </CardHeader>
             <CardContent>
               {/* Pago pendiente destacado */}
               {pendingPayment && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg mb-4">
+                <div className="bg-peach-pale/30 backdrop-blur-sm border-2 border-peach-pale/50 p-4 rounded-xl mb-4 shadow-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-red-500" />
-                    <span className="font-semibold text-red-700">Pago pendiente de validación</span>
+                    <div className="w-8 h-8 bg-peach-pale/50 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-blue-petrol" />
+                    </div>
+                    <span className="font-semibold text-blue-petrol">Pago pendiente de validación</span>
                   </div>
-                  <div className="text-red-600">
+                  <div className="text-blue-petrol font-medium">
                     Tenés un pago pendiente de ${pendingPayment.amount.toLocaleString()}
                   </div>
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-blue-petrol/70 mt-1">
                     Tu psicólogo está revisando el comprobante de pago
                   </p>
                 </div>
@@ -339,18 +366,24 @@ export const PatientPortal = () => {
                   const status = statusLabels[receipt.validation_status] || { label: receipt.validation_status, color: 'bg-gray-100 text-gray-800' };
 
                   return (
-                    <div key={receipt.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div key={receipt.id} className="flex items-center justify-between p-4 bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                       <div>
-                        <div className="font-medium text-slate-800">
+                        <div className="font-semibold text-blue-petrol">
                           {receipt.notes || `Pago del ${dateStr}`}
                         </div>
-                        <div className="text-sm text-slate-500">{dateStr}</div>
+                        <div className="text-sm text-blue-petrol/60 font-medium">{dateStr}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-slate-800">
+                        <div className="font-bold text-blue-petrol text-lg">
                           ${receipt.amount.toLocaleString()}
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${status.color}`}>
+                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                          receipt.validation_status === 'approved' 
+                            ? 'bg-green-mint/30 text-blue-petrol border border-green-mint/50'
+                            : receipt.validation_status === 'pending'
+                            ? 'bg-peach-pale/30 text-blue-petrol border border-peach-pale/50'
+                            : 'bg-red-100/30 text-blue-petrol border border-red-200/50'
+                        }`}>
                           {status.label}
                         </span>
                       </div>
@@ -359,7 +392,10 @@ export const PatientPortal = () => {
                 })}
               </div>
 
-              <Button variant="outline" className="w-full mt-4">
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
+              >
                 Ver historial completo
               </Button>
             </CardContent>
@@ -367,20 +403,26 @@ export const PatientPortal = () => {
         </div>
 
         {/* Help Section */}
-        <Card className="mt-8 border-0 shadow-lg bg-gradient-to-r from-blue-50 to-emerald-50">
+        <Card className="mt-8 border-2 border-celeste-gray/50 shadow-xl bg-gradient-to-r from-blue-soft/20 via-green-mint/20 to-lavender-soft/20 backdrop-blur-md rounded-2xl">
           <CardContent className="p-6 text-center">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-blue-petrol mb-2">
               ¿Necesitás ayuda?
             </h3>
-            <p className="text-slate-600 mb-4">
+            <p className="text-blue-petrol/70 font-medium mb-4">
               Si tenés alguna duda sobre tu portal o necesitás asistencia, contactanos
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Contactar soporte
               </Button>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
+              >
                 <User className="w-4 h-4 mr-2" />
                 Hablar con mi psicólogo
               </Button>

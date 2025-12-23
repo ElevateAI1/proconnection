@@ -45,14 +45,16 @@ export const CTAFinal = () => {
               Probá gratis 14 días
             </Button>
           </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            className="font-sans-geometric text-xl px-12 py-7 border-4 border-white-warm text-white-warm bg-transparent hover:bg-white-warm/10 hover:border-sand-light transition-all duration-200"
-          >
-            <Play className="w-6 h-6 mr-2" />
-            Ver demo en 60 segundos
-          </Button>
+          <Link to="/demo">
+            <Button
+              size="lg"
+              variant="outline"
+              className="font-sans-geometric text-xl px-12 py-7 border-4 border-white-warm text-white-warm bg-transparent hover:bg-white-warm/10 hover:border-sand-light transition-all duration-200"
+            >
+              <Play className="w-6 h-6 mr-2" />
+              Ver demo en 60 segundos
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
