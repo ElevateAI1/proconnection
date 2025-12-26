@@ -120,14 +120,36 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
       }
       
       console.log('Step 2: Adding psychologist to patient...');
+      console.log('Calling add_psychologist_to_patient with:', {
+        patient_id_param: patientId,
+        professional_code_param: codeToUse,
+        patientIdType: typeof patientId,
+        codeType: typeof codeToUse
+      });
+      
       const { data, error } = await supabase.rpc('add_psychologist_to_patient', {
         patient_id_param: patientId,
         professional_code_param: codeToUse
       });
       
       console.log('RPC response:', { data, error });
+      console.log('Error details:', error ? {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        status: error.status,
+        statusCode: error.statusCode
+      } : 'No error');
 
       if (error) {
+        console.error('=== ERROR ADDING PSYCHOLOGIST ===');
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        console.error('Error message:', error.message);
+        console.error('Error code:', error.code);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        
         if (error.message.includes('not found') || error.code === 'P0001') {
           toast({
             title: "Código inválido",
@@ -142,11 +164,17 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
           });
           // Recargar relaciones para mostrar el que ya existe
           fetchRelations();
+        } else if (error.message.includes('Can only add psychologists to your own account')) {
+          toast({
+            title: "Error de autenticación",
+            description: "Solo puedes agregar psicólogos a tu propia cuenta",
+            variant: "destructive"
+          });
         } else {
           console.error('Error adding psychologist:', error);
           toast({
             title: "Error",
-            description: error.message || "No se pudo agregar el psicólogo",
+            description: error.message || error.details || "No se pudo agregar el psicólogo",
             variant: "destructive"
           });
         }

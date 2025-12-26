@@ -64,26 +64,50 @@ BEGIN
     RAISE EXCEPTION 'Professional code not found: %. Verifica que el código sea correcto.', professional_code_param;
   END IF;
   
+  -- Verificar si el paciente existe en la tabla patients (requerido por la foreign key)
+  IF NOT EXISTS (SELECT 1 FROM public.patients WHERE id = patient_id_param) THEN
+    RAISE NOTICE 'Patient does not exist in patients table, creating it...';
+    -- Crear el registro del paciente si no existe
+    INSERT INTO public.patients (id, first_name, last_name)
+    SELECT 
+      patient_id_param,
+      COALESCE((SELECT first_name FROM public.profiles WHERE id = patient_id_param), ''),
+      COALESCE((SELECT last_name FROM public.profiles WHERE id = patient_id_param), '')
+    ON CONFLICT (id) DO NOTHING;
+    RAISE NOTICE 'Patient record created or already exists';
+  END IF;
+  
   -- Verificar si ya existe la relación
   SELECT id INTO existing_relation
   FROM public.patient_psychologists
   WHERE patient_id = patient_id_param 
     AND psychologist_id = psychologist_id_result;
   
+  RAISE NOTICE 'existing_relation check: %', existing_relation;
+  
   IF existing_relation IS NOT NULL THEN
     RAISE EXCEPTION 'Patient already linked to this psychologist';
   END IF;
   
   -- Crear la relación
-  INSERT INTO public.patient_psychologists (
-    patient_id,
-    psychologist_id,
-    professional_code
-  ) VALUES (
-    patient_id_param,
-    psychologist_id_result,
-    professional_code_param
-  ) RETURNING id INTO existing_relation;
+  RAISE NOTICE 'Inserting relation: patient_id=%, psychologist_id=%, code=%', patient_id_param, psychologist_id_result, professional_code_param;
+  
+  BEGIN
+    INSERT INTO public.patient_psychologists (
+      patient_id,
+      psychologist_id,
+      professional_code
+    ) VALUES (
+      patient_id_param,
+      psychologist_id_result,
+      professional_code_param
+    ) RETURNING id INTO existing_relation;
+    
+    RAISE NOTICE 'Relation created successfully with id: %', existing_relation;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Error inserting relation: %', SQLERRM;
+    RAISE;
+  END;
   
   RETURN existing_relation;
 END;
