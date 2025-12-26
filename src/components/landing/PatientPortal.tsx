@@ -432,12 +432,12 @@ export const PatientPortal = () => {
       </div>
 
       {/* Modal para pedir turno */}
-      {patient?.psychologist_id && (
-        <Dialog open={showAppointmentModal} onOpenChange={setShowAppointmentModal}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Solicitar una nueva cita</DialogTitle>
-            </DialogHeader>
+      <Dialog open={showAppointmentModal} onOpenChange={setShowAppointmentModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Solicitar una nueva cita</DialogTitle>
+          </DialogHeader>
+          {patient?.psychologist_id ? (
             <PatientAppointmentRequestForm
               psychologistId={patient.psychologist_id}
               onClose={() => setShowAppointmentModal(false)}
@@ -446,9 +446,21 @@ export const PatientPortal = () => {
                 setShowAppointmentModal(false);
               }}
             />
-          </DialogContent>
-        </Dialog>
-      )}
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-blue-petrol/70 font-medium mb-4">
+                No tienes un psicólogo asignado. Por favor, contacta con tu psicólogo para que te asigne a su lista de pacientes.
+              </p>
+              <Button
+                onClick={() => setShowAppointmentModal(false)}
+                className="bg-blue-petrol text-white-warm"
+              >
+                Cerrar
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

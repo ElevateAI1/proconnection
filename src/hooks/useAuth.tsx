@@ -115,8 +115,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('User metadata:', user.user_metadata);
           console.log('Professional type from metadata:', user.user_metadata.professionalType || user.user_metadata.profession_type);
           
-          // Generate professional code
-          const { data: codeData } = await supabase.rpc('generate_professional_code');
+          // Generate professional code (solo si no existe)
+          const { data: codeData, error: codeError } = await supabase.rpc('generate_professional_code');
+          
+          if (codeError) {
+            console.error('=== ERROR GENERATING PROFESSIONAL CODE ===', codeError);
+            return;
+          }
           
           if (codeData) {
             // Priorizar professionalType sobre profession_type
@@ -126,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               id: user.id,
               first_name: user.user_metadata.first_name,
               last_name: user.user_metadata.last_name,
-              professional_code: codeData,
+              professional_code: codeData, // Código permanente y único
               phone: user.user_metadata.phone,
               profession_type: professionType,
               specialization: user.user_metadata.specialization,
@@ -134,19 +139,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             };
             
             console.log('=== PSYCHOLOGIST DATA TO INSERT ===', psychologistData);
+            console.log('=== PROFESSIONAL CODE TO SAVE ===', codeData);
             
             const { error: psychError } = await supabase.from('psychologists').insert(psychologistData);
             
             if (psychError) {
               console.error('=== ERROR CREATING PSYCHOLOGIST ===', psychError);
+              // Si es error de código duplicado, el código ya existe (no debería pasar por UNIQUE constraint)
+              if (psychError.code === '23505' || psychError.message.includes('duplicate')) {
+                console.error('=== PROFESSIONAL CODE ALREADY EXISTS (SHOULD NOT HAPPEN) ===');
+              }
             } else {
               console.log('=== PSYCHOLOGIST CREATED SUCCESSFULLY ===');
+              console.log('=== PROFESSIONAL CODE SAVED PERMANENTLY ===', codeData);
               toast({
                 title: "¡Bienvenido!",
                 description: "Tu perfil de psicólogo ha sido configurado exitosamente",
               });
             }
           }
+        } else if (existingPsych) {
+          // Si ya existe, verificar que tiene código profesional
+          console.log('=== PSYCHOLOGIST ALREADY EXISTS ===');
+          console.log('=== EXISTING PROFESSIONAL CODE ===', existingPsych.professional_code);
         }
       } 
       // Handle patient profile creation

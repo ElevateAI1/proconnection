@@ -86,7 +86,8 @@ export const useOptimizedProfile = () => {
       setError(null);
       
       // Single query to get profile
-      const { data: profileData, error: profileError } = await supabase
+      let profileData = null;
+      const { data: fetchedProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -96,6 +97,8 @@ export const useOptimizedProfile = () => {
         console.error('Profile error:', profileError);
         throw new Error('Error loading profile');
       }
+
+      profileData = fetchedProfile;
 
       if (!profileData) {
         console.log('Creating new profile');
