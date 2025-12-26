@@ -1,75 +1,133 @@
 
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const useEmailVerification = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleEmailVerification = async () => {
-      const verifyToken = searchParams.get('verify');
+      // Supabase puede usar diferentes formatos de URL
+      // Formato 1: ?token=...&type=signup
+      // Formato 2: #access_token=...&type=signup (hash)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      if (!verifyToken) return;
+      const token = urlParams.get('token') || hashParams.get('access_token');
+      const type = urlParams.get('type') || hashParams.get('type');
+      
+      if (!token || type !== 'signup') return;
 
       try {
-        console.log('Processing email verification token:', verifyToken);
+        console.log('Processing Supabase email verification...');
         
         // Limpiar URL inmediatamente para evitar re-procesamiento
         const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('verify');
+        newUrl.searchParams.delete('token');
+        newUrl.searchParams.delete('type');
+        newUrl.hash = '';
         window.history.replaceState({}, '', newUrl.toString());
         
-        // Decodificar el token de verificación
-        let verificationData;
-        try {
-          verificationData = JSON.parse(atob(verifyToken));
-          console.log('Verification data:', verificationData);
-        } catch (e) {
-          console.error('Error decoding verification token:', e);
-          toast({
-            title: "Enlace inválido",
-            description: "El enlace de verificación no es válido o está corrupto",
-            variant: "destructive"
-          });
-          return;
-        }
+        // Función helper para obtener la ruta de login según el tipo de usuario
+        const getLoginPath = (userType?: string) => {
+          if (userType === 'psychologist') {
+            return '/auth/professional';
+          }
+          return '/auth/patient'; // default a patient
+        };
 
-        // Verificar que el token no sea muy antiguo (24 horas)
-        const tokenAge = Date.now() - verificationData.timestamp;
-        const maxAge = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
-        
-        if (tokenAge > maxAge) {
-          console.error('Verification token expired');
-          toast({
-            title: "Enlace expirado",
-            description: "El enlace de verificación ha expirado. Solicita uno nuevo registrándote nuevamente.",
-            variant: "destructive"
-          });
-          return;
+        // Verificar el email usando el token de Supabase
+        // Si es access_token, Supabase ya procesó la verificación automáticamente
+        if (hashParams.get('access_token')) {
+          // Supabase ya verificó automáticamente con el hash
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user && user.email_confirmed_at) {
+            const firstName = user.user_metadata?.first_name || '';
+            const userType = user.user_metadata?.user_type || 'patient';
+            const loginPath = getLoginPath(userType);
+            
+            toast({
+              title: "¡Email verificado exitosamente!",
+              description: firstName 
+                ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`
+                : "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.",
+            });
+            navigate(loginPath);
+            return;
+          }
         }
-
-        // Verificar el usuario manualmente usando nuestra función RPC
-        console.log('Attempting to verify user manually...');
         
-        const { error: verifyError } = await supabase.rpc('verify_user_email', {
-          user_id: verificationData.userId
+        // Si es token en query params, usar verifyOtp
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'signup'
         });
 
-        if (verifyError) {
-          console.error('Error verifying user:', verifyError);
-          toast({
-            title: "Error de verificación",
-            description: "No se pudo completar la verificación. Intenta nuevamente o contacta con soporte.",
-            variant: "destructive"
-          });
+        if (error) {
+          console.error('Error verifying email:', error);
+          
+          // Si el token ya fue usado o expiró, intentar verificar manualmente
+          if (error.message.includes('expired') || error.message.includes('invalid')) {
+            // Obtener el usuario actual si existe
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+              // Intentar verificar manualmente usando la función RPC
+              const { error: verifyError } = await supabase.rpc('verify_user_email', {
+                user_id: user.id
+              });
+
+              if (verifyError) {
+                toast({
+                  title: "Enlace expirado o inválido",
+                  description: "El enlace de verificación ha expirado o ya fue usado. Solicita uno nuevo desde la página de inicio de sesión.",
+                  variant: "destructive"
+                });
+              } else {
+                const userType = user.user_metadata?.user_type || 'patient';
+                const loginPath = getLoginPath(userType);
+                
+                toast({
+                  title: "¡Email verificado exitosamente!",
+                  description: "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.",
+                });
+                navigate(loginPath);
+              }
+            } else {
+              toast({
+                title: "Enlace inválido",
+                description: "El enlace de verificación no es válido o ha expirado.",
+                variant: "destructive"
+              });
+            }
+          } else {
+            toast({
+              title: "Error de verificación",
+              description: error.message || "No se pudo completar la verificación. Intenta nuevamente o contacta con soporte.",
+              variant: "destructive"
+            });
+          }
         } else {
           console.log('Email verification completed successfully');
+          
+          // Obtener información del usuario para el mensaje personalizado
+          const firstName = data.user?.user_metadata?.first_name || '';
+          const userType = data.user?.user_metadata?.user_type || 'patient';
+          const loginPath = getLoginPath(userType);
+          
           toast({
             title: "¡Email verificado exitosamente!",
-            description: `¡Hola ${verificationData.firstName || ''}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`,
+            description: firstName 
+              ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`
+              : "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.",
           });
+          
+          // Redirigir a la página de login según el tipo de usuario
+          navigate(loginPath);
         }
 
       } catch (error) {
@@ -83,5 +141,5 @@ export const useEmailVerification = () => {
     };
 
     handleEmailVerification();
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 };

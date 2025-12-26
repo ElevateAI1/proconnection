@@ -257,6 +257,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Additional data:', additionalData);
     
     try {
+      // Usar el dominio correcto para la redirección
+      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+        ? window.location.origin
+        : 'https://www.proconnection.me';
+      const redirectUrl = `${baseUrl}/app`;
+      
       // Crear el usuario con todos los datos en metadata
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -266,7 +272,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             user_type: userType,
             ...additionalData
           },
-          emailRedirectTo: undefined // No redirect automático
+          emailRedirectTo: redirectUrl
         }
       });
       
@@ -286,55 +292,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Cerrar sesión inmediatamente para evitar auto-login
         await supabase.auth.signOut();
         
-        // Enviar email personalizado de verificación
-        try {
-          console.log('=== SENDING CUSTOM VERIFICATION EMAIL ===');
-          
-          const verificationData = {
-            userId: data.user.id,
-            email: data.user.email,
-            userType: userType,
-            firstName: additionalData?.first_name || '',
-            timestamp: Date.now()
-          };
-          
-          const verificationToken = btoa(JSON.stringify(verificationData));
-          // Usar el dominio correcto - en producción usar www.proconnection.me, en desarrollo usar localhost
-          const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
-            ? window.location.origin
-            : 'https://www.proconnection.me';
-          const redirectUrl = `${baseUrl}/app?verify=${verificationToken}`;
-          
-          console.log('=== VERIFICATION URL ===', redirectUrl);
-          
-          const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
-            body: {
-              email: email,
-              token: verificationToken,
-              action_type: 'signup',
-              user_type: userType,
-              first_name: additionalData?.first_name || '',
-              redirect_to: redirectUrl
-            }
-          });
-          
-          if (emailError) {
-            console.error('=== ERROR SENDING VERIFICATION EMAIL ===', emailError);
-            toast({
-              title: "Cuenta creada",
-              description: "Tu cuenta fue creada pero hubo un error enviando el email de verificación. Contacta con soporte.",
-              variant: "destructive"
-            });
-          } else {
-            console.log('=== VERIFICATION EMAIL SENT SUCCESSFULLY ===');
-            toast({
-              title: "¡Cuenta creada exitosamente!",
-              description: "Te hemos enviado un email de verificación. Una vez verificado, podrás iniciar sesión y acceder directamente al dashboard.",
-            });
-          }
-        } catch (emailError) {
-          console.error('=== EXCEPTION SENDING VERIFICATION EMAIL ===', emailError);
-        }
+        console.log('=== VERIFICATION EMAIL WILL BE SENT BY SUPABASE ===');
+        // Supabase enviará automáticamente el email de verificación
+        // No necesitamos hacer nada más aquí
       }
       
       return { data, error };
