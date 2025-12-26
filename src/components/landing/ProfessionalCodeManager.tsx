@@ -90,20 +90,27 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
       });
 
       if (error) {
-        if (error.message.includes('not found')) {
+        if (error.message.includes('not found') || error.code === 'P0001') {
           toast({
             title: "Código inválido",
             description: "El código profesional ingresado no existe",
             variant: "destructive"
           });
-        } else if (error.message.includes('already linked')) {
+        } else if (error.message.includes('already linked') || error.code === '23505' || error.status === 409 || error.statusCode === 409) {
           toast({
             title: "Ya vinculado",
             description: "Ya estás vinculado a este psicólogo",
             variant: "destructive"
           });
+          // Recargar relaciones para mostrar el que ya existe
+          fetchRelations();
         } else {
-          throw error;
+          console.error('Error adding psychologist:', error);
+          toast({
+            title: "Error",
+            description: error.message || "No se pudo agregar el psicólogo",
+            variant: "destructive"
+          });
         }
         return;
       }
