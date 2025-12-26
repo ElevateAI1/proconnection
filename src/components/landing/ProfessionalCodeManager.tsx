@@ -85,8 +85,41 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
       
       // Validar y agregar usando la función RPC
       const codeToUse = newCode.trim().toUpperCase();
-      console.log('Adding psychologist with code:', codeToUse, 'for patient:', patientId);
+      console.log('=== ADDING PSYCHOLOGIST ===');
+      console.log('Code entered:', newCode);
+      console.log('Code after trim/uppercase:', codeToUse);
+      console.log('Patient ID:', patientId);
+      console.log('Patient ID type:', typeof patientId);
       
+      // Primero validar el código con la función validate_professional_code
+      console.log('Step 1: Validating professional code...');
+      const { data: validatedId, error: validateError } = await supabase.rpc('validate_professional_code', {
+        code: codeToUse
+      });
+      
+      console.log('Validation result:', { validatedId, validateError });
+      
+      if (validateError) {
+        console.error('Code validation failed:', validateError);
+        toast({
+          title: "Código inválido",
+          description: validateError.message || "El código profesional ingresado no existe",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!validatedId) {
+        console.error('No psychologist ID returned from validation');
+        toast({
+          title: "Código inválido",
+          description: "El código profesional no retornó un ID válido",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('Step 2: Adding psychologist to patient...');
       const { data, error } = await supabase.rpc('add_psychologist_to_patient', {
         patient_id_param: patientId,
         professional_code_param: codeToUse
