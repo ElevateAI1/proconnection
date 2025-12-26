@@ -15,8 +15,19 @@ export const UrgencyBanner = ({ variant = 'A', onClose }: UrgencyBannerProps) =>
     seconds: 59
   });
 
-  // Countdown timer
+  // Countdown timer con reset automático
   useEffect(() => {
+    const resetTimer = () => {
+      setTimeLeft({
+        hours: 23,
+        minutes: 59,
+        seconds: 59
+      });
+    };
+
+    // Reset cada 24 horas (86400000 ms) o cada 30 minutos para testing (1800000 ms)
+    const resetInterval = setInterval(resetTimer, 30 * 60 * 1000); // 30 minutos para testing, cambiar a 24 horas en producción
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev.seconds > 0) {
@@ -25,12 +36,18 @@ export const UrgencyBanner = ({ variant = 'A', onClose }: UrgencyBannerProps) =>
           return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
         } else if (prev.hours > 0) {
           return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        } else {
+          // Si llega a 0, resetear
+          resetTimer();
+          return { hours: 23, minutes: 59, seconds: 59 };
         }
-        return prev;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearInterval(resetInterval);
+    };
   }, []);
 
   const handleClose = () => {
@@ -47,8 +64,8 @@ export const UrgencyBanner = ({ variant = 'A', onClose }: UrgencyBannerProps) =>
           icon: <Users className="w-4 h-4" />,
           text: "Solo quedan 12 cupos para la prueba gratuita de 14 días",
           cta: "Reservar mi cupo",
-          bgColor: "bg-gradient-to-r from-orange-500 to-red-500",
-          textColor: "text-white"
+          bgColor: "bg-gradient-to-r from-peach-pale/90 via-lavender-soft/80 to-peach-pale/90",
+          textColor: "text-blue-petrol"
         };
       case 'B': // Descuento temporal
         return {
@@ -72,21 +89,23 @@ export const UrgencyBanner = ({ variant = 'A', onClose }: UrgencyBannerProps) =>
   const content = getVariantContent();
 
   return (
-    <div className={`${content.bgColor} ${content.textColor} py-3 px-4 sticky top-[73px] z-30 shadow-lg`}>
+    <div className={`${content.bgColor} ${content.textColor} py-3 px-4 sticky top-[73px] z-30 shadow-lg animate-slide-down`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Left side - Icon + Text */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0 animate-pulse">
+          <div className="flex-shrink-0 animate-bounce">
             {content.icon}
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold text-sm sm:text-base text-center">
+            <span className="font-semibold text-sm sm:text-base text-center animate-fade-in">
               {content.text}
             </span>
             {variant === 'A' && (
-              <div className="hidden sm:flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
-                <Clock className="w-3 h-3" />
-                <span>{timeLeft.hours}h {timeLeft.minutes}m</span>
+              <div className="hidden sm:flex items-center gap-1 text-xs bg-white/30 backdrop-blur-sm border border-white/40 px-3 py-1.5 rounded-full shadow-sm animate-pulse-slow">
+                <Clock className="w-3 h-3 animate-spin-slow" />
+                <span className="font-mono font-bold">
+                  {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                </span>
               </div>
             )}
           </div>
