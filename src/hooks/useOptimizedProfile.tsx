@@ -99,18 +99,46 @@ export const useOptimizedProfile = () => {
 
       if (!profileData) {
         console.log('Creating new profile');
+        // Usar upsert para evitar errores 409 si el profile ya existe
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: user.id,
             email: user.email!,
             user_type: user.user_metadata?.user_type || 'patient'
+          }, {
+            onConflict: 'id'
           })
           .select()
           .single();
           
         if (createError) {
           console.error('Error creating profile:', createError);
+          // Si es error 409 (conflicto), el profile ya existe, intentar obtenerlo
+          if (createError.code === '23505' || createError.message.includes('duplicate')) {
+            console.log('Profile already exists, fetching it');
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+            
+            if (existingProfile) {
+              const typedProfile: Profile = {
+                ...existingProfile,
+                user_type: existingProfile.user_type as 'psychologist' | 'patient' | 'admin'
+              };
+              const newData = {
+                profile: typedProfile,
+                psychologist: null,
+                patient: null
+              };
+              setData(newData);
+              profileCache = { ...newData, userId: user.id };
+              setLoading(false);
+              return;
+            }
+          }
           throw new Error('Could not create profile');
         }
         

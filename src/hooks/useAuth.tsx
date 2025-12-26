@@ -71,11 +71,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Create base profile if it doesn't exist
+      // Create base profile if it doesn't exist (usar upsert para evitar errores 409)
       if (!existingProfile) {
         console.log('=== CREATING BASE PROFILE ===');
         
-        // Use upsert to handle potential race conditions
+        // Use upsert to handle potential race conditions and avoid 409 errors
         const { error: createProfileError } = await supabase
           .from('profiles')
           .upsert({
@@ -88,7 +88,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
         if (createProfileError) {
           console.error('=== ERROR CREATING BASE PROFILE ===', createProfileError);
-          // Don't return here, continue with role-specific profile creation
+          // Si es error 409, el profile ya existe, continuar normalmente
+          if (createProfileError.code === '23505' || createProfileError.message.includes('duplicate')) {
+            console.log('=== PROFILE ALREADY EXISTS (409), CONTINUING ===');
+          } else {
+            // Otro error, pero continuamos con role-specific profile creation
+            console.log('=== CONTINUING DESPITE PROFILE ERROR ===');
+          }
         } else {
           console.log('=== BASE PROFILE CREATED ===');
         }
@@ -161,6 +167,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (validateError) {
             console.error('=== ERROR VALIDATING CODE ===', validateError);
+            // Si es error 404, la función puede no existir o el código es inválido
+            // Continuar sin crear el paciente, el usuario puede completar su perfil después
+            if (validateError.code === 'P0001' || validateError.message.includes('not found') || validateError.message.includes('404')) {
+              console.log('=== PROFESSIONAL CODE VALIDATION FUNCTION NOT AVAILABLE OR CODE INVALID ===');
+              // No mostrar error al usuario, simplemente no crear el paciente
+              return;
+            }
             return;
           }
           
@@ -278,6 +291,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('=== SIGN UP ERROR ===', error);
+        
+        // Si el usuario ya existe, no mostrar error (puede ser que ya se registró antes)
+        if (error.message.includes('already registered') || error.message.includes('already exists') || error.message.includes('User already registered')) {
+          console.log('=== USER ALREADY EXISTS, SILENTLY HANDLING ===');
+          // No mostrar error, el usuario puede intentar iniciar sesión
+          return { data, error: { ...error, silent: true } };
+        }
+        
         toast({
           title: "Error al crear cuenta",
           description: error.message,

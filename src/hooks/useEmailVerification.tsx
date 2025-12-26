@@ -19,7 +19,8 @@ export const useEmailVerification = () => {
       const token = urlParams.get('token') || hashParams.get('access_token');
       const type = urlParams.get('type') || hashParams.get('type');
       
-      if (!token || type !== 'signup') return;
+      // Si no hay token o el type no es signup, no hacer nada
+      if (!token || (type && type !== 'signup')) return;
 
       try {
         console.log('Processing Supabase email verification...');
@@ -70,23 +71,40 @@ export const useEmailVerification = () => {
         if (error) {
           console.error('Error verifying email:', error);
           
-          // Si el token ya fue usado o expiró, intentar verificar manualmente
+          // Si el token ya fue usado o expiró, verificar si el usuario ya está verificado
           if (error.message.includes('expired') || error.message.includes('invalid')) {
             // Obtener el usuario actual si existe
             const { data: { user } } = await supabase.auth.getUser();
             
             if (user) {
+              // Si el usuario ya está verificado, redirigir al login
+              if (user.email_confirmed_at) {
+                const userType = user.user_metadata?.user_type || 'patient';
+                const loginPath = getLoginPath(userType);
+                
+                toast({
+                  title: "Email ya verificado",
+                  description: "Tu cuenta ya está verificada. Puedes iniciar sesión.",
+                });
+                navigate(loginPath);
+                return;
+              }
+              
               // Intentar verificar manualmente usando la función RPC
               const { error: verifyError } = await supabase.rpc('verify_user_email', {
                 user_id: user.id
               });
 
               if (verifyError) {
+                const userType = user.user_metadata?.user_type || 'patient';
+                const loginPath = getLoginPath(userType);
+                
                 toast({
                   title: "Enlace expirado o inválido",
-                  description: "El enlace de verificación ha expirado o ya fue usado. Solicita uno nuevo desde la página de inicio de sesión.",
+                  description: "El enlace de verificación ha expirado o ya fue usado. Puedes iniciar sesión normalmente.",
                   variant: "destructive"
                 });
+                navigate(loginPath);
               } else {
                 const userType = user.user_metadata?.user_type || 'patient';
                 const loginPath = getLoginPath(userType);
@@ -98,18 +116,25 @@ export const useEmailVerification = () => {
                 navigate(loginPath);
               }
             } else {
+              // No hay usuario, redirigir al login de paciente por defecto
               toast({
                 title: "Enlace inválido",
-                description: "El enlace de verificación no es válido o ha expirado.",
+                description: "El enlace de verificación no es válido o ha expirado. Intenta iniciar sesión normalmente.",
                 variant: "destructive"
               });
+              navigate('/auth/patient');
             }
           } else {
+            // Otro tipo de error, redirigir al login
+            const userType = 'patient'; // default
+            const loginPath = getLoginPath(userType);
+            
             toast({
               title: "Error de verificación",
-              description: error.message || "No se pudo completar la verificación. Intenta nuevamente o contacta con soporte.",
+              description: "No se pudo completar la verificación. Intenta iniciar sesión normalmente.",
               variant: "destructive"
             });
+            navigate(loginPath);
           }
         } else {
           console.log('Email verification completed successfully');
@@ -134,9 +159,11 @@ export const useEmailVerification = () => {
         console.error('Error processing email verification:', error);
         toast({
           title: "Error de verificación",
-          description: "Ocurrió un error al verificar tu email. Intenta iniciar sesión normalmente o contacta con soporte.",
+          description: "Ocurrió un error al verificar tu email. Intenta iniciar sesión normalmente.",
           variant: "destructive"
         });
+        // Redirigir al login en caso de error
+        navigate('/auth/patient');
       }
     };
 
