@@ -88,8 +88,11 @@ export const createJitsiMeeting = async (
     const meetingTime = new Date(appointment.appointment_date).getTime();
     const duration = 60;
 
-    const { data, error } = await supabase.functions.invoke('create-jitsi-meeting', {
+    // Usar proconnection-api en lugar de create-jitsi-meeting
+    // Pasar el resource en el body para que la función sepa qué endpoint usar
+    const { data, error } = await supabase.functions.invoke('proconnection-api', {
       body: {
+        resource: 'create-jitsi-meeting', // Especificar el recurso en el body
         roomName: roomName,
         startTime: meetingTime,
         duration: duration,
@@ -122,13 +125,19 @@ export const createJitsiMeeting = async (
 export const approveAppointmentRequest = async (
   request: AppointmentRequest,
   userId: string,
-  onSuccess: () => void
+  onSuccess: () => void,
+  finalDate?: string,
+  finalTime?: string
 ) => {
   console.log('AppointmentRequestActions: Approving request:', request.id);
   console.log('AppointmentRequestActions: Creating appointment for request:', request);
+  console.log('AppointmentRequestActions: Final date:', finalDate, 'Final time:', finalTime);
 
   try {
-    const appointmentDateTime = new Date(`${request.preferred_date}T${request.preferred_time || '09:00'}`);
+    // Usar la fecha y hora finales si se proporcionaron, sino usar las sugeridas por el paciente
+    const dateToUse = finalDate || request.preferred_date;
+    const timeToUse = finalTime || request.preferred_time || '09:00';
+    const appointmentDateTime = new Date(`${dateToUse}T${timeToUse}`);
     
     const appointmentData = {
       patient_id: request.patient_id,
@@ -214,6 +223,44 @@ export const rejectAppointmentRequest = async (
     toast({
       title: "Error",
       description: "Error al rechazar la solicitud",
+      variant: "destructive"
+    });
+    throw error;
+  }
+};
+
+export const cancelAppointment = async (
+  appointmentId: string,
+  onSuccess: () => void,
+  cancelledByUserId?: string
+) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = cancelledByUserId || user?.id;
+
+    const { error } = await supabase
+      .from('appointments')
+      .update({ 
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: userId || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', appointmentId);
+
+    if (error) throw error;
+
+    toast({
+      title: "Cita cancelada",
+      description: "La cita ha sido cancelada exitosamente"
+    });
+
+    onSuccess();
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    toast({
+      title: "Error",
+      description: "Error al cancelar la cita",
       variant: "destructive"
     });
     throw error;

@@ -868,6 +868,63 @@ async function handleSendVerificationEmail(req: Request) {
 }
 
 // ============================================================================
+// HANDLERS DE JITSI MEETING
+// ============================================================================
+
+async function handleCreateJitsiMeeting(req: Request, supabase: any) {
+  if (req.method !== 'POST') {
+    return errorResponse('Method not allowed', 405)
+  }
+
+  try {
+    const body = await req.json()
+    // Extraer el resource si está presente (se ignora, solo se usa para routing)
+    const { resource, action, appointmentId, patientName, psychologistName, appointmentDate, roomName, startTime, duration } = body
+
+    if (!appointmentId) {
+      return errorResponse('appointmentId is required', 400)
+    }
+
+    console.log('Creating Jitsi meeting for appointment:', appointmentId)
+
+    // Generate a unique room name if not provided
+    const finalRoomName = roomName || `therapy-session-${appointmentId}-${Date.now()}`
+    
+    // Create Jitsi meet URL
+    const jitsiMeetUrl = `https://meet.jit.si/${finalRoomName}`
+    
+    // Update the appointment with the meeting URL
+    const { error: updateError } = await supabase
+      .from('appointments')
+      .update({
+        meeting_url: jitsiMeetUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', appointmentId)
+
+    if (updateError) {
+      console.error('Error updating appointment with meeting URL:', updateError)
+      return errorResponse('No se pudo guardar el enlace de la reunión', 500)
+    }
+
+    console.log('Meeting URL created and saved successfully:', jitsiMeetUrl)
+
+    // Return the meeting details
+    return successResponse({
+      success: true,
+      meetingUrl: jitsiMeetUrl,
+      roomName: finalRoomName,
+      appointmentId: appointmentId,
+      message: 'Reunión creada exitosamente'
+    })
+  } catch (error: any) {
+    console.error('Error creating Jitsi meeting:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return errorResponse(`Error al crear la reunión: ${errorMessage}`, 500)
+  }
+}
+
+// ============================================================================
 // HANDLERS DE SUBSCRIPTIONS
 // ============================================================================
 
@@ -971,8 +1028,12 @@ async function handleSubscriptions(req: Request, supabase: any, segments: string
 // ============================================================================
 
 serve(async (req) => {
+  // Handle CORS preflight requests - MUST return 200 status
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
 
   try {
@@ -982,22 +1043,42 @@ serve(async (req) => {
     
     // Buscar el índice del nombre de la función
     const functionNameIndex = segments.findIndex(
-      seg => seg === 'proconnection-api' || seg === 'edge-function-proconnection'
+      seg => seg === 'proconnection-api' || seg === 'proconnection-api' || seg === 'edge-function-proconnection'
     )
     
     // Si encontramos el nombre de la función, tomar los segments después de ella
     // Si no, usar todos los segments
-    const resourceSegments = functionNameIndex !== -1
+    let resourceSegments = functionNameIndex !== -1
       ? segments.slice(functionNameIndex + 1)
       : segments
     
-    const resource = resourceSegments[0]
+    let resource = resourceSegments[0]
+    
+    // Si no hay resource en la URL, intentar leerlo del body (para llamadas desde invoke)
+    // Necesitamos clonar el request para leer el body sin consumirlo
+    let requestBody: any = null
+    if (!resource && req.method === 'POST') {
+      try {
+        requestBody = await req.clone().json()
+        if (requestBody.resource || requestBody.action) {
+          resource = requestBody.resource || requestBody.action
+        }
+      } catch (e) {
+        // Si no se puede parsear el body, continuar con el routing normal
+      }
+    }
 
     console.log(`ProConnection API: ${req.method} /${segments.join('/')} -> resource: ${resource}, segments: [${resourceSegments.join(', ')}]`)
 
-    // send-verification-email no requiere API key (es público)
+    // Endpoints públicos (no requieren API key)
     if (resource === 'send-verification-email') {
       return await handleSendVerificationEmail(req)
+    }
+
+    if (resource === 'create-jitsi-meeting') {
+      // create-jitsi-meeting no requiere API key (es llamado desde el frontend autenticado)
+      // El handler ignorará el campo 'resource' si está presente en el body
+      return await handleCreateJitsiMeeting(req, supabase)
     }
 
     // Todos los demás endpoints requieren API key
@@ -1023,7 +1104,7 @@ serve(async (req) => {
         return await handleSubscriptions(req, supabase, resourceSegments)
       
       default:
-        return errorResponse('Invalid resource. Supported: patients, psychologists, accounts, stats, subscriptions, send-verification-email', 400)
+        return errorResponse('Invalid resource. Supported: patients, psychologists, accounts, stats, subscriptions, send-verification-email, create-jitsi-meeting', 400)
     }
 
   } catch (error) {

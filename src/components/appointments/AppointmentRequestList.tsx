@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppointmentRequestCard, type AppointmentRequest } from "./AppointmentRequestCard";
-import { approveAppointmentRequest, rejectAppointmentRequest } from "./AppointmentRequestActions";
+import { approveAppointmentRequest, rejectAppointmentRequest, cancelAppointment } from "./AppointmentRequestActions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +22,13 @@ interface AppointmentRequestListProps {
   isDashboardView?: boolean;
 }
 
+interface RequestWithAppointment extends AppointmentRequest {
+  appointment_id?: string;
+}
+
 export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentRequestListProps) => {
   const { user } = useAuth();
-  const [requests, setRequests] = useState<AppointmentRequest[]>([]);
+  const [requests, setRequests] = useState<RequestWithAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -68,9 +72,42 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
           console.error('AppointmentRequestList: Error fetching patients:', patientsError);
         }
 
+        // Para solicitudes aprobadas, buscar la cita asociada
+        const approvedRequests = requestsData.filter(req => req.status === 'approved');
+        let appointmentsMap: Record<string, string> = {};
+        
+        if (approvedRequests.length > 0) {
+          // Buscar citas que coincidan con las solicitudes aprobadas
+          // Por patient_id, psychologist_id y fecha similar
+          for (const request of approvedRequests) {
+            const requestDate = new Date(request.preferred_date);
+            const startOfDay = new Date(requestDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(requestDate);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const { data: appointmentData } = await supabase
+              .from('appointments')
+              .select('id')
+              .eq('patient_id', request.patient_id)
+              .eq('psychologist_id', user.id)
+              .gte('appointment_date', startOfDay.toISOString())
+              .lte('appointment_date', endOfDay.toISOString())
+              .in('status', ['scheduled', 'confirmed', 'accepted'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (appointmentData) {
+              appointmentsMap[request.id] = appointmentData.id;
+            }
+          }
+        }
+
         const requestsWithPatients = requestsData.map(request => ({
           ...request,
-          patient: patientsData?.find(p => p.id === request.patient_id)
+          patient: patientsData?.find(p => p.id === request.patient_id),
+          appointment_id: appointmentsMap[request.id]
         }));
 
         console.log('AppointmentRequestList: Processed requests with patients:', requestsWithPatients);
@@ -100,7 +137,7 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
     fetchRequests();
   }, [user?.id]);
 
-  const handleApprove = async (request: AppointmentRequest) => {
+  const handleApprove = async (request: AppointmentRequest, finalDate?: string, finalTime?: string) => {
     if (!user?.id || approvingId) return;
 
     setApprovingId(request.id);
@@ -108,9 +145,19 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
       await approveAppointmentRequest(request, user.id, () => {
         setApprovingId(null);
         fetchRequests();
-      });
+      }, finalDate, finalTime);
     } catch (error) {
       setApprovingId(null);
+    }
+  };
+
+  const handleCancel = async (appointmentId: string) => {
+    try {
+      await cancelAppointment(appointmentId, () => {
+        fetchRequests();
+      });
+    } catch (error) {
+      // Error ya manejado en cancelAppointment
     }
   };
 
@@ -154,7 +201,9 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
                 request={request}
                 onApprove={handleApprove}
                 onReject={handleRejectClick}
+                onCancel={handleCancel}
                 isApproving={approvingId === request.id}
+                appointmentId={request.appointment_id}
               />
             ))}
             {isDashboardView && requests.length > 3 && (

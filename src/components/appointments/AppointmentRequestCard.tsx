@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle, XCircle, Eye, ChevronRight, User, Calendar, Phone, FileText, DollarSign } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Clock, CheckCircle, XCircle, Eye, ChevronRight, User, Calendar, Phone, FileText, DollarSign, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState } from "react";
 
 export interface AppointmentRequest {
@@ -33,9 +45,11 @@ export interface AppointmentRequest {
 
 interface AppointmentRequestCardProps {
   request: AppointmentRequest;
-  onApprove: (request: AppointmentRequest) => void;
+  onApprove: (request: AppointmentRequest, finalDate?: string, finalTime?: string) => void;
   onReject: (requestId: string) => void;
+  onCancel?: (appointmentId: string) => void;
   isApproving?: boolean;
+  appointmentId?: string; // ID de la cita si ya fue aprobada
 }
 
 const getStatusBadge = (status: string) => {
@@ -43,7 +57,7 @@ const getStatusBadge = (status: string) => {
     case 'pending':
       return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>;
     case 'approved':
-      return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Aprobado</Badge>;
+      return <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="w-3 h-3 mr-1" />Aprobado</Badge>;
     case 'rejected':
       return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rechazado</Badge>;
     default:
@@ -55,9 +69,15 @@ export const AppointmentRequestCard = ({
   request,
   onApprove,
   onReject,
-  isApproving = false
+  onCancel,
+  isApproving = false,
+  appointmentId
 }: AppointmentRequestCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [finalDate, setFinalDate] = useState(request.preferred_date);
+  const [finalTime, setFinalTime] = useState(request.preferred_time || '09:00');
 
   // Parse notes to extract structured information
   const parseNotes = (notes: string) => {
@@ -287,22 +307,12 @@ export const AppointmentRequestCard = ({
                   variant="default" 
                   className="flex-1 bg-green-600 hover:bg-green-700"
                   onClick={() => {
-                    onApprove(request);
-                    setIsExpanded(false);
+                    setShowApproveDialog(true);
                   }}
                   disabled={isApproving}
                 >
-                  {isApproving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Aprobando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Aprobar Solicitud
-                    </>
-                  )}
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Aprobar Solicitud
                 </Button>
                 <Button 
                   variant="destructive" 
@@ -318,9 +328,133 @@ export const AppointmentRequestCard = ({
                 </Button>
               </div>
             )}
+
+            {/* Acciones para citas aprobadas */}
+            {request.status === 'approved' && appointmentId && (
+              <div className="flex gap-3 pt-4 border-t">
+                <Button 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={() => {
+                    setShowCancelDialog(true);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar Cita
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para establecer fecha final al aprobar */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Fecha y Hora de la Cita</DialogTitle>
+            <DialogDescription>
+              El paciente sugirió una fecha. Puedes usar la sugerida o establecer una fecha diferente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="finalDate">Fecha de la cita *</Label>
+              <Input
+                id="finalDate"
+                type="date"
+                value={finalDate}
+                onChange={(e) => setFinalDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="mt-1"
+                required
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Sugerida por el paciente: {new Date(request.preferred_date).toLocaleDateString('es-ES')}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="finalTime">Hora de la cita *</Label>
+              <Input
+                id="finalTime"
+                type="time"
+                value={finalTime}
+                onChange={(e) => setFinalTime(e.target.value)}
+                className="mt-1"
+                required
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Sugerida por el paciente: {request.preferred_time || '09:00'}
+              </p>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowApproveDialog(false);
+                  setFinalDate(request.preferred_date);
+                  setFinalTime(request.preferred_time || '09:00');
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="default"
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  if (!finalDate || !finalTime) {
+                    return;
+                  }
+                  onApprove(request, finalDate, finalTime);
+                  setShowApproveDialog(false);
+                  setIsExpanded(false);
+                }}
+                disabled={isApproving || !finalDate || !finalTime}
+              >
+                {isApproving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Aprobando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirmar y Aprobar
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para cancelar cita */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar esta cita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas cancelar esta cita? Esta acción cambiará el estado de la cita a "cancelada".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, mantener</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (appointmentId && onCancel) {
+                  onCancel(appointmentId);
+                  setShowCancelDialog(false);
+                  setIsExpanded(false);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Sí, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
