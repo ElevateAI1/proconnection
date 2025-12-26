@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { createTestPatient } from "@/utils/debugPatient";
 
 export const PatientAuthPage = () => {
   const { signIn, signUp, loading, user } = useAuth();
@@ -188,27 +187,6 @@ export const PatientAuthPage = () => {
     }
   };
 
-  const handleTestPatient = async () => {
-    try {
-      await createTestPatient();
-      toast({
-        title: "¡Usuario de prueba creado!",
-        description: "Iniciando sesión...",
-      });
-      
-      // Redirect to dashboard
-      navigate("/dashboard", { replace: true });
-      
-    } catch (error: any) {
-      console.error('Error creating test patient:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Error al crear usuario de prueba",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <div 
       ref={authRef}
@@ -362,15 +340,6 @@ export const PatientAuthPage = () => {
                   {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
                 </Button>
                 
-                <Button 
-                  type="button"
-                  onClick={handleTestPatient}
-                  className="w-full bg-white-warm text-blue-petrol border-4 border-peach-pale/50 shadow-[6px_6px_0px_0px_rgba(247,210,196,0.3)] hover:shadow-[3px_3px_0px_0px_rgba(247,210,196,0.3)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200 mt-3"
-                  disabled={loading}
-                >
-                  🧪 Probar como Paciente
-                </Button>
-
                 <div className="text-center pt-4">
                   <p className="font-sans-geometric text-sm text-blue-petrol/70">
                     ¿No tienes cuenta?{" "}

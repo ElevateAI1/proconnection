@@ -30,11 +30,19 @@ Agrega todas las URLs a las que Supabase puede redirigir después de acciones de
 #### URLs Básicas (Obligatorias)
 ```
 https://tu-dominio.com/auth
+https://tu-dominio.com/auth/professional
+https://tu-dominio.com/auth/patient
 https://tu-dominio.com/register
+https://tu-dominio.com/register/professional
+https://tu-dominio.com/register/patient
 https://tu-dominio.com/dashboard
 https://tu-dominio.com/app
 http://localhost:8080/auth
+http://localhost:8080/auth/professional
+http://localhost:8080/auth/patient
 http://localhost:8080/register
+http://localhost:8080/register/professional
+http://localhost:8080/register/patient
 http://localhost:8080/dashboard
 http://localhost:8080/app
 ```
@@ -68,14 +76,22 @@ En el campo **Redirect URLs**, agrega cada URL en una línea separada:
 
 ```
 https://tu-dominio.com/auth
+https://tu-dominio.com/auth/professional
+https://tu-dominio.com/auth/patient
 https://tu-dominio.com/register
+https://tu-dominio.com/register/professional
+https://tu-dominio.com/register/patient
 https://tu-dominio.com/dashboard
 https://tu-dominio.com/app
 https://tu-dominio.com/app?verify=*
 https://tu-dominio.com/dashboard?verify=*
 https://tu-dominio.com/auth?type=recovery&token=*
 http://localhost:8080/auth
+http://localhost:8080/auth/professional
+http://localhost:8080/auth/patient
 http://localhost:8080/register
+http://localhost:8080/register/professional
+http://localhost:8080/register/patient
 http://localhost:8080/dashboard
 http://localhost:8080/app
 http://localhost:8080/app?verify=*
