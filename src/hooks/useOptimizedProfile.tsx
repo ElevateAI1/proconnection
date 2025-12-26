@@ -99,7 +99,7 @@ export const useOptimizedProfile = () => {
 
       if (!profileData) {
         console.log('Creating new profile');
-        // Usar upsert para evitar errores 409 si el profile ya existe
+        // Intentar crear el profile con upsert
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .upsert({
@@ -115,48 +115,56 @@ export const useOptimizedProfile = () => {
         if (createError) {
           console.error('Error creating profile:', createError);
           // Si es error 409 (conflicto), el profile ya existe, intentar obtenerlo
-          if (createError.code === '23505' || createError.message.includes('duplicate')) {
-            console.log('Profile already exists, fetching it');
-            const { data: existingProfile } = await supabase
+          if (createError.code === '23505' || createError.message.includes('duplicate') || createError.code === 'PGRST116' || createError.status === 409 || createError.statusCode === 409) {
+            console.log('Profile already exists (409), fetching it');
+            const { data: existingProfile, error: fetchError } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', user.id)
               .maybeSingle();
             
-            if (existingProfile) {
-              const typedProfile: Profile = {
-                ...existingProfile,
-                user_type: existingProfile.user_type as 'psychologist' | 'patient' | 'admin'
-              };
-              const newData = {
-                profile: typedProfile,
-                psychologist: null,
-                patient: null
-              };
-              setData(newData);
-              profileCache = { ...newData, userId: user.id };
-              setLoading(false);
-              return;
+            if (fetchError) {
+              console.error('Error fetching existing profile:', fetchError);
+              // Si no podemos obtener el profile, continuar sin él por ahora
+              console.log('Continuing without profile, will retry later');
+            } else if (existingProfile) {
+              // Usar el profile existente
+              profileData = existingProfile;
+            } else {
+              // No existe y no se pudo crear, lanzar error
+              throw new Error('Could not create or fetch profile');
             }
+          } else {
+            // Otro tipo de error
+            throw new Error('Could not create profile');
           }
-          throw new Error('Could not create profile');
+        } else if (newProfile) {
+          // Profile creado exitosamente
+          profileData = newProfile;
         }
+      }
+      
+      // Si aún no tenemos profileData después de intentar crearlo, obtenerlo
+      if (!profileData) {
+        const { data: retryProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
         
-        const typedProfile: Profile = {
-          ...newProfile,
-          user_type: newProfile.user_type as 'psychologist' | 'patient' | 'admin'
-        };
-        
-        const newData = {
-          profile: typedProfile,
-          psychologist: null,
-          patient: null
-        };
-        
-        setData(newData);
-        profileCache = { ...newData, userId: user.id };
-        setLoading(false);
-        return;
+        if (retryProfile) {
+          profileData = retryProfile;
+        } else {
+          // Si aún no existe, crear uno temporal basado en metadata
+          console.log('No profile found in DB, using metadata');
+          profileData = {
+            id: user.id,
+            email: user.email!,
+            user_type: (user.user_metadata?.user_type || 'patient') as 'psychologist' | 'patient' | 'admin',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+        }
       }
       
       const typedProfile: Profile = {
