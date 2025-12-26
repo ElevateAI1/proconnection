@@ -299,7 +299,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
           
           const verificationToken = btoa(JSON.stringify(verificationData));
-          const redirectUrl = `${window.location.origin}/app?verify=${verificationToken}`;
+          // Usar el dominio correcto - en producción usar www.proconnection.me, en desarrollo usar localhost
+          const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+            ? window.location.origin
+            : 'https://www.proconnection.me';
+          const redirectUrl = `${baseUrl}/app?verify=${verificationToken}`;
+          
+          console.log('=== VERIFICATION URL ===', redirectUrl);
           
           const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
             body: {

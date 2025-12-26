@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { AuthLoader } from "@/components/ui/AuthLoader";
+import { EmailConfirmationScreen } from "@/components/EmailConfirmationScreen";
 
 export const PatientAuthPage = () => {
   const { signIn, signUp, loading, user } = useAuth();
@@ -15,6 +17,9 @@ export const PatientAuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const authRef = useRef<HTMLDivElement>(null);
   
   const [signInData, setSignInData] = useState({
@@ -85,6 +90,7 @@ export const PatientAuthPage = () => {
     e.preventDefault();
     
     console.log('Attempting sign in with:', { email: signInData.email });
+    setIsSigningIn(true);
 
     try {
       const result = await signIn(signInData.email, signInData.password);
@@ -93,6 +99,7 @@ export const PatientAuthPage = () => {
       
       if (result.error) {
         console.error('Sign in failed:', result.error);
+        setIsSigningIn(false);
         return;
       }
       
@@ -105,6 +112,7 @@ export const PatientAuthPage = () => {
         navigate("/dashboard", { replace: true });
       } else if (result.data?.user && !result.data.user.email_confirmed_at) {
         console.log('User email not confirmed');
+        setIsSigningIn(false);
         toast({
           title: "Email no confirmado",
           description: "Por favor confirma tu email antes de iniciar sesión",
@@ -112,6 +120,7 @@ export const PatientAuthPage = () => {
         });
       } else {
         console.error('No user data received');
+        setIsSigningIn(false);
         toast({
           title: "Error",
           description: "No se pudo obtener la información del usuario",
@@ -120,6 +129,7 @@ export const PatientAuthPage = () => {
       }
     } catch (error: any) {
       console.error('Exception during sign in:', error);
+      setIsSigningIn(false);
       toast({
         title: "Error",
         description: error.message || "Error al iniciar sesión",
@@ -173,10 +183,9 @@ export const PatientAuthPage = () => {
         return;
       }
 
-      toast({
-        title: "¡Cuenta creada!",
-        description: "Revisa tu email para confirmar tu cuenta",
-      });
+      // Mostrar pantalla de confirmación en vez de toast
+      setRegisteredEmail(signUpData.email);
+      setShowEmailConfirmation(true);
     } catch (error: any) {
       console.error('Exception during sign up:', error);
       toast({
@@ -187,11 +196,37 @@ export const PatientAuthPage = () => {
     }
   };
 
+  // Mostrar pantalla de confirmación de email si el registro fue exitoso
+  if (showEmailConfirmation) {
+    return (
+      <EmailConfirmationScreen 
+        email={registeredEmail}
+        userType="patient"
+        onBackToLogin={() => {
+          setShowEmailConfirmation(false);
+          setIsSignUp(false);
+          // Limpiar el formulario
+          setSignUpData({
+            email: "",
+            password: "",
+            confirmPassword: "",
+            firstName: "",
+            lastName: "",
+            phone: "",
+            professionalCode: "",
+          });
+        }}
+      />
+    );
+  }
+
   return (
-    <div 
-      ref={authRef}
-      className="min-h-screen bg-white-warm flex items-center justify-center p-4"
-    >
+    <>
+      {isSigningIn && <AuthLoader message="Iniciando sesión..." />}
+      <div 
+        ref={authRef}
+        className="min-h-screen bg-white-warm flex items-center justify-center p-4"
+      >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl w-full items-center">
         {/* Left: Illustration with floating UI cards */}
         <div className={`hidden lg:flex flex-col items-center justify-center space-y-8 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
@@ -526,6 +561,7 @@ export const PatientAuthPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
