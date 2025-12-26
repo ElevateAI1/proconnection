@@ -7,7 +7,10 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { PatientAppointmentRequestForm } from '@/components/PatientAppointmentRequestForm';
+import { ProfessionalCodeManager } from '@/components/landing/ProfessionalCodeManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface Appointment {
   id: string;
@@ -31,6 +34,18 @@ interface PaymentReceipt {
   notes?: string;
 }
 
+interface PsychologistRelation {
+  id: string;
+  psychologist_id: string;
+  professional_code: string;
+  is_primary: boolean;
+  psychologist: {
+    first_name: string;
+    last_name: string;
+    professional_code: string;
+  };
+}
+
 export const PatientPortal = () => {
   const { user, signOut } = useAuth();
   const { profile, patient } = useProfile();
@@ -39,10 +54,19 @@ export const PatientPortal = () => {
   const [loading, setLoading] = useState(true);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [psychologistInfo, setPsychologistInfo] = useState<{ first_name: string; last_name: string } | null>(null);
+  const [psychologistRelations, setPsychologistRelations] = useState<PsychologistRelation[]>([]);
+  const [selectedPsychologistId, setSelectedPsychologistId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && profile) {
-      fetchPatientData();
+      // Primero cargar relaciones, luego datos
+      if (user.id) {
+        fetchPsychologistRelations().then(() => {
+          fetchPatientData();
+        });
+      } else {
+        fetchPatientData();
+      }
     } else if (!user) {
       setLoading(false);
     }
@@ -53,6 +77,50 @@ export const PatientPortal = () => {
       fetchPsychologistInfo();
     }
   }, [patient]);
+  
+  const fetchPsychologistRelations = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('patient_psychologists')
+        .select(`
+          id,
+          psychologist_id,
+          professional_code,
+          is_primary,
+          psychologist:psychologists!inner(
+            first_name,
+            last_name,
+            professional_code
+          )
+        `)
+        .eq('patient_id', user.id)
+        .order('is_primary', { ascending: false })
+        .order('added_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const relations = data || [];
+      setPsychologistRelations(relations);
+      
+      // Establecer el psicólogo principal como seleccionado por defecto
+      const primary = relations.find(r => r.is_primary);
+      if (primary) {
+        setSelectedPsychologistId(primary.psychologist_id);
+      } else if (relations.length > 0) {
+        setSelectedPsychologistId(relations[0].psychologist_id);
+      } else if (patient?.psychologist_id) {
+        // Fallback al psychologist_id del patient (compatibilidad)
+        setSelectedPsychologistId(patient.psychologist_id);
+      }
+      
+      return relations;
+    } catch (error) {
+      console.error('Error fetching psychologist relations:', error);
+      return [];
+    }
+  };
 
   const fetchPatientData = async () => {
     if (!user?.id) return;
@@ -60,8 +128,23 @@ export const PatientPortal = () => {
     try {
       setLoading(true);
 
-      // Fetch appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
+      // Obtener todos los psychologist_ids vinculados
+      const psychologistIds: string[] = [];
+      
+      // De las relaciones actuales
+      psychologistRelations.forEach(r => {
+        if (!psychologistIds.includes(r.psychologist_id)) {
+          psychologistIds.push(r.psychologist_id);
+        }
+      });
+      
+      // Del patient (compatibilidad)
+      if (patient?.psychologist_id && !psychologistIds.includes(patient.psychologist_id)) {
+        psychologistIds.push(patient.psychologist_id);
+      }
+      
+      // Fetch appointments - de todos los psicólogos vinculados
+      let appointmentsQuery = supabase
         .from('appointments')
         .select(`
           *,
@@ -69,7 +152,12 @@ export const PatientPortal = () => {
         `)
         .eq('patient_id', user.id)
         .gte('appointment_date', new Date().toISOString())
-        .in('status', ['scheduled', 'confirmed', 'accepted'])
+        .in('status', ['scheduled', 'confirmed', 'accepted']);
+      
+      // Si hay psicólogos vinculados, filtrar por ellos también (opcional, para mostrar solo citas de psicólogos vinculados)
+      // Si no hay filtro, mostrará todas las citas del paciente
+      
+      const { data: appointmentsData, error: appointmentsError } = await appointmentsQuery
         .order('appointment_date', { ascending: true });
 
       if (appointmentsError) {
@@ -228,6 +316,20 @@ export const PatientPortal = () => {
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Gestión de Psicólogos */}
+          {user?.id && (
+            <ProfessionalCodeManager 
+              patientId={user.id} 
+              onUpdate={() => {
+                fetchPatientData();
+                fetchPsychologistRelations();
+                if (patient?.psychologist_id) {
+                  fetchPsychologistInfo();
+                }
+              }}
+            />
+          )}
+          
           {/* Próximas citas */}
           <Card className="border-2 border-celeste-gray/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white-warm/90 backdrop-blur-md rounded-2xl">
             <CardHeader>
@@ -437,19 +539,50 @@ export const PatientPortal = () => {
           <DialogHeader>
             <DialogTitle>Solicitar una nueva cita</DialogTitle>
           </DialogHeader>
-          {patient?.psychologist_id ? (
-            <PatientAppointmentRequestForm
-              psychologistId={patient.psychologist_id}
-              onClose={() => setShowAppointmentModal(false)}
-              onRequestCreated={() => {
-                fetchPatientData();
-                setShowAppointmentModal(false);
-              }}
-            />
+          {psychologistRelations.length > 0 || patient?.psychologist_id ? (
+            <div className="space-y-4">
+              {psychologistRelations.length > 1 && (
+                <div>
+                  <Label htmlFor="psychologist-select" className="mb-2 block">
+                    Selecciona el psicólogo
+                  </Label>
+                  <Select
+                    value={selectedPsychologistId || patient?.psychologist_id || ''}
+                    onValueChange={setSelectedPsychologistId}
+                  >
+                    <SelectTrigger id="psychologist-select">
+                      <SelectValue placeholder="Selecciona un psicólogo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {psychologistRelations.map((rel) => (
+                        <SelectItem key={rel.id} value={rel.psychologist_id}>
+                          {rel.psychologist.first_name} {rel.psychologist.last_name}
+                          {rel.is_primary && ' (Principal)'}
+                          {' - '}{rel.professional_code}
+                        </SelectItem>
+                      ))}
+                      {patient?.psychologist_id && !psychologistRelations.find(r => r.psychologist_id === patient.psychologist_id) && (
+                        <SelectItem value={patient.psychologist_id}>
+                          Psicólogo actual
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <PatientAppointmentRequestForm
+                psychologistId={selectedPsychologistId || patient?.psychologist_id || ''}
+                onClose={() => setShowAppointmentModal(false)}
+                onRequestCreated={() => {
+                  fetchPatientData();
+                  setShowAppointmentModal(false);
+                }}
+              />
+            </div>
           ) : (
             <div className="p-6 text-center">
               <p className="text-blue-petrol/70 font-medium mb-4">
-                No tienes un psicólogo asignado. Por favor, contacta con tu psicólogo para que te asigne a su lista de pacientes.
+                No tienes psicólogos vinculados. Agrega un código profesional para poder solicitar citas.
               </p>
               <Button
                 onClick={() => setShowAppointmentModal(false)}
