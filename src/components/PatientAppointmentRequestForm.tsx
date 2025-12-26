@@ -327,8 +327,13 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
           : "Tu solicitud de cita ha sido enviada exitosamente. El psicólogo ha sido notificado automáticamente."
       });
 
-      onRequestCreated?.();
+      // Cerrar el modal primero
       onClose();
+      
+      // Luego actualizar los datos (esto puede causar re-render pero el modal ya está cerrado)
+      setTimeout(() => {
+        onRequestCreated?.();
+      }, 100);
     } catch (error) {
       console.error('Error submitting appointment request:', error);
       toast({

@@ -347,18 +347,25 @@ export const PatientPortal = () => {
             <CardContent>
               {appointments.length > 0 ? (
                 <div className="space-y-4">
-                  {appointments.map((appointment) => {
-                    const aptDate = new Date(appointment.appointment_date);
-                    const dateStr = aptDate.toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    });
-                    const timeStr = aptDate.toLocaleTimeString('es-ES', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    });
+                  {appointments
+                    .filter((appointment) => {
+                      // Filter out appointments with invalid dates
+                      if (!appointment.appointment_date) return false;
+                      const aptDate = new Date(appointment.appointment_date);
+                      return !isNaN(aptDate.getTime());
+                    })
+                    .map((appointment) => {
+                      const aptDate = new Date(appointment.appointment_date!);
+                      const dateStr = aptDate.toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      });
+                      const timeStr = aptDate.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      });
                     const isOnline = appointment.type === 'online' || appointment.meeting_url;
                     const statusLabels: Record<string, string> = {
                       'scheduled': 'Programada',
@@ -461,9 +468,18 @@ export const PatientPortal = () => {
 
               {/* Historial de pagos */}
               <div className="space-y-3">
-                {receipts.map((receipt) => {
-                  const receiptDate = receipt.receipt_date || receipt.created_at;
-                  const dateStr = new Date(receiptDate).toLocaleDateString('es-ES');
+                {receipts
+                  .filter((receipt) => {
+                    // Filter out receipts with invalid dates
+                    const receiptDate = receipt.receipt_date || receipt.created_at;
+                    if (!receiptDate) return false;
+                    const receiptDateObj = new Date(receiptDate);
+                    return !isNaN(receiptDateObj.getTime());
+                  })
+                  .map((receipt) => {
+                    const receiptDate = receipt.receipt_date || receipt.created_at;
+                    const receiptDateObj = new Date(receiptDate!);
+                    const dateStr = receiptDateObj.toLocaleDateString('es-ES');
                   const statusLabels: Record<string, { label: string; color: string }> = {
                     'approved': { label: 'Aprobado', color: 'bg-green-100 text-green-800' },
                     'pending': { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },

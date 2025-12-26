@@ -32,9 +32,9 @@ export const usePendingAppointmentRequests = (psychologistId?: string) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('appointment_requests')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('psychologist_id', psychologistId)
         .eq('status', 'pending');
 
@@ -42,7 +42,7 @@ export const usePendingAppointmentRequests = (psychologistId?: string) => {
         console.error('Error fetching pending requests count:', error);
         setPendingCount(0);
       } else {
-        setPendingCount(data?.length || 0);
+        setPendingCount(count || 0);
       }
     } catch (error) {
       console.error('Error in fetchPendingCount:', error);
