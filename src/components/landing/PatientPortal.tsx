@@ -200,12 +200,16 @@ export const PatientPortal = () => {
         .from('psychologists')
         .select('first_name, last_name')
         .eq('id', patient.psychologist_id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching psychologist info:', error);
-      } else {
+        // Si no se puede obtener, no es crítico
+        setPsychologistInfo(null);
+      } else if (data) {
         setPsychologistInfo(data);
+      } else {
+        setPsychologistInfo(null);
       }
     } catch (error) {
       console.error('Error fetching psychologist info:', error);

@@ -30,12 +30,24 @@ CREATE OR REPLACE FUNCTION public.add_psychologist_to_patient(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO ''
+SET search_path TO public
 AS $function$
 DECLARE
   psychologist_id_result UUID;
   existing_relation UUID;
+  current_user_id UUID;
 BEGIN
+  -- Verificar que el usuario autenticado es el paciente
+  current_user_id := auth.uid();
+  
+  IF current_user_id IS NULL THEN
+    RAISE EXCEPTION 'User must be authenticated';
+  END IF;
+  
+  IF current_user_id != patient_id_param THEN
+    RAISE EXCEPTION 'Can only add psychologists to your own account';
+  END IF;
+  
   -- Validar código profesional y obtener psychologist_id
   SELECT id INTO psychologist_id_result
   FROM public.psychologists
@@ -71,4 +83,7 @@ END;
 $function$;
 
 COMMENT ON FUNCTION public.add_psychologist_to_patient IS 'Agrega un psicólogo a un paciente mediante código profesional';
+
+-- Otorgar permisos de ejecución a usuarios autenticados
+GRANT EXECUTE ON FUNCTION public.add_psychologist_to_patient(UUID, TEXT) TO authenticated;
 

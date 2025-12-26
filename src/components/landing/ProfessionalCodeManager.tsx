@@ -84,10 +84,15 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
       setAdding(true);
       
       // Validar y agregar usando la función RPC
+      const codeToUse = newCode.trim().toUpperCase();
+      console.log('Adding psychologist with code:', codeToUse, 'for patient:', patientId);
+      
       const { data, error } = await supabase.rpc('add_psychologist_to_patient', {
         patient_id_param: patientId,
-        professional_code_param: newCode.trim().toUpperCase()
+        professional_code_param: codeToUse
       });
+      
+      console.log('RPC response:', { data, error });
 
       if (error) {
         if (error.message.includes('not found') || error.code === 'P0001') {

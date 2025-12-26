@@ -41,7 +41,24 @@ CREATE POLICY "Patients can delete their psychologist relations" ON public.patie
 CREATE POLICY "Psychologists can view relations where they are the psychologist" ON public.patient_psychologists
   FOR SELECT USING (psychologist_id = auth.uid());
 
+-- Política para que los pacientes puedan ver información básica de sus psicólogos vinculados
+CREATE POLICY "Patients can view their linked psychologists" ON public.psychologists
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.patient_psychologists
+      WHERE patient_psychologists.psychologist_id = psychologists.id
+      AND patient_psychologists.patient_id = auth.uid()
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM public.patients
+      WHERE patients.psychologist_id = psychologists.id
+      AND patients.id = auth.uid()
+    )
+  );
+
 COMMENT ON POLICY "Patients can view their own record" ON public.patients IS 'Permite que los pacientes vean su propio registro';
 COMMENT ON POLICY "Patients can insert their own record" ON public.patients IS 'Permite que los pacientes creen su propio registro';
 COMMENT ON POLICY "Patients can update their own record" ON public.patients IS 'Permite que los pacientes actualicen su propio registro';
+COMMENT ON POLICY "Patients can view their linked psychologists" ON public.psychologists IS 'Permite que los pacientes vean información básica de sus psicólogos vinculados';
 
