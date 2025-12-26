@@ -39,6 +39,9 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
   const fetchRelations = async () => {
     try {
       setLoading(true);
+      console.log('=== FETCHING RELATIONS ===');
+      console.log('Patient ID:', patientId);
+      
       const { data, error } = await supabase
         .from('patient_psychologists')
         .select(`
@@ -56,10 +59,37 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
         .order('is_primary', { ascending: false })
         .order('added_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Relations fetch result:', { data, error });
+      
+      if (error) {
+        console.error('Error fetching relations:', error);
+        throw error;
+      }
+      
+      console.log('Relations found:', data?.length || 0);
+      console.log('Relations data:', JSON.stringify(data, null, 2));
+      
+      // Verificar estructura de datos
+      if (data && data.length > 0) {
+        console.log('First relation structure:', {
+          id: data[0].id,
+          psychologist_id: data[0].psychologist_id,
+          professional_code: data[0].professional_code,
+          is_primary: data[0].is_primary,
+          psychologist: data[0].psychologist
+        });
+      }
+      
       setRelations(data || []);
+      console.log('Relations state updated, count:', data?.length || 0);
     } catch (error: any) {
       console.error('Error fetching psychologist relations:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       toast({
         title: "Error",
         description: "No se pudieron cargar los psicólogos vinculados",
@@ -150,20 +180,36 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
         console.error('Error details:', error.details);
         console.error('Error hint:', error.hint);
         
-        if (error.message.includes('not found') || error.code === 'P0001') {
+        // Verificar primero si es "already linked" (incluso con código P0001)
+        if (error.message.includes('already linked')) {
+          console.log('Patient already linked - reloading relations...');
+          // Recargar relaciones primero para mostrar el que ya existe
+          await fetchRelations();
+          setNewCode('');
+          setShowAddDialog(false);
+          toast({
+            title: "Ya vinculado",
+            description: "Ya estás vinculado a este psicólogo. Se ha actualizado la lista.",
+            variant: "default"
+          });
+          onUpdate?.();
+        } else if (error.message.includes('not found') || error.code === 'P0001') {
           toast({
             title: "Código inválido",
             description: "El código profesional ingresado no existe",
             variant: "destructive"
           });
-        } else if (error.message.includes('already linked') || error.code === '23505' || error.status === 409 || error.statusCode === 409) {
+        } else if (error.code === '23505' || error.status === 409 || error.statusCode === 409) {
+          console.log('Conflict error - reloading relations...');
+          await fetchRelations();
+          setNewCode('');
+          setShowAddDialog(false);
           toast({
             title: "Ya vinculado",
-            description: "Ya estás vinculado a este psicólogo",
-            variant: "destructive"
+            description: "Ya estás vinculado a este psicólogo. Se ha actualizado la lista.",
+            variant: "default"
           });
-          // Recargar relaciones para mostrar el que ya existe
-          fetchRelations();
+          onUpdate?.();
         } else if (error.message.includes('Can only add psychologists to your own account')) {
           toast({
             title: "Error de autenticación",
@@ -336,10 +382,20 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
             <p className="text-sm text-blue-petrol/60 mb-4">
               Agrega un código profesional para vincular a tu psicólogo
             </p>
+            {/* Debug info */}
+            <p className="text-xs text-blue-petrol/40 mt-4">
+              Debug: relations.length = {relations.length}, loading = {loading ? 'true' : 'false'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {relations.map((relation) => (
+            {/* Debug info */}
+            <div className="text-xs text-blue-petrol/40 mb-2">
+              Mostrando {relations.length} psicólogo(s) vinculado(s)
+            </div>
+            {relations.map((relation) => {
+              console.log('Rendering relation:', relation);
+              return (
               <div
                 key={relation.id}
                 className="flex items-center justify-between p-4 bg-white-warm border-2 border-lavender-soft/50 rounded-xl hover:shadow-md transition-all"
@@ -351,7 +407,7 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-blue-petrol">
-                        {relation.psychologist.first_name} {relation.psychologist.last_name}
+                        {relation.psychologist?.first_name || 'Sin nombre'} {relation.psychologist?.last_name || ''}
                       </p>
                       {relation.is_primary && (
                         <span className="px-2 py-0.5 bg-green-mint/20 text-green-mint text-xs font-bold rounded">
@@ -362,6 +418,12 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
                     <p className="text-sm text-blue-petrol/70">
                       Código: {relation.professional_code}
                     </p>
+                    {/* Debug info - solo en desarrollo */}
+                    {!relation.psychologist && (
+                      <p className="text-xs text-red-500 mt-1">
+                        ⚠️ No se pudo cargar información del psicólogo
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -388,7 +450,8 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
                   </Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
