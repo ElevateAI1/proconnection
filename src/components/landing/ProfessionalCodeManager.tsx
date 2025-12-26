@@ -42,46 +42,81 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
       console.log('=== FETCHING RELATIONS ===');
       console.log('Patient ID:', patientId);
       
-      const { data, error } = await supabase
+      // Primero intentar obtener las relaciones sin el join para verificar si existen
+      console.log('Step 1: Fetching relations without join...');
+      const { data: relationsOnly, error: relationsError } = await supabase
         .from('patient_psychologists')
         .select(`
           id,
+          patient_id,
           psychologist_id,
           professional_code,
           is_primary,
-          psychologist:psychologists!inner(
-            first_name,
-            last_name,
-            professional_code
-          )
+          added_at
         `)
         .eq('patient_id', patientId)
         .order('is_primary', { ascending: false })
         .order('added_at', { ascending: false });
 
-      console.log('Relations fetch result:', { data, error });
-      
-      if (error) {
-        console.error('Error fetching relations:', error);
-        throw error;
+      console.log('Relations without join:', { relationsOnly, relationsError });
+
+      if (relationsError) {
+        console.error('Error fetching relations:', relationsError);
+        throw relationsError;
       }
+
+      if (!relationsOnly || relationsOnly.length === 0) {
+        console.log('No relations found in patient_psychologists table');
+        setRelations([]);
+        return;
+      }
+
+      console.log(`Found ${relationsOnly.length} relation(s) in patient_psychologists`);
+
+      // Ahora intentar obtener los datos de los psicólogos
+      const psychologistIds = relationsOnly.map(r => r.psychologist_id);
+      console.log('Step 2: Fetching psychologists data for IDs:', psychologistIds);
       
-      console.log('Relations found:', data?.length || 0);
-      console.log('Relations data:', JSON.stringify(data, null, 2));
+      const { data: psychologistsData, error: psychError } = await supabase
+        .from('psychologists')
+        .select('id, first_name, last_name, professional_code')
+        .in('id', psychologistIds);
+
+      console.log('Psychologists data:', { psychologistsData, psychError });
+
+      if (psychError) {
+        console.error('Error fetching psychologists:', psychError);
+        // Aún así, mostrar las relaciones sin los datos del psicólogo
+        const relationsWithNullPsych = relationsOnly.map(rel => ({
+          ...rel,
+          psychologist: null
+        }));
+        setRelations(relationsWithNullPsych);
+        console.log('Set relations with null psychologist data due to RLS error');
+        return;
+      }
+
+      // Combinar los datos manualmente
+      const combinedData = relationsOnly.map(rel => ({
+        ...rel,
+        psychologist: psychologistsData?.find(p => p.id === rel.psychologist_id) || null
+      }));
+
+      console.log('Combined relations data:', JSON.stringify(combinedData, null, 2));
       
       // Verificar estructura de datos
-      if (data && data.length > 0) {
+      if (combinedData && combinedData.length > 0) {
         console.log('First relation structure:', {
-          id: data[0].id,
-          psychologist_id: data[0].psychologist_id,
-          professional_code: data[0].professional_code,
-          is_primary: data[0].is_primary,
-          psychologist: data[0].psychologist
+          id: combinedData[0].id,
+          psychologist_id: combinedData[0].psychologist_id,
+          professional_code: combinedData[0].professional_code,
+          is_primary: combinedData[0].is_primary,
+          psychologist: combinedData[0].psychologist
         });
       }
       
-      setRelations(data || []);
-      console.log('Relations state updated, count:', data?.length || 0);
+      setRelations(combinedData);
+      console.log('Relations state updated, count:', combinedData.length);
     } catch (error: any) {
       console.error('Error fetching psychologist relations:', error);
       console.error('Error details:', {
