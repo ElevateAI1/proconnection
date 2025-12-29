@@ -137,7 +137,29 @@ export const approveAppointmentRequest = async (
     // Usar la fecha y hora finales si se proporcionaron, sino usar las sugeridas por el paciente
     const dateToUse = finalDate || request.preferred_date;
     const timeToUse = finalTime || request.preferred_time || '09:00';
-    const appointmentDateTime = new Date(`${dateToUse}T${timeToUse}`);
+    let appointmentDateTime = new Date(`${dateToUse}T${timeToUse}`);
+    
+    // Validar que la fecha no sea en el pasado
+    const now = new Date();
+    if (appointmentDateTime < now) {
+      // Si la fecha es pasada, usar fecha actual con horario recomendado
+      const recommendedTime = '09:00'; // Horario recomendado por defecto
+      const [hours, minutes] = recommendedTime.split(':').map(Number);
+      appointmentDateTime = new Date();
+      appointmentDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Si el horario recomendado ya pasó hoy, usar mañana
+      if (appointmentDateTime < now) {
+        appointmentDateTime.setDate(appointmentDateTime.getDate() + 1);
+      }
+      
+      toast({
+        title: "Fecha ajustada",
+        description: "La fecha seleccionada era pasada. Se ha programado para " + 
+          (appointmentDateTime.toDateString() === new Date().toDateString() ? "hoy" : "mañana") + 
+          " con horario recomendado.",
+      });
+    }
     
     const appointmentData = {
       patient_id: request.patient_id,

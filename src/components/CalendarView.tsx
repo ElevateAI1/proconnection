@@ -55,6 +55,26 @@ export const Calendar = () => {
     }
   }, [psychologist?.id, selectedDate.toDateString()]);
 
+  // Listen for appointment creation events to refresh calendar
+  useEffect(() => {
+    const handleAppointmentCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Calendar: Appointment created event received, refreshing...', customEvent.detail);
+      if (psychologist?.id) {
+        // Small delay to ensure DB has updated
+        setTimeout(() => {
+          fetchAppointments();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('appointmentCreated', handleAppointmentCreated);
+    
+    return () => {
+      window.removeEventListener('appointmentCreated', handleAppointmentCreated);
+    };
+  }, [psychologist?.id]);
+
   const fetchAppointments = async () => {
     if (!psychologist?.id) return;
 

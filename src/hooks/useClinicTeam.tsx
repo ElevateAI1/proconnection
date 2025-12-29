@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
 import { toast } from '@/hooks/use-toast';
+import { canExecuteRateLimited, recordRateLimitedExecution } from '@/utils/rateLimiter';
 
 interface ClinicTeam {
   team_id: string;
@@ -50,9 +51,23 @@ export const useClinicTeam = () => {
       setLoading(true);
       setError(null);
 
+      // Rate limiting: solo 1 vez por día
+      const rateLimitKey = `get_clinic_team_${psychologist.id}`;
+      
+      if (!canExecuteRateLimited(rateLimitKey, psychologist.id, 1)) {
+        console.log('Rate limit: get_clinic_team ya fue llamado hoy para este psicólogo');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: teamError } = await supabase.rpc('get_clinic_team', {
-        psychologist_id: psychologist.id
+        p_psychologist_id: psychologist.id
       });
+
+      // Registrar la ejecución solo si no hay error
+      if (!teamError) {
+        recordRateLimitedExecution(rateLimitKey, psychologist.id);
+      }
 
       if (teamError) {
         console.error('Error fetching clinic team:', teamError);

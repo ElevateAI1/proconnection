@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
 import { useAuth } from './useAuth';
+import { canExecuteRateLimited, recordRateLimitedExecution } from '@/utils/rateLimiter';
 
 interface PlanCapabilities {
   basic_features: boolean;
@@ -135,6 +136,13 @@ export const usePlanCapabilities = () => {
   const [capabilities, setCapabilities] = useState<PlanCapabilities | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Rate limiting: track last fetch time and cache
+  const lastFetchTimeRef = useRef<number>(0);
+  const cachedCapabilitiesRef = useRef<{ data: PlanCapabilities | null; timestamp: number } | null>(null);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const CACHE_TTL_MS = 30000; // 30 seconds
+  const MIN_FETCH_INTERVAL_MS = 300; // 300ms debounce
 
   const fetchCapabilities = useCallback(async (forceRefresh = false) => {
     if (!psychologist?.id) {
@@ -143,17 +151,46 @@ export const usePlanCapabilities = () => {
       return;
     }
 
+    const now = Date.now();
+    
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && cachedCapabilitiesRef.current) {
+      const cacheAge = now - cachedCapabilitiesRef.current.timestamp;
+      if (cacheAge < CACHE_TTL_MS) {
+        console.log('Using cached capabilities (age:', cacheAge, 'ms)');
+        setCapabilities(cachedCapabilitiesRef.current.data);
+        setLoading(false);
+        return;
+      }
+    }
+    
+    // Rate limiting: prevent rapid successive calls
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+    if (timeSinceLastFetch < MIN_FETCH_INTERVAL_MS && !forceRefresh) {
+      console.log('Rate limiting: waiting', MIN_FETCH_INTERVAL_MS - timeSinceLastFetch, 'ms before fetch');
+      // Clear any pending timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      // Schedule fetch after debounce period
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchCapabilities(forceRefresh);
+      }, MIN_FETCH_INTERVAL_MS - timeSinceLastFetch);
+      return;
+    }
+
     try {
       console.log('=== FETCHING PLAN CAPABILITIES ===');
       console.log('Psychologist ID:', psychologist.id);
       console.log('Force refresh:', forceRefresh);
       
+      lastFetchTimeRef.current = now;
       setLoading(true);
       setError(null);
       
       // SIEMPRE hacer una consulta fresca a la base de datos - sin cache
       const { data, error } = await supabase.rpc('get_plan_capabilities', {
-        psychologist_id: psychologist.id
+        p_psychologist_id: psychologist.id
       });
 
       if (error) {
@@ -222,26 +259,24 @@ export const usePlanCapabilities = () => {
     fetchCapabilities();
   }, [fetchCapabilities, user?.id]);
 
-  // Escuchar cambios de plan con refresco INMEDIATO Y MÚLTIPLES INTENTOS
+  // Escuchar cambios de plan con refresco controlado (solo uno con debounce)
   useEffect(() => {
     const handlePlanUpdate = () => {
-      console.log('=== PLAN UPDATE EVENT - FORCING IMMEDIATE REFRESH ===');
+      console.log('=== PLAN UPDATE EVENT - FORCING REFRESH ===');
       
-      // Primer refresh inmediato
-      refreshProfile();
-      fetchCapabilities(true);
+      // Clear cache to force fresh fetch
+      cachedCapabilitiesRef.current = null;
+      lastFetchTimeRef.current = 0;
       
-      // Segundo refresh con delay corto para asegurar
-      setTimeout(() => {
+      // Single refresh with debounce
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      
+      fetchTimeoutRef.current = setTimeout(() => {
         refreshProfile();
         fetchCapabilities(true);
-      }, 500);
-      
-      // Tercer refresh con delay más largo por si acaso
-      setTimeout(() => {
-        refreshProfile();
-        fetchCapabilities(true);
-      }, 2000);
+      }, 300);
     };
 
     const handleAdminPlanUpdate = (event: CustomEvent) => {
@@ -370,9 +405,23 @@ export const usePlanCapabilities = () => {
   const getClinicTeam = useCallback(async () => {
     if (!psychologist?.id) return null;
     try {
+      // Rate limiting: solo 1 vez por día
+      const rateLimitKey = `get_clinic_team_${psychologist.id}`;
+      
+      if (!canExecuteRateLimited(rateLimitKey, psychologist.id, 1)) {
+        console.log('Rate limit: get_clinic_team ya fue llamado hoy para este psicólogo');
+        return null;
+      }
+
       const { data, error } = await supabase.rpc('get_clinic_team', {
-        psychologist_id: psychologist.id
+        p_psychologist_id: psychologist.id
       });
+
+      // Registrar la ejecución solo si no hay error
+      if (!error) {
+        recordRateLimitedExecution(rateLimitKey, psychologist.id);
+        recordRateLimitedExecution(rateLimitKey, psychologist.id);
+      }
       if (error) {
         console.error('Error fetching clinic team:', error);
         return null;

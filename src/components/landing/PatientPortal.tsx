@@ -58,25 +58,33 @@ export const PatientPortal = () => {
   const [psychologistRelations, setPsychologistRelations] = useState<PsychologistRelation[]>([]);
   const [selectedPsychologistId, setSelectedPsychologistId] = useState<string | null>(null);
   const [relationsLoading, setRelationsLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    if (user && profile) {
+    // Solo cargar datos una vez cuando el usuario y perfil estén disponibles
+    // Evitar re-cargar cuando cambias de pestaña
+    if (user && profile && !dataLoaded) {
       // Primero cargar relaciones, luego datos
       if (user.id) {
         setRelationsLoading(true);
         fetchPsychologistRelations().then(() => {
           setRelationsLoading(false);
-          fetchPatientData();
+          fetchPatientData().then(() => {
+            setDataLoaded(true);
+          });
         });
       } else {
         setRelationsLoading(false);
-        fetchPatientData();
+        fetchPatientData().then(() => {
+          setDataLoaded(true);
+        });
       }
     } else if (!user) {
       setLoading(false);
       setRelationsLoading(false);
+      setDataLoaded(false);
     }
-  }, [user, profile]);
+  }, [user, profile, dataLoaded]);
 
   useEffect(() => {
     if (patient?.psychologist_id) {
@@ -156,7 +164,11 @@ export const PatientPortal = () => {
         psychologistIds.push(patient.psychologist_id);
       }
       
-      // Fetch appointments - de todos los psicólogos vinculados
+      // Fetch appointments - mostrar todas las citas (pasadas recientes y futuras)
+      // Incluir todos los estados: pending, accepted, rejected, scheduled, confirmed, cancelled
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
       let appointmentsQuery = supabase
         .from('appointments')
         .select(`
@@ -164,11 +176,8 @@ export const PatientPortal = () => {
           psychologist:psychologists(first_name, last_name)
         `)
         .eq('patient_id', user.id)
-        .gte('appointment_date', new Date().toISOString())
-        .in('status', ['scheduled', 'confirmed', 'accepted']);
-      
-      // Si hay psicólogos vinculados, filtrar por ellos también (opcional, para mostrar solo citas de psicólogos vinculados)
-      // Si no hay filtro, mostrará todas las citas del paciente
+        .gte('appointment_date', thirtyDaysAgo.toISOString())
+        .in('status', ['scheduled', 'confirmed', 'accepted', 'pending', 'rejected', 'cancelled']);
       
       const { data: appointmentsData, error: appointmentsError } = await appointmentsQuery
         .order('appointment_date', { ascending: true });
@@ -386,7 +395,9 @@ export const PatientPortal = () => {
                         'scheduled': 'Programada',
                         'confirmed': 'Confirmada',
                         'accepted': 'Confirmada',
-                        'pending': 'Pendiente'
+                        'pending': 'Pendiente',
+                        'rejected': 'Rechazada',
+                        'cancelled': 'Cancelada'
                       };
 
                       return (

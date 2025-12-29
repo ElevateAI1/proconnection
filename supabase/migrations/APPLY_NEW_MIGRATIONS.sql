@@ -220,7 +220,7 @@ COMMENT ON FUNCTION public.is_clinic_admin(UUID) IS 'Verifica si un psicólogo e
 -- ============================================================================
 
 DROP FUNCTION IF EXISTS public.get_plan_capabilities(UUID);
-CREATE FUNCTION public.get_plan_capabilities(psychologist_id UUID)
+CREATE FUNCTION public.get_plan_capabilities(p_psychologist_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -234,7 +234,7 @@ BEGIN
   -- Obtener el plan_type del psicólogo
   SELECT p.plan_type INTO plan_type_value
   FROM public.psychologists p
-  WHERE p.id = psychologist_id;
+  WHERE p.id = p_psychologist_id;
   
   -- Si no se encuentra el psicólogo, retornar capacidades de starter
   IF plan_type_value IS NULL THEN
@@ -247,10 +247,10 @@ BEGIN
   SELECT EXISTS (
     SELECT 1 FROM public.team_members tm
     JOIN public.clinic_teams ct ON tm.clinic_team_id = ct.id
-    WHERE tm.psychologist_id = psychologist_id AND tm.status = 'active'
+    WHERE tm.psychologist_id = p_psychologist_id AND tm.status = 'active'
   ) INTO is_clinic_member;
   
-  SELECT public.is_clinic_admin(psychologist_id) INTO is_clinic_admin;
+  SELECT public.is_clinic_admin(p_psychologist_id) INTO is_clinic_admin;
   
   -- Determinar capacidades según el plan
   CASE plan_type_value
