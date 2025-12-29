@@ -312,14 +312,24 @@ export const PatientClinicalHistory = ({ patientId }: PatientClinicalHistoryProp
                       <Activity className="w-5 h-5 text-blue-500" />
                       <div>
                         <h4 className="font-semibold text-slate-800">
-                          Sesión del {new Date(record.session_date).toLocaleDateString('es-ES')}
+                          Sesión del {record.session_date 
+                            ? (() => {
+                                const date = new Date(record.session_date);
+                                return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                              })()
+                            : 'Fecha no disponible'}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge className={getSessionTypeColor(record.session_type)}>
                             {getSessionTypeLabel(record.session_type)}
                           </Badge>
                           <span className="text-sm text-slate-500">
-                            Registrado: {new Date(record.created_at).toLocaleDateString('es-ES')}
+                            Registrado: {record.created_at 
+                              ? (() => {
+                                  const date = new Date(record.created_at);
+                                  return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                                })()
+                              : 'Fecha no disponible'}
                           </span>
                         </div>
                       </div>

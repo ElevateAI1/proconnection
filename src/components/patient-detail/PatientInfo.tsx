@@ -184,7 +184,12 @@ export const PatientInfo = ({ patient, onUpdate, patientId }: PatientInfoProps) 
                     Fecha de Registro
                   </label>
                   <p className="text-lg text-slate-800 mt-2">
-                    {new Date(patient.created_at).toLocaleDateString('es-ES')}
+                    {patient.created_at 
+                      ? (() => {
+                          const date = new Date(patient.created_at);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                        })()
+                      : 'Fecha no disponible'}
                   </p>
                 </div>
               </div>

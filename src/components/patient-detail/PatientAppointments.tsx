@@ -126,7 +126,13 @@ export const PatientAppointments = ({ patientId }: PatientAppointmentsProps) => 
   };
 
   const formatDateTime = (dateString: string) => {
+    if (!dateString) {
+      return { date: 'Fecha no disponible', time: 'Hora no disponible' };
+    }
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return { date: 'Fecha inválida', time: 'Hora inválida' };
+    }
     return {
       date: date.toLocaleDateString('es-ES', {
         weekday: 'long',

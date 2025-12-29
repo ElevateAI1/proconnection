@@ -374,7 +374,10 @@ export const PatientPortal = () => {
                       return !isNaN(aptDate.getTime());
                     })
                     .map((appointment) => {
-                      const aptDate = new Date(appointment.appointment_date!);
+                      if (!appointment.appointment_date) return null;
+                      const aptDate = new Date(appointment.appointment_date);
+                      if (isNaN(aptDate.getTime())) return null;
+                      
                       const dateStr = aptDate.toLocaleDateString('es-ES', { 
                         weekday: 'long', 
                         year: 'numeric', 
@@ -385,15 +388,18 @@ export const PatientPortal = () => {
                         hour: '2-digit', 
                         minute: '2-digit' 
                       });
-                    const isOnline = appointment.type === 'online' || appointment.meeting_url;
-                    const statusLabels: Record<string, string> = {
-                      'scheduled': 'Programada',
-                      'confirmed': 'Confirmada',
-                      'accepted': 'Confirmada',
-                      'pending': 'Pendiente'
-                    };
+                      
+                      if (!dateStr || !timeStr) return null;
+                      
+                      const isOnline = appointment.type === 'online' || appointment.meeting_url;
+                      const statusLabels: Record<string, string> = {
+                        'scheduled': 'Programada',
+                        'confirmed': 'Confirmada',
+                        'accepted': 'Confirmada',
+                        'pending': 'Pendiente'
+                      };
 
-                    return (
+                      return (
                       <div key={appointment.id} className="bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -477,7 +483,7 @@ export const PatientPortal = () => {
                     <span className="font-semibold text-blue-petrol">Pago pendiente de validación</span>
                   </div>
                   <div className="text-blue-petrol font-medium">
-                    Tenés un pago pendiente de ${pendingPayment.amount.toLocaleString()}
+                    Tenés un pago pendiente de ${pendingPayment?.amount ? pendingPayment.amount.toLocaleString() : '0'}
                   </div>
                   <p className="text-sm text-blue-petrol/70 mt-1">
                     Tu psicólogo está revisando el comprobante de pago
@@ -497,7 +503,9 @@ export const PatientPortal = () => {
                   })
                   .map((receipt) => {
                     const receiptDate = receipt.receipt_date || receipt.created_at;
-                    const receiptDateObj = new Date(receiptDate!);
+                    if (!receiptDate) return null;
+                    const receiptDateObj = new Date(receiptDate);
+                    if (isNaN(receiptDateObj.getTime())) return null;
                     const dateStr = receiptDateObj.toLocaleDateString('es-ES');
                   const statusLabels: Record<string, { label: string; color: string }> = {
                     'approved': { label: 'Aprobado', color: 'bg-green-100 text-green-800' },
@@ -506,6 +514,8 @@ export const PatientPortal = () => {
                   };
                   const status = statusLabels[receipt.validation_status] || { label: receipt.validation_status, color: 'bg-gray-100 text-gray-800' };
 
+                  if (!dateStr) return null;
+                  
                   return (
                     <div key={receipt.id} className="flex items-center justify-between p-4 bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                       <div>
@@ -516,7 +526,7 @@ export const PatientPortal = () => {
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-blue-petrol text-lg">
-                          ${receipt.amount.toLocaleString()}
+                          ${receipt?.amount ? receipt.amount.toLocaleString() : '0'}
                         </div>
                         <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
                           receipt.validation_status === 'approved' 

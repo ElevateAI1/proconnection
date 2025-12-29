@@ -234,10 +234,14 @@ export const PatientMessages = ({ patientId }: PatientMessagesProps) => {
                     <p className="text-sm">{message.content}</p>
                     <div className={`flex items-center justify-between mt-1 ${message.sender_id === psychologist?.id ? "text-blue-100" : "text-slate-500"}`}>
                       <p className="text-xs">
-                        {new Date(message.created_at).toLocaleTimeString('es-ES', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {message.created_at 
+                          ? (() => {
+                              const date = new Date(message.created_at);
+                              return !isNaN(date.getTime()) 
+                                ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                                : 'Hora inválida';
+                            })()
+                          : 'Hora no disponible'}
                       </p>
                       <MessageStatus 
                         isOwnMessage={message.sender_id === psychologist?.id}

@@ -115,7 +115,12 @@ export const PatientDetailView = () => {
               </h1>
               <p className="text-xs text-blue-petrol/70 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Paciente desde {new Date(patient.created_at).toLocaleDateString('es-ES')}
+                Paciente desde {patient.created_at 
+                  ? (() => {
+                      const date = new Date(patient.created_at);
+                      return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                    })()
+                  : 'Fecha no disponible'}
               </p>
             </div>
           </div>

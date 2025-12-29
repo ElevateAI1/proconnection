@@ -135,8 +135,11 @@ export const PatientBilling = ({ patientId }: PatientBillingProps) => {
           <CardContent className="p-4 text-center">
             <Calendar className="w-8 h-8 mx-auto mb-2 text-purple-500" />
             <p className="text-sm font-bold text-slate-800">
-              {billingRecords.length > 0 
-                ? new Date(billingRecords[0].receipt_date).toLocaleDateString('es-ES')
+              {billingRecords.length > 0 && billingRecords[0].receipt_date
+                ? (() => {
+                    const date = new Date(billingRecords[0].receipt_date);
+                    return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                  })()
                 : 'Sin registros'
               }
             </p>
@@ -179,7 +182,12 @@ export const PatientBilling = ({ patientId }: PatientBillingProps) => {
                     <div>
                       <p className="font-medium">${record.amount?.toFixed(2) || '0.00'}</p>
                       <p className="text-sm text-gray-600">
-                        {record.receipt_type} - {new Date(record.receipt_date).toLocaleDateString('es-ES')}
+                        {record.receipt_type} - {record.receipt_date 
+                          ? (() => {
+                              const date = new Date(record.receipt_date);
+                              return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+                            })()
+                          : 'Fecha no disponible'}
                       </p>
                       {record.receipt_number && (
                         <p className="text-xs text-gray-500">Recibo: {record.receipt_number}</p>

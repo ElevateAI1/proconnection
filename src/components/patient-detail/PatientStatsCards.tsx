@@ -37,7 +37,10 @@ export const PatientStatsCards = ({ stats, loading = false }: PatientStatsCardsP
     {
       title: "Última Cita",
       value: stats.lastAppointment 
-        ? new Date(stats.lastAppointment).toLocaleDateString('es-ES')
+        ? (() => {
+            const date = new Date(stats.lastAppointment);
+            return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
+          })()
         : 'Sin citas',
       icon: Activity,
       iconColor: "from-orange-500 to-orange-600",
