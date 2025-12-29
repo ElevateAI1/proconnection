@@ -44,7 +44,15 @@ type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
   const { profile, psychologist, patient, loading: profileLoading, error: profileError, forceRefresh } = useOptimizedProfile();
-  const unifiedStats = useUnifiedDashboardStats(psychologist?.id);
+  const unifiedStats = useUnifiedDashboardStats(
+    psychologist?.id,
+    psychologist ? {
+      first_name: psychologist.first_name,
+      last_name: psychologist.last_name,
+      plan_type: psychologist.plan_type,
+      subscription_status: psychologist.subscription_status
+    } : undefined
+  );
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
   const navigate = useNavigate();

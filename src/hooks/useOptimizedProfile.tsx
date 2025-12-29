@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -60,11 +60,18 @@ export const useOptimizedProfile = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
 
-  const fetchProfile = async (forceRefresh = false) => {
+  const fetchProfile = useCallback(async (forceRefresh = false) => {
     if (!user) {
       console.log('No user found');
       setLoading(false);
+      return;
+    }
+
+    // Protección contra llamadas simultáneas
+    if (fetchingRef.current && !forceRefresh) {
+      console.log('Fetch already in progress, skipping');
       return;
     }
 
@@ -80,6 +87,7 @@ export const useOptimizedProfile = () => {
       return;
     }
 
+    fetchingRef.current = true;
     try {
       console.log('Fetching fresh profile data for user:', user.id);
       setLoading(true);
@@ -219,8 +227,9 @@ export const useOptimizedProfile = () => {
       });
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -228,6 +237,7 @@ export const useOptimizedProfile = () => {
       setLoading(false);
       setError(null);
       profileCache = { profile: null, psychologist: null, patient: null, userId: null };
+      fetchingRef.current = false;
       return;
     }
 
@@ -237,7 +247,7 @@ export const useOptimizedProfile = () => {
     }
 
     fetchProfile();
-  }, [user?.id]);
+  }, [user?.id, fetchProfile]);
 
   const createPsychologistProfile = async (profileData: Omit<Psychologist, 'id' | 'professional_code'>) => {
     if (!user) return { error: 'No user logged in' };
