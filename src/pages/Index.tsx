@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import { useUnifiedDashboardStats } from "@/hooks/useUnifiedDashboardStats";
@@ -44,15 +44,19 @@ type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
   const { profile, psychologist, patient, loading: profileLoading, error: profileError, forceRefresh } = useOptimizedProfile();
-  const unifiedStats = useUnifiedDashboardStats(
-    psychologist?.id,
-    psychologist ? {
+  
+  // Memoizar psychologistInfo para evitar recrearlo en cada render
+  const psychologistInfo = useMemo(() => {
+    if (!psychologist) return undefined;
+    return {
       first_name: psychologist.first_name,
       last_name: psychologist.last_name,
       plan_type: psychologist.plan_type,
       subscription_status: psychologist.subscription_status
-    } : undefined
-  );
+    };
+  }, [psychologist?.first_name, psychologist?.last_name, psychologist?.plan_type, psychologist?.subscription_status]);
+
+  const unifiedStats = useUnifiedDashboardStats(psychologist?.id, psychologistInfo);
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
   const navigate = useNavigate();

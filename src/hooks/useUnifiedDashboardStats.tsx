@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -38,6 +38,9 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
     statsLoading: true,
     error: null
   });
+  const fetchingRef = useRef(false);
+  const lastPsychologistIdRef = useRef<string | undefined>(psychologistId);
+  const psychologistInfoRef = useRef<PsychologistInfo | undefined>(psychologistInfo);
 
   const fetchStatsOnly = useCallback(async () => {
     if (!psychologistId) return;
@@ -90,10 +93,8 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
         error: null
       }));
 
-      console.log('Stats loaded successfully');
-
     } catch (error) {
-      console.log('Stats queries timeout, using default values');
+      // Timeout o error en queries - usar valores por defecto silenciosamente
       setStats(prev => ({
         ...prev,
         statsLoading: false,
@@ -108,8 +109,6 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
     if (!psychologistId) return;
 
     try {
-      console.log('Fetching unified stats for psychologist:', psychologistId);
-      
       // First, get psychologist basic info (fast query)
       const { data: psychData, error: psychError } = await supabase
         .from('psychologists')
@@ -155,6 +154,11 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
     }
   }, [psychologistId, fetchStatsOnly]);
 
+  // Actualizar refs cuando cambian
+  useEffect(() => {
+    psychologistInfoRef.current = psychologistInfo;
+  }, [psychologistInfo?.first_name, psychologistInfo?.last_name, psychologistInfo?.plan_type, psychologistInfo?.subscription_status]);
+
   useEffect(() => {
     if (!psychologistId) {
       setStats(prev => ({ 
@@ -162,7 +166,20 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
         profileLoading: false, 
         statsLoading: false 
       }));
+      fetchingRef.current = false;
+      lastPsychologistIdRef.current = undefined;
       return;
+    }
+
+    // Protección contra llamadas múltiples
+    if (fetchingRef.current && lastPsychologistIdRef.current === psychologistId) {
+      return;
+    }
+
+    // Si cambió el psychologist ID, resetear
+    if (lastPsychologistIdRef.current !== psychologistId) {
+      fetchingRef.current = false;
+      lastPsychologistIdRef.current = psychologistId;
     }
 
     // Si es usuario demo, usar datos simulados
@@ -191,27 +208,45 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
       return;
     }
 
+    fetchingRef.current = true;
+
     // Si ya tenemos la info del psychologist, usarla directamente
-    if (psychologistInfo) {
-      const firstName = (psychologistInfo.first_name || '').trim();
-      const lastName = (psychologistInfo.last_name || '').trim();
+    const currentInfo = psychologistInfoRef.current;
+    if (currentInfo?.first_name || currentInfo?.last_name || currentInfo?.plan_type) {
+      const firstName = (currentInfo.first_name || '').trim();
+      const lastName = (currentInfo.last_name || '').trim();
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Profesional';
 
       setStats(prev => ({
         ...prev,
         psychologistName: fullName,
-        planType: psychologistInfo.plan_type || 'starter',
-        subscriptionStatus: psychologistInfo.subscription_status || 'trial',
+        planType: currentInfo.plan_type || 'starter',
+        subscriptionStatus: currentInfo.subscription_status || 'trial',
         profileLoading: false
       }));
 
       // Solo fetch de stats, no del perfil
-      fetchStatsOnly();
+      fetchStatsOnly().finally(() => {
+        fetchingRef.current = false;
+      });
     } else {
       // Si no tenemos la info, hacer fetch completo (fallback)
-      fetchUnifiedStats();
+      fetchUnifiedStats().finally(() => {
+        fetchingRef.current = false;
+      });
     }
-  }, [psychologistId, user?.id, psychologistInfo, fetchStatsOnly, fetchUnifiedStats]);
+  }, [psychologistId, user?.id, fetchStatsOnly, fetchUnifiedStats]);
 
-  return { ...stats, refetch: fetchUnifiedStats };
+  // Memoizar el objeto de retorno para evitar recreaciones innecesarias
+  return useMemo(() => ({ ...stats, refetch: fetchUnifiedStats }), [
+    stats.psychologistName,
+    stats.planType,
+    stats.subscriptionStatus,
+    stats.todayAppointments,
+    stats.activePatients,
+    stats.profileLoading,
+    stats.statsLoading,
+    stats.error,
+    fetchUnifiedStats
+  ]);
 };

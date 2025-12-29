@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,19 @@ interface MinimalistDashboardProps {
 
 export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) => {
   const { psychologist } = useProfile();
-  const unifiedStats = useUnifiedDashboardStats(psychologist?.id);
+  
+  // Memoizar psychologistInfo para evitar recrearlo en cada render
+  const psychologistInfo = useMemo(() => {
+    if (!psychologist) return undefined;
+    return {
+      first_name: psychologist.first_name,
+      last_name: psychologist.last_name,
+      plan_type: psychologist.plan_type,
+      subscription_status: psychologist.subscription_status
+    };
+  }, [psychologist?.first_name, psychologist?.last_name, psychologist?.plan_type, psychologist?.subscription_status]);
+
+  const unifiedStats = useUnifiedDashboardStats(psychologist?.id, psychologistInfo);
   const { receipts } = usePaymentReceipts(psychologist?.id);
   const { pendingCount } = usePendingAppointmentRequests(psychologist?.id);
   const { todayAppointments, activePatients } = useDashboardStats();
