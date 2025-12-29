@@ -41,6 +41,9 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
   const fetchingRef = useRef(false);
   const lastPsychologistIdRef = useRef<string | undefined>(psychologistId);
   const psychologistInfoRef = useRef<PsychologistInfo | undefined>(psychologistInfo);
+  const fetchStatsOnlyRef = useRef<(() => Promise<void>) | null>(null);
+  const fetchUnifiedStatsRef = useRef<(() => Promise<void>) | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const fetchStatsOnly = useCallback(async () => {
     if (!psychologistId) return;
@@ -154,6 +157,12 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
     }
   }, [psychologistId, fetchStatsOnly]);
 
+  // Actualizar refs cuando cambian las funciones
+  useEffect(() => {
+    fetchStatsOnlyRef.current = fetchStatsOnly;
+    fetchUnifiedStatsRef.current = fetchUnifiedStats;
+  }, [fetchStatsOnly, fetchUnifiedStats]);
+
   // Actualizar refs cuando cambian
   useEffect(() => {
     psychologistInfoRef.current = psychologistInfo;
@@ -168,18 +177,25 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
       }));
       fetchingRef.current = false;
       lastPsychologistIdRef.current = undefined;
+      hasFetchedRef.current = false;
       return;
     }
 
-    // Protección contra llamadas múltiples
-    if (fetchingRef.current && lastPsychologistIdRef.current === psychologistId) {
-      return;
-    }
-
-    // Si cambió el psychologist ID, resetear
+    // Si cambió el psychologist ID, resetear todo
     if (lastPsychologistIdRef.current !== psychologistId) {
       fetchingRef.current = false;
       lastPsychologistIdRef.current = psychologistId;
+      hasFetchedRef.current = false;
+    }
+
+    // Protección fuerte: solo ejecutar una vez por psychologistId
+    if (hasFetchedRef.current && lastPsychologistIdRef.current === psychologistId) {
+      return;
+    }
+
+    // Protección contra llamadas simultáneas
+    if (fetchingRef.current) {
+      return;
     }
 
     // Si es usuario demo, usar datos simulados
@@ -205,10 +221,12 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
           error: null
         }));
       }, 800);
+      hasFetchedRef.current = true;
       return;
     }
 
     fetchingRef.current = true;
+    hasFetchedRef.current = true;
 
     // Si ya tenemos la info del psychologist, usarla directamente
     const currentInfo = psychologistInfoRef.current;
@@ -225,17 +243,25 @@ export const useUnifiedDashboardStats = (psychologistId?: string, psychologistIn
         profileLoading: false
       }));
 
-      // Solo fetch de stats, no del perfil
-      fetchStatsOnly().finally(() => {
+      // Solo fetch de stats, no del perfil - usar ref para evitar dependencias
+      if (fetchStatsOnlyRef.current) {
+        fetchStatsOnlyRef.current().finally(() => {
+          fetchingRef.current = false;
+        });
+      } else {
         fetchingRef.current = false;
-      });
+      }
     } else {
-      // Si no tenemos la info, hacer fetch completo (fallback)
-      fetchUnifiedStats().finally(() => {
+      // Si no tenemos la info, hacer fetch completo (fallback) - usar ref
+      if (fetchUnifiedStatsRef.current) {
+        fetchUnifiedStatsRef.current().finally(() => {
+          fetchingRef.current = false;
+        });
+      } else {
         fetchingRef.current = false;
-      });
+      }
     }
-  }, [psychologistId, user?.id, fetchStatsOnly, fetchUnifiedStats]);
+  }, [psychologistId, user?.id]);
 
   // Memoizar el objeto de retorno para evitar recreaciones innecesarias
   return useMemo(() => ({ ...stats, refetch: fetchUnifiedStats }), [
