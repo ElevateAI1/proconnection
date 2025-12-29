@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useClinicTeam } from "@/hooks/useClinicTeam";
+import { SubscriptionModal } from "@/components/SubscriptionModal";
 import { 
   Calendar, 
   Users, 
@@ -137,6 +140,9 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
   const { receipts } = usePaymentReceipts(psychologist?.id);
   const { pendingCount } = usePendingAppointmentRequests(psychologist?.id);
   const { todayAppointments, activePatients } = useDashboardStats();
+  const { clinicTeam, loading: clinicLoading } = useClinicTeam();
+  const [dashboardView, setDashboardView] = useState<'personal' | 'clinic'>('personal');
+  const [showPlansModal, setShowPlansModal] = useState(false);
 
   // Calculate financial metrics
   const pendingReceipts = receipts.filter(r => r.validation_status === 'pending').length;
@@ -189,21 +195,19 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
     if (!planType) return 'STARTER';
     const plan = planType.toLowerCase();
     if (plan === 'proconnection') return 'PROCONNECTION';
-    if (plan === 'teams') return 'TEAMS';
+    if (plan === 'clinicas') return 'CLÍNICAS';
+    if (plan === 'teams') return 'CLÍNICAS'; // Deprecated
     if (plan === 'dev') return 'DEV';
     return 'STARTER';
   };
 
-  return (
-    <div className="relative overflow-hidden">
-      {/* Elementos flotantes de fondo */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-soft/15 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute top-40 right-20 w-96 h-96 bg-green-mint/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-lavender-soft/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-      
-      <div className="space-y-10 p-6 sm:p-8 lg:p-12 relative z-10">
-        {/* Header neogolpista */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+  const isClinicAdmin = clinicTeam?.is_admin || false;
+  const showClinicView = isClinicAdmin && !clinicLoading;
+
+  const renderPersonalDashboard = () => (
+    <>
+      {/* Header neogolpista */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-3">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
               <span className="text-blue-petrol">{getGreeting()}, </span>
@@ -226,7 +230,20 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
             <Badge className="text-sm px-5 py-2.5 bg-blue-soft/15 backdrop-blur-sm border border-blue-soft/30 text-blue-petrol font-semibold rounded-full shadow-sm">
               {formatPlanType(unifiedStats.planType || psychologist?.plan_type)}
             </Badge>
-            <Badge className={`text-sm px-5 py-2.5 font-semibold rounded-full backdrop-blur-sm border ${subscriptionInfo.color.includes('emerald') ? 'bg-green-mint/20 border-green-mint/40 text-blue-petrol' : subscriptionInfo.color.includes('amber') ? 'bg-peach-pale/20 border-peach-pale/40 text-blue-petrol' : 'bg-celeste-gray/20 border-celeste-gray/40 text-blue-petrol'}`}>
+            <Badge 
+              className={`text-sm px-5 py-2.5 font-semibold rounded-full backdrop-blur-sm border cursor-pointer transition-all hover:scale-105 ${
+                subscriptionInfo.color.includes('emerald') 
+                  ? 'bg-green-mint/20 border-green-mint/40 text-blue-petrol' 
+                  : subscriptionInfo.color.includes('amber') 
+                  ? 'bg-peach-pale/20 border-peach-pale/40 text-blue-petrol' 
+                  : 'bg-celeste-gray/20 border-celeste-gray/40 text-blue-petrol hover:bg-red-50 hover:border-red-200'
+              }`}
+              onClick={() => {
+                if (subscriptionInfo.status === 'Suscripción inactiva') {
+                  setShowPlansModal(true);
+                }
+              }}
+            >
               {subscriptionInfo.status}
             </Badge>
           </div>
@@ -383,7 +400,58 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
             </CardContent>
           </Card>
         )}
+      </>
+  );
+
+  const renderClinicView = () => {
+    if (!clinicTeam) return null;
+    
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Vista Clínica - {clinicTeam.team_name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-slate-600 mb-4">
+              Esta vista muestra métricas consolidadas de todo el equipo. 
+              Para gestionar miembros y ver reportes detallados, ve a "Administración de Clínica" en el menú.
+            </p>
+            <Button onClick={() => onNavigate?.('clinic-admin')}>
+              Ir a Administración de Clínica
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+    );
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Elementos flotantes de fondo */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-soft/15 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute top-40 right-20 w-96 h-96 bg-green-mint/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-lavender-soft/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+      
+      <div className="space-y-10 p-6 sm:p-8 lg:p-12 relative z-10">
+        {showClinicView ? (
+          <Tabs value={dashboardView} onValueChange={(v) => setDashboardView(v as 'personal' | 'clinic')} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="personal">Mi Consultorio</TabsTrigger>
+              <TabsTrigger value="clinic">Vista Clínica</TabsTrigger>
+            </TabsList>
+            <TabsContent value="personal" className="space-y-10">
+              {renderPersonalDashboard()}
+            </TabsContent>
+            <TabsContent value="clinic" className="space-y-10">
+              {renderClinicView()}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          renderPersonalDashboard()
+          )}
+      </div>
+      <SubscriptionModal open={showPlansModal} onOpenChange={setShowPlansModal} />
     </div>
   );
 };

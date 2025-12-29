@@ -28,13 +28,16 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { ReminderSettingsManager } from "@/components/ReminderSettingsManager";
 import { AdvancedReminderSettings } from "@/components/AdvancedReminderSettings";
 import { NotificationDashboard } from "@/components/NotificationDashboard";
+import { ClinicAdminDashboard } from "@/components/ClinicAdminDashboard";
+import { ClinicReports } from "@/components/ClinicReports";
+import { ApiIntegrations } from "@/components/ApiIntegrations";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { MinimalistSidebar } from "@/components/MinimalistSidebar";
 import { MobileNavigation } from "@/components/MobileNavigation";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { activatePlusPlan } from "@/utils/activatePlusPlan";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard";
+type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
@@ -229,6 +232,12 @@ export default function Index() {
           return <AdvancedReminderSettings />;
         case "notification-dashboard":
           return <NotificationDashboard />;
+        case "clinic-admin":
+          return <ClinicAdminDashboard />;
+        case "clinic-reports":
+          return <ClinicReports />;
+        case "api-integrations":
+          return <ApiIntegrations />;
         default:
           return <Dashboard />;
       }

@@ -16,6 +16,8 @@ interface PlanCapabilities {
   visibility_consulting: boolean;
   api_integrations: boolean;
   dedicated_support: boolean;
+  is_clinic_admin?: boolean;
+  is_clinic_member?: boolean;
 }
 
 // Función helper para determinar capacidades desde plan_type
@@ -56,7 +58,26 @@ const getCapabilitiesFromPlanType = (planType: string): PlanCapabilities => {
     };
   }
   
-  // Teams: todas las capacidades
+  // Clínicas: todas las capacidades
+  if (plan === 'clinicas') {
+    return {
+      basic_features: true,
+      seo_profile: true,
+      advanced_reports: true,
+      priority_support: true,
+      financial_features: true,
+      advanced_documents: true,
+      team_features: true,
+      early_access: true,
+      visibility_consulting: true,
+      api_integrations: true,
+      dedicated_support: true,
+      is_clinic_admin: false,
+      is_clinic_member: false
+    };
+  }
+  
+  // Teams (deprecated, mantener compatibilidad)
   if (plan === 'teams') {
     return {
       basic_features: true,
@@ -69,7 +90,9 @@ const getCapabilitiesFromPlanType = (planType: string): PlanCapabilities => {
       early_access: true,
       visibility_consulting: true,
       api_integrations: true,
-      dedicated_support: true
+      dedicated_support: true,
+      is_clinic_admin: false,
+      is_clinic_member: false
     };
   }
   
@@ -155,7 +178,9 @@ export const usePlanCapabilities = () => {
           early_access: Boolean(planData.early_access),
           visibility_consulting: Boolean(planData.visibility_consulting),
           api_integrations: Boolean(planData.api_integrations),
-          dedicated_support: Boolean(planData.dedicated_support)
+          dedicated_support: Boolean(planData.dedicated_support),
+          is_clinic_admin: Boolean(planData.is_clinic_admin),
+          is_clinic_member: Boolean(planData.is_clinic_member)
         };
       } else {
         // Fallback: determinar capacidades desde plan_type si no hay datos de RPC
@@ -286,24 +311,33 @@ export const usePlanCapabilities = () => {
     return planType === 'proconnection';
   }, [psychologist?.plan_type]);
 
-  const isTeamsUser = useCallback(() => {
+  const isClinicasUser = useCallback(() => {
     const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
-    return planType === 'teams' || planType === 'dev';
+    return planType === 'clinicas' || planType === 'dev';
   }, [psychologist?.plan_type]);
+
+  const isTeamsUser = useCallback(() => {
+    // Deprecated: mantener por compatibilidad
+    return isClinicasUser();
+  }, [isClinicasUser]);
 
   const isDevUser = useCallback(() => {
     const planType = psychologist?.plan_type?.toLowerCase() || 'starter';
     return planType === 'dev';
   }, [psychologist?.plan_type]);
 
-  const hasTierOrHigher = useCallback((requiredTier: 'starter' | 'proconnection' | 'teams' | 'dev'): boolean => {
+  const hasTierOrHigher = useCallback((requiredTier: 'starter' | 'proconnection' | 'clinicas' | 'teams' | 'dev'): boolean => {
     // DEV tiene acceso a todo
     const currentPlan = psychologist?.plan_type?.toLowerCase() || 'starter';
     if (currentPlan === 'dev') return true;
     
-    const tierOrder = ['starter', 'proconnection', 'teams'];
-    const currentIndex = tierOrder.indexOf(currentPlan);
-    const requiredIndex = tierOrder.indexOf(requiredTier);
+    // Mapear 'teams' a 'clinicas' para compatibilidad
+    const normalizedTier = requiredTier === 'teams' ? 'clinicas' : requiredTier;
+    const normalizedPlan = currentPlan === 'teams' ? 'clinicas' : currentPlan;
+    
+    const tierOrder = ['starter', 'proconnection', 'clinicas'];
+    const currentIndex = tierOrder.indexOf(normalizedPlan);
+    const requiredIndex = tierOrder.indexOf(normalizedTier);
     return currentIndex >= requiredIndex;
   }, [psychologist?.plan_type]);
 
@@ -313,8 +347,42 @@ export const usePlanCapabilities = () => {
   }, [isProConnectionUser]);
 
   const isProUser = useCallback(() => {
-    return isTeamsUser();
-  }, [isTeamsUser]);
+    return isClinicasUser();
+  }, [isClinicasUser]);
+
+  const isClinicAdmin = useCallback(async (): Promise<boolean> => {
+    if (!psychologist?.id) return false;
+    try {
+      const { data, error } = await supabase.rpc('is_clinic_admin', {
+        psychologist_id: psychologist.id
+      });
+      if (error) {
+        console.error('Error checking clinic admin:', error);
+        return false;
+      }
+      return Boolean(data);
+    } catch (err) {
+      console.error('Error in isClinicAdmin:', err);
+      return false;
+    }
+  }, [psychologist?.id]);
+
+  const getClinicTeam = useCallback(async () => {
+    if (!psychologist?.id) return null;
+    try {
+      const { data, error } = await supabase.rpc('get_clinic_team', {
+        psychologist_id: psychologist.id
+      });
+      if (error) {
+        console.error('Error fetching clinic team:', error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error in getClinicTeam:', err);
+      return null;
+    }
+  }, [psychologist?.id]);
 
   return {
     capabilities,
@@ -323,9 +391,12 @@ export const usePlanCapabilities = () => {
     hasCapability,
     isStarterUser,
     isProConnectionUser,
-    isTeamsUser,
+    isClinicasUser,
+    isTeamsUser, // Deprecated: mantener por compatibilidad
     isDevUser,
     hasTierOrHigher,
+    isClinicAdmin,
+    getClinicTeam,
     // Deprecated: mantener por compatibilidad
     isPlusUser,
     isProUser,

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard";
+type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations";
 
 interface MinimalistSidebarProps {
   currentView: ViewType;
@@ -65,14 +65,18 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
     // DEV tiene acceso a todo
     if (currentPlan === 'dev') return true;
     
-    const tierOrder = ['starter', 'proconnection', 'teams'];
-    const currentIndex = tierOrder.indexOf(currentPlan);
-    const requiredIndex = tierOrder.indexOf(requiredTier.toLowerCase());
+    const normalizedTier = requiredTier === 'teams' ? 'clinicas' : requiredTier;
+    const normalizedPlan = currentPlan === 'teams' ? 'clinicas' : currentPlan;
+    
+    const tierOrder = ['starter', 'proconnection', 'clinicas'];
+    const currentIndex = tierOrder.indexOf(normalizedPlan);
+    const requiredIndex = tierOrder.indexOf(normalizedTier.toLowerCase());
     return currentIndex >= requiredIndex;
   };
   
   const hasProConnection = hasTierOrHigher('proconnection');
-  const hasTeams = currentPlan === 'teams' || currentPlan === 'dev';
+  const hasClinicas = capabilities?.team_features || false;
+  const isClinicAdmin = capabilities?.is_clinic_admin || false;
 
   // Navegación principal - Solo las funciones más importantes
   const mainMenuItems = [
@@ -167,14 +171,35 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
       label: "Early Access",
       icon: Zap,
       available: capabilities?.early_access || false,
-      requiredPlan: 'teams' // Requiere Teams
+      requiredPlan: 'clinicas' // Requiere Clínicas
     },
     {
       id: "visibility" as ViewType,
       label: "Consultoría Visibilidad",
       icon: Eye,
       available: capabilities?.visibility_consulting || false,
-      requiredPlan: 'teams' // Requiere Teams
+      requiredPlan: 'clinicas' // Requiere Clínicas
+    },
+    {
+      id: "clinic-admin" as ViewType,
+      label: "Administración de Clínica",
+      icon: Users,
+      available: isClinicAdmin,
+      requiredPlan: 'clinicas' // Solo para admins de clínica
+    },
+    {
+      id: "clinic-reports" as ViewType,
+      label: "Reportes de Clínica",
+      icon: BarChart3,
+      available: hasClinicas,
+      requiredPlan: 'clinicas' // Requiere Clínicas
+    },
+    {
+      id: "api-integrations" as ViewType,
+      label: "Integraciones API",
+      icon: Settings,
+      available: capabilities?.api_integrations || false,
+      requiredPlan: 'clinicas' // Requiere Clínicas
     }
   ];
 
@@ -282,16 +307,28 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
                             PRO
                           </Badge>
                         )}
-                        {item.requiredPlan === 'teams' && (
+                        {item.requiredPlan === 'clinicas' && (
                           <Badge 
                             variant="outline" 
                             className={`ml-auto text-xs px-2 py-1 font-semibold ${
-                              hasTeams 
+                              hasClinicas 
                                 ? 'border-purple-200 text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50' 
                                 : 'border-purple-300 text-purple-800 bg-gradient-to-r from-purple-100 to-indigo-100'
                             }`}
                           >
-                            TEAMS
+                            CLÍNICAS
+                          </Badge>
+                        )}
+                        {item.requiredPlan === 'teams' && (
+                          <Badge 
+                            variant="outline" 
+                            className={`ml-auto text-xs px-2 py-1 font-semibold ${
+                              hasClinicas 
+                                ? 'border-purple-200 text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50' 
+                                : 'border-purple-300 text-purple-800 bg-gradient-to-r from-purple-100 to-indigo-100'
+                            }`}
+                          >
+                            CLÍNICAS
                           </Badge>
                         )}
                       </SidebarMenuButton>
