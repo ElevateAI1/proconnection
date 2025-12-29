@@ -83,8 +83,6 @@ export default function Index() {
     const checkTrialStatus = async () => {
       if (psychologist?.id) {
         try {
-          console.log('Checking trial status for psychologist:', psychologist.id);
-          
           const { data: isExpired, error } = await supabase.rpc('is_trial_expired', {
             psychologist_id: psychologist.id
           });
@@ -98,7 +96,6 @@ export default function Index() {
                                  psychologist.subscription_status === 'cancelled';
 
           if (isExpired || hasExpiredStatus) {
-            console.log('Trial expired, showing modal');
             setShowTrialModal(true);
           }
         } catch (error) {
@@ -107,10 +104,10 @@ export default function Index() {
       }
     };
 
-    if (psychologist) {
+    if (psychologist?.id) {
       checkTrialStatus();
     }
-  }, [psychologist]);
+  }, [psychologist?.id, psychologist?.subscription_status]);
 
   if (authLoading) {
     return (

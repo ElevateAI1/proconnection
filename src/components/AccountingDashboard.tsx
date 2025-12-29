@@ -39,28 +39,11 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
 
-  console.log('Current date info:', {
-    currentMonth,
-    currentYear,
-    currentDate: currentDate.toISOString()
-  });
-
   // Filtrar comprobantes del mes actual con validación más robusta
   const thisMonthReceipts = receipts.filter(r => {
     const receiptDate = r.receipt_date ? new Date(r.receipt_date) : new Date(r.created_at);
     const receiptMonth = receiptDate.getMonth() + 1;
     const receiptYear = receiptDate.getFullYear();
-    
-    console.log('Checking receipt:', {
-      id: r.id,
-      amount: r.amount,
-      receiptDate: receiptDate.toISOString(),
-      receiptMonth,
-      receiptYear,
-      validationStatus: r.validation_status,
-      includeInReport: r.include_in_report,
-      matchesCurrentMonth: receiptMonth === currentMonth && receiptYear === currentYear
-    });
     
     return receiptMonth === currentMonth && 
            receiptYear === currentYear &&
@@ -78,16 +61,8 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
 
   const thisMonthRevenue = thisMonthApproved.reduce((sum, receipt) => {
     const amount = receipt.amount || 0;
-    console.log('Adding to revenue:', { receiptId: receipt.id, amount });
     return sum + amount;
   }, 0);
-
-  console.log('Month calculations:', {
-    thisMonthReceipts: thisMonthReceipts.length,
-    thisMonthApproved: thisMonthApproved.length,
-    thisMonthPending: thisMonthPending.length,
-    thisMonthRevenue
-  });
 
   // Estadísticas del mes anterior para comparación
   const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
