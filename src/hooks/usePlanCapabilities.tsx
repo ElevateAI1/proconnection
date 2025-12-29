@@ -1,9 +1,10 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
 import { useAuth } from './useAuth';
 import { canExecuteRateLimited, recordRateLimitedExecution } from '@/utils/rateLimiter';
+import { useRealtimeChannel } from './useRealtimeChannel';
 
 interface PlanCapabilities {
   basic_features: boolean;
@@ -136,16 +137,25 @@ export const usePlanCapabilities = () => {
   const [capabilities, setCapabilities] = useState<PlanCapabilities | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Rate limiting: track last fetch time and cache
   const lastFetchTimeRef = useRef<number>(0);
   const cachedCapabilitiesRef = useRef<{ data: PlanCapabilities | null; timestamp: number } | null>(null);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const psychologistIdRef = useRef<string | undefined>(psychologist?.id);
+  const refreshProfileRef = useRef(refreshProfile);
   const CACHE_TTL_MS = 30000; // 30 seconds
   const MIN_FETCH_INTERVAL_MS = 300; // 300ms debounce
 
+  // Actualizar refs cuando cambian
+  useEffect(() => {
+    psychologistIdRef.current = psychologist?.id;
+    refreshProfileRef.current = refreshProfile;
+  }, [psychologist?.id, refreshProfile]);
+
   const fetchCapabilities = useCallback(async (forceRefresh = false) => {
-    if (!psychologist?.id) {
+    const currentPsychologistId = psychologistIdRef.current;
+    if (!currentPsychologistId) {
       console.log('No psychologist ID, skipping capabilities fetch');
       setLoading(false);
       return;
@@ -181,7 +191,7 @@ export const usePlanCapabilities = () => {
 
     try {
       console.log('=== FETCHING PLAN CAPABILITIES ===');
-      console.log('Psychologist ID:', psychologist.id);
+      console.log('Psychologist ID:', currentPsychologistId);
       console.log('Force refresh:', forceRefresh);
       
       lastFetchTimeRef.current = now;
@@ -190,7 +200,7 @@ export const usePlanCapabilities = () => {
       
       // SIEMPRE hacer una consulta fresca a la base de datos - sin cache
       const { data, error } = await supabase.rpc('get_plan_capabilities', {
-        p_psychologist_id: psychologist.id
+        p_psychologist_id: currentPsychologistId
       });
 
       if (error) {
@@ -225,6 +235,12 @@ export const usePlanCapabilities = () => {
         validCapabilities = getCapabilitiesFromPlanType(planType);
       }
       
+      // Actualizar cache
+      cachedCapabilitiesRef.current = {
+        data: validCapabilities,
+        timestamp: now
+      };
+      
       console.log('Final capabilities set:', validCapabilities);
       setCapabilities(validCapabilities);
       
@@ -234,7 +250,7 @@ export const usePlanCapabilities = () => {
     } finally {
       setLoading(false);
     }
-  }, [psychologist?.id]);
+  }, [psychologist?.plan_type]);
 
   useEffect(() => {
     // Si es usuario demo, usar capacidades simuladas
@@ -256,25 +272,64 @@ export const usePlanCapabilities = () => {
       return;
     }
 
-    fetchCapabilities();
-  }, [fetchCapabilities, user?.id]);
+    // Solo fetch cuando cambia el psychologist ID, no cuando cambia fetchCapabilities
+    if (psychologist?.id) {
+      fetchCapabilities();
+    } else {
+      setLoading(false);
+    }
+  }, [psychologist?.id, user?.id]);
+
+  // Listener de Realtime para cambios en la tabla psychologists
+  useRealtimeChannel({
+    channelName: `psychologist-plan-${psychologist?.id}`,
+    enabled: !!psychologist?.id,
+    table: 'psychologists',
+    filter: `id=eq.${psychologist?.id}`,
+    onUpdate: (payload) => {
+      console.log('=== REALTIME: PSYCHOLOGIST PLAN CHANGE DETECTED ===');
+      console.log('Payload:', payload);
+
+      const newRecord = payload.new as any;
+      const oldRecord = payload.old as any;
+
+      // Verificar si cambió plan_type o subscription_status
+      if (
+        payload.eventType === 'UPDATE' &&
+        (newRecord?.plan_type !== oldRecord?.plan_type ||
+         newRecord?.subscription_status !== oldRecord?.subscription_status)
+      ) {
+        console.log('=== PLAN OR SUBSCRIPTION STATUS CHANGED ===');
+        console.log('Old:', { plan_type: oldRecord?.plan_type, subscription_status: oldRecord?.subscription_status });
+        console.log('New:', { plan_type: newRecord?.plan_type, subscription_status: newRecord?.subscription_status });
+
+        // Clear cache to force fresh fetch
+        cachedCapabilitiesRef.current = null;
+        lastFetchTimeRef.current = 0;
+
+        // Refresh profile and capabilities
+        refreshProfileRef.current();
+        fetchCapabilities(true);
+      }
+    }
+  });
 
   // Escuchar cambios de plan con refresco controlado (solo uno con debounce)
   useEffect(() => {
     const handlePlanUpdate = () => {
       console.log('=== PLAN UPDATE EVENT - FORCING REFRESH ===');
-      
+
       // Clear cache to force fresh fetch
       cachedCapabilitiesRef.current = null;
       lastFetchTimeRef.current = 0;
-      
+
       // Single refresh with debounce
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
-      
+
       fetchTimeoutRef.current = setTimeout(() => {
-        refreshProfile();
+        refreshProfileRef.current();
         fetchCapabilities(true);
       }, 300);
     };
@@ -284,30 +339,26 @@ export const usePlanCapabilities = () => {
       console.log('=== ADMIN PLAN UPDATE EVENT ===');
       console.log('Event detail:', event.detail);
       console.log('Target psychologist:', psychologistId);
-      console.log('Current psychologist:', psychologist?.id);
-      
-      if (psychologist?.id === psychologistId) {
-        console.log('=== MATCH! FORCING IMMEDIATE REFRESH ===');
-        
-        // Múltiples refreshes para asegurar actualización
-        refreshProfile();
-        fetchCapabilities(true);
-        
-        setTimeout(() => {
-          refreshProfile();
+      console.log('Current psychologist:', psychologistIdRef.current);
+
+      if (psychologistIdRef.current === psychologistId) {
+        console.log('=== MATCH! FORCING SINGLE REFRESH ===');
+
+        // Un solo refresh con debounce
+        if (fetchTimeoutRef.current) {
+          clearTimeout(fetchTimeoutRef.current);
+        }
+
+        fetchTimeoutRef.current = setTimeout(() => {
+          refreshProfileRef.current();
           fetchCapabilities(true);
-        }, 500);
-        
-        setTimeout(() => {
-          refreshProfile();
-          fetchCapabilities(true);
-        }, 2000);
+        }, 300);
       }
     };
 
     const handleForceRefresh = () => {
       console.log('=== FORCE REFRESH EVENT ===');
-      refreshProfile();
+      refreshProfileRef.current();
       fetchCapabilities(true);
     };
 
@@ -315,19 +366,22 @@ export const usePlanCapabilities = () => {
     window.addEventListener('planUpdated', handlePlanUpdate);
     window.addEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
     window.addEventListener('forceRefreshCapabilities', handleForceRefresh);
-    
+
     return () => {
       window.removeEventListener('planUpdated', handlePlanUpdate);
       window.removeEventListener('adminPlanUpdated', handleAdminPlanUpdate as EventListener);
       window.removeEventListener('forceRefreshCapabilities', handleForceRefresh);
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     };
-  }, [psychologist?.id, fetchCapabilities, refreshProfile]);
+  }, [psychologist?.id]);
 
   const refreshCapabilities = useCallback(() => {
     console.log('=== MANUAL REFRESH CAPABILITIES ===');
-    refreshProfile();
+    refreshProfileRef.current();
     fetchCapabilities(true);
-  }, [fetchCapabilities, refreshProfile]);
+  }, [fetchCapabilities]);
 
   const hasCapability = useCallback((capability: keyof PlanCapabilities): boolean => {
     const result = capabilities?.[capability] ?? false;
