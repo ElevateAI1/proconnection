@@ -338,7 +338,9 @@ export const PatientPortal = () => {
           {/* Gestión de Psicólogos */}
           {user?.id && (
             <ProfessionalCodeManager 
-              patientId={user.id} 
+              patientId={user.id}
+              psychologistRelations={psychologistRelations}
+              psychologistInfo={psychologistInfo}
               onUpdate={() => {
                 fetchPatientData();
                 fetchPsychologistRelations();

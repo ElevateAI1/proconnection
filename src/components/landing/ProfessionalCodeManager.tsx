@@ -22,10 +22,12 @@ interface PsychologistRelation {
 
 interface ProfessionalCodeManagerProps {
   patientId: string;
+  psychologistRelations?: any[];
+  psychologistInfo?: any;
   onUpdate?: () => void;
 }
 
-export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCodeManagerProps) => {
+export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psychologistInfo, onUpdate }: ProfessionalCodeManagerProps) => {
   const [relations, setRelations] = useState<PsychologistRelation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -33,8 +35,35 @@ export const ProfessionalCodeManager = ({ patientId, onUpdate }: ProfessionalCod
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    fetchRelations();
-  }, [patientId]);
+    // Si tenemos relaciones pasadas como prop, usarlas primero
+    if (psychologistRelations && psychologistRelations.length > 0) {
+      console.log('ProfessionalCodeManager: Using psychologistRelations from props:', psychologistRelations);
+      setRelations(psychologistRelations);
+      setLoading(false);
+    } else if (psychologistInfo) {
+      // Si tenemos psychologistInfo pero no relaciones, crear una relación temporal
+      console.log('ProfessionalCodeManager: Using psychologistInfo from props, creating temp relation:', psychologistInfo);
+      const tempRelation: PsychologistRelation = {
+        id: `temp-${psychologistInfo.id}`,
+        patient_id: patientId,
+        psychologist_id: psychologistInfo.id,
+        professional_code: psychologistInfo.professional_code || '',
+        is_primary: true,
+        added_at: new Date().toISOString(),
+        psychologist: {
+          id: psychologistInfo.id,
+          first_name: psychologistInfo.first_name,
+          last_name: psychologistInfo.last_name,
+          professional_code: psychologistInfo.professional_code
+        }
+      };
+      setRelations([tempRelation]);
+      setLoading(false);
+    } else {
+      // Si no hay props, hacer la query normal
+      fetchRelations();
+    }
+  }, [patientId, psychologistRelations, psychologistInfo]);
 
   const fetchRelations = async () => {
     try {
