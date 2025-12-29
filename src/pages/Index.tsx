@@ -71,20 +71,8 @@ export default function Index() {
   // Handle email verification from URL
   useEmailVerification();
 
-  useEffect(() => {
-    console.log('Index state:', {
-      authLoading,
-      profileLoading,
-      hasUser: !!user,
-      hasProfile: !!profile,
-      profileUserType: profile?.user_type,
-      profileError,
-      psychologistName: unifiedStats.psychologistName,
-      planType: unifiedStats.planType,
-      profileStatsLoading: unifiedStats.profileLoading,
-      dashboardStatsLoading: unifiedStats.statsLoading
-    });
-  }, [user, authLoading, profile, profileLoading, profileError, unifiedStats]);
+  // Debug log removido - estaba causando spam en consola
+  // Si necesitas debug, usa React DevTools o agrega logs condicionales
 
   useEffect(() => {
     // Check trial status using Supabase function
