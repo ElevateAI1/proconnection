@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Clock, CheckCircle, XCircle, Eye, ChevronRight, User, Calendar, Phone, FileText, DollarSign, X } from "lucide-react";
+import { formatDateArgentina, formatDateTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 import {
   Dialog,
   DialogContent,
@@ -122,12 +123,7 @@ export const AppointmentRequestCard = ({
             </div>
             <p className="text-sm text-slate-500 flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              {new Date(request.preferred_date).toLocaleDateString('es-ES', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })} a las {request.preferred_time}
+              {formatDateArgentina(request.preferred_date, dateFormatOptions.full)} a las {request.preferred_time}
             </p>
             {request.patient?.phone && (
               <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
@@ -220,12 +216,7 @@ export const AppointmentRequestCard = ({
                 <div>
                   <p className="text-xs text-slate-500">Fecha preferida</p>
                   <p className="font-medium">
-                    {new Date(request.preferred_date).toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
+                    {formatDateArgentina(request.preferred_date, dateFormatOptions.full)}
                   </p>
                 </div>
                 <div>
@@ -294,9 +285,9 @@ export const AppointmentRequestCard = ({
 
             {/* Información de fecha */}
             <div className="text-xs text-slate-500 border-t pt-4">
-              <p>Solicitud creada: {request.created_at ? new Date(request.created_at).toLocaleString('es-ES') : 'Fecha no disponible'}</p>
+              <p>Solicitud creada: {formatDateTimeArgentina(request.created_at)}</p>
               {request.updated_at && request.updated_at !== request.created_at && (
-                <p>Última actualización: {request.updated_at ? new Date(request.updated_at).toLocaleString('es-ES') : 'Fecha no disponible'}</p>
+                <p>Última actualización: {formatDateTimeArgentina(request.updated_at)}</p>
               )}
             </div>
 
@@ -370,7 +361,7 @@ export const AppointmentRequestCard = ({
                 required
               />
               <p className="text-xs text-slate-500 mt-1">
-                Sugerida por el paciente: {new Date(request.preferred_date).toLocaleDateString('es-ES')}
+                Sugerida por el paciente: {formatDateArgentina(request.preferred_date)}
               </p>
             </div>
             <div>

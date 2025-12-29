@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Invoice } from '@/hooks/useInvoices';
+import { formatDateArgentina, ARGENTINA_LOCALE } from './dateFormatting';
 
 /**
  * Genera un PDF de factura tipo C con formato AFIP
@@ -77,7 +78,7 @@ export const generateInvoicePDF = async (invoice: Invoice, psychologist: {
   
   // Fecha
   const invoiceDate = new Date(invoice.invoice_date);
-  const formattedDate = invoiceDate.toLocaleDateString('es-AR', {
+  const formattedDate = formatDateArgentina(invoiceDate, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -177,8 +178,8 @@ export const generateInvoicePDF = async (invoice: Invoice, psychologist: {
   
   doc.text(descriptionLines, margin, yPos);
   doc.text(invoice.service_quantity.toString(), margin + colWidths.description, yPos, { align: 'right' });
-  doc.text(`$${invoice.unit_price.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, margin + colWidths.description + colWidths.quantity, yPos, { align: 'right' });
-  doc.text(`$${invoice.subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, margin + colWidths.description + colWidths.quantity + colWidths.price, yPos, { align: 'right' });
+  doc.text(`$${invoice.unit_price.toLocaleString(ARGENTINA_LOCALE, { minimumFractionDigits: 2 })}`, margin + colWidths.description + colWidths.quantity, yPos, { align: 'right' });
+  doc.text(`$${invoice.subtotal.toLocaleString(ARGENTINA_LOCALE, { minimumFractionDigits: 2 })}`, margin + colWidths.description + colWidths.quantity + colWidths.price, yPos, { align: 'right' });
   
   yPos += itemHeight + 3;
   doc.setDrawColor(200, 200, 200);
@@ -195,12 +196,12 @@ export const generateInvoicePDF = async (invoice: Invoice, psychologist: {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text('Subtotal:', totalsX, yPos, { align: 'right' });
-  doc.text(`$${invoice.subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
+    doc.text(`$${invoice.subtotal.toLocaleString(ARGENTINA_LOCALE, { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
   
   if (invoice.discount > 0) {
     yPos += 6;
     doc.text('Descuento:', totalsX, yPos, { align: 'right' });
-    doc.text(`-$${invoice.discount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
+    doc.text(`-$${invoice.discount.toLocaleString(ARGENTINA_LOCALE, { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
   }
   
   yPos += 8;
@@ -212,7 +213,7 @@ export const generateInvoicePDF = async (invoice: Invoice, psychologist: {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.text('TOTAL:', totalsX, yPos, { align: 'right' });
-  doc.text(`$${invoice.total_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
+  doc.text(`$${invoice.total_amount.toLocaleString(ARGENTINA_LOCALE, { minimumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
   
   yPos += 15;
 

@@ -14,6 +14,7 @@ import { useAvailableSlots } from "@/hooks/useAvailableSlots";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { useReminderSettings } from "@/hooks/useReminderSettings";
 import { isValidArgentinePhoneNumber } from "@/utils/phoneValidation";
+import { formatDateArgentina, formatTimeArgentina } from "@/utils/dateFormatting";
 
 interface NewAppointmentModalProps {
   onAppointmentCreated: () => void;
@@ -172,11 +173,8 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
           'appointment_reminder',
           {
             patient_name: formData.patientName,
-            appointment_date: appointmentDateTime.toLocaleDateString('es-ES'),
-            appointment_time: appointmentDateTime.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            }),
+            appointment_date: formatDateArgentina(appointmentDateTime),
+            appointment_time: formatTimeArgentina(appointmentDateTime),
             phone_number: formData.patientPhone
           },
           'whatsapp'

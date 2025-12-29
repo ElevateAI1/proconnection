@@ -18,6 +18,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
 import { isValidArgentinePhoneNumber } from "@/utils/phoneValidation";
 import { toast } from "@/hooks/use-toast";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface Patient {
   id: string;
@@ -326,7 +327,7 @@ export const PatientManagement = () => {
                         )}
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          {new Date(patient.created_at).toLocaleDateString('es-ES')}
+                          {formatDateArgentina(patient.created_at)}
                         </span>
                       </div>
                     </div>

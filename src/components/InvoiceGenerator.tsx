@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, Plus, Loader2, User, Calendar, DollarSign, AlertCircle, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatDateArgentina } from '@/utils/dateFormatting';
 
 interface InvoiceGeneratorProps {
   psychologistId?: string;
@@ -261,7 +262,7 @@ export const InvoiceGenerator = ({
                     .filter((a) => a.status === 'confirmed' || a.status === 'completed')
                     .map((appointment) => (
                       <SelectItem key={appointment.id} value={appointment.id}>
-                        {new Date(appointment.appointment_date).toLocaleDateString('es-AR')} -{' '}
+                        {formatDateArgentina(appointment.appointment_date)} -{' '}
                         {appointment.type}
                       </SelectItem>
                     ))}

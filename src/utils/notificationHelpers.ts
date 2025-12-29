@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from './dateFormatting';
 
 export interface CreateNotificationPayload {
   recipient_id: string;
@@ -94,8 +95,8 @@ export const scheduleAppointmentReminder = async (
   const template = NOTIFICATION_TEMPLATES.APPOINTMENT_REMINDER;
   const message = template.message
     .replace('{patient_name}', patientName)
-    .replace('{date}', new Date(appointmentDate).toLocaleDateString('es-ES'))
-    .replace('{time}', new Date(appointmentDate).toLocaleTimeString('es-ES', { 
+    .replace('{date}', formatDateArgentina(new Date(appointmentDate), dateFormatOptions.full))
+    .replace('{time}', formatTimeArgentina(new Date(appointmentDate), { 
       hour: '2-digit', 
       minute: '2-digit' 
     }));

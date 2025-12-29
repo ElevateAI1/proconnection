@@ -1,4 +1,6 @@
 
+import { formatDateArgentina } from './dateFormatting';
+
 export interface DocumentData {
   title: string;
   type: string;
@@ -65,7 +67,7 @@ const formatDocumentAsText = (document: DocumentData): string => {
   
   lines.push(`DOCUMENTO: ${document.title}`);
   lines.push(`Tipo: ${getDocumentTypeLabel(document.type)}`);
-  lines.push(`Fecha: ${new Date(document.created_at).toLocaleDateString('es-ES')}`);
+  lines.push(`Fecha: ${formatDateArgentina(document.created_at)}`);
   lines.push('');
   
   if (document.psychologist) {
@@ -145,7 +147,7 @@ const formatDocumentAsHTML = (document: DocumentData): string => {
       <div class="header">
         <h1>${document.title}</h1>
         <p><strong>Tipo:</strong> ${getDocumentTypeLabel(document.type)}</p>
-        <p><strong>Fecha:</strong> ${new Date(document.created_at).toLocaleDateString('es-ES')}</p>
+        <p><strong>Fecha:</strong> ${formatDateArgentina(document.created_at)}</p>
       </div>
       
       ${document.psychologist ? `

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAvailableSlots } from "@/hooks/useAvailableSlots";
 import { useAppointmentRates } from "@/hooks/useAppointmentRates";
+import { formatDateArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 
 interface AppointmentRequestFormProps {
   psychologistId: string;
@@ -144,12 +145,7 @@ export const AppointmentRequestForm = ({
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     try {
-      return new Date(dateString).toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
+      return formatDateArgentina(dateString, dateFormatOptions.full);
     } catch {
       return dateString;
     }

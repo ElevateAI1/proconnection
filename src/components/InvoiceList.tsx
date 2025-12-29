@@ -19,6 +19,7 @@ import {
   User,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { formatDateArgentina } from '@/utils/dateFormatting';
 
 interface InvoiceListProps {
   psychologistId?: string;
@@ -305,7 +306,7 @@ export const InvoiceList = ({ psychologistId }: InvoiceListProps) => {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
                           <span>
-                            {new Date(invoice.invoice_date).toLocaleDateString('es-AR')}
+                            {formatDateArgentina(invoice.invoice_date)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">

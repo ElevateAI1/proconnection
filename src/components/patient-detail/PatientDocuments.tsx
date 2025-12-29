@@ -13,6 +13,7 @@ import { TemplateUsageManager } from "@/components/template-usage/TemplateUsageM
 import { exportAsText, exportAsJSON, printDocument, DocumentData } from "@/utils/documentExporter";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface PatientDocumentsProps {
   documents: any[];
@@ -229,12 +230,7 @@ export const PatientDocuments = ({ documents, patientId, onRefresh, patient }: P
                       </span>
                       <span className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {document.created_at 
-                          ? (() => {
-                              const date = new Date(document.created_at);
-                              return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Fecha inválida';
-                            })()
-                          : 'Fecha no disponible'}
+                        {formatDateArgentina(document.created_at)}
                       </span>
                     </CardDescription>
                   </div>

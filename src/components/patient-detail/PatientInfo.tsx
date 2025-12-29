@@ -17,6 +17,7 @@ import { usePatientStats } from "@/hooks/usePatientStats";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { PatientStatsCards } from "./PatientStatsCards";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface Patient {
   id: string;
@@ -184,12 +185,7 @@ export const PatientInfo = ({ patient, onUpdate, patientId }: PatientInfoProps) 
                     Fecha de Registro
                   </label>
                   <p className="text-lg text-slate-800 mt-2">
-                    {patient.created_at 
-                      ? (() => {
-                          const date = new Date(patient.created_at);
-                          return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
-                        })()
-                      : 'Fecha no disponible'}
+                    {formatDateArgentina(patient.created_at)}
                   </p>
                 </div>
               </div>

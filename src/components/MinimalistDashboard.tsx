@@ -25,6 +25,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { usePaymentReceipts } from "@/hooks/usePaymentReceipts";
 import { usePendingAppointmentRequests } from "@/hooks/usePendingAppointmentRequests";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { formatDateArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 
 interface QuickActionProps {
   icon: React.ReactNode;
@@ -218,7 +219,7 @@ export const MinimalistDashboard = ({ onNavigate }: MinimalistDashboardProps) =>
               </span>
             </h1>
             <p className="text-blue-petrol/70 text-lg sm:text-xl font-medium">
-              {new Date().toLocaleDateString('es-ES', { 
+              {formatDateArgentina(new Date(), { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 

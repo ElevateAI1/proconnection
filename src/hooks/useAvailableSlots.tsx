@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatTimeArgentina } from "@/utils/dateFormatting";
 
 interface UseAvailableSlotsProps {
   psychologistId: string;
@@ -12,7 +13,7 @@ function addMinutes(time: string, minutesToAdd: number): string {
   const [hour, minute] = time.split(':').map(Number);
   const date = new Date(0, 0, 0, hour, minute + minutesToAdd, 0, 0);
   // Siempre retorna en formato "HH:mm" con ceros iniciales
-  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return formatTimeArgentina(date, { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 // Dado un horario inicial, retorna todos los slots de 30m ocupados por 1h
@@ -77,7 +78,7 @@ export const useAvailableSlots = ({ psychologistId, selectedDate }: UseAvailable
       let occupiedSlots: string[] = [];
       (data || []).forEach(apt => {
         const aptDate = new Date(apt.appointment_date);
-        const timeString = aptDate.toLocaleTimeString('en-GB', { 
+        const timeString = formatTimeArgentina(aptDate, { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: false 

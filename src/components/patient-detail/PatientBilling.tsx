@@ -15,6 +15,7 @@ import {
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface PatientBillingProps {
   patientId?: string;
@@ -136,10 +137,7 @@ export const PatientBilling = ({ patientId }: PatientBillingProps) => {
             <Calendar className="w-8 h-8 mx-auto mb-2 text-purple-500" />
             <p className="text-sm font-bold text-slate-800">
               {billingRecords.length > 0 && billingRecords[0].receipt_date
-                ? (() => {
-                    const date = new Date(billingRecords[0].receipt_date);
-                    return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
-                  })()
+                ? formatDateArgentina(billingRecords[0].receipt_date)
                 : 'Sin registros'
               }
             </p>
@@ -182,12 +180,7 @@ export const PatientBilling = ({ patientId }: PatientBillingProps) => {
                     <div>
                       <p className="font-medium">${record.amount?.toFixed(2) || '0.00'}</p>
                       <p className="text-sm text-gray-600">
-                        {record.receipt_type} - {record.receipt_date 
-                          ? (() => {
-                              const date = new Date(record.receipt_date);
-                              return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
-                            })()
-                          : 'Fecha no disponible'}
+                        {record.receipt_type} - {formatDateArgentina(record.receipt_date)}
                       </p>
                       {record.receipt_number && (
                         <p className="text-xs text-gray-500">Recibo: {record.receipt_number}</p>

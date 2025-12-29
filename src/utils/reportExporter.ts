@@ -1,4 +1,6 @@
 
+import { formatDateArgentina, ARGENTINA_LOCALE } from './dateFormatting';
+
 export interface AccountingReportData {
   id: string;
   psychologist_id: string;
@@ -76,10 +78,10 @@ const generateAccountingCSV = (
   // Summary
   lines.push('RESUMEN EJECUTIVO');
   lines.push('Concepto,Valor');
-  lines.push(`Total de ingresos del mes,$${reportData.total_amount.toLocaleString('es-ES')}`);
+  lines.push(`Total de ingresos del mes,$${reportData.total_amount.toLocaleString(ARGENTINA_LOCALE)}`);
   lines.push(`Cantidad de comprobantes,${reportData.total_receipts}`);
-  lines.push(`Acumulado anual,$${reportData.annual_accumulated.toLocaleString('es-ES')}`);
-  lines.push(`Promedio por comprobante,$${(reportData.total_amount / Math.max(reportData.total_receipts, 1)).toLocaleString('es-ES')}`);
+  lines.push(`Acumulado anual,$${reportData.annual_accumulated.toLocaleString(ARGENTINA_LOCALE)}`);
+  lines.push(`Promedio por comprobante,$${(reportData.total_amount / Math.max(reportData.total_receipts, 1)).toLocaleString(ARGENTINA_LOCALE)}`);
   lines.push('');
   
   // Payment methods
@@ -88,7 +90,7 @@ const generateAccountingCSV = (
     lines.push('Método de Pago,Monto,Porcentaje');
     Object.entries(reportData.amount_by_payment_method).forEach(([method, amount]) => {
       const percentage = ((amount / reportData.total_amount) * 100).toFixed(1);
-      lines.push(`${getPaymentMethodLabel(method)},$${amount.toLocaleString('es-ES')},${percentage}%`);
+      lines.push(`${getPaymentMethodLabel(method)},$${amount.toLocaleString(ARGENTINA_LOCALE)},${percentage}%`);
     });
     lines.push('');
   }
@@ -99,7 +101,7 @@ const generateAccountingCSV = (
     lines.push('Tipo de Comprobante,Monto,Porcentaje');
     Object.entries(reportData.amount_by_receipt_type).forEach(([type, amount]) => {
       const percentage = ((amount / reportData.total_amount) * 100).toFixed(1);
-      lines.push(`${getReceiptTypeLabel(type)},$${amount.toLocaleString('es-ES')},${percentage}%`);
+      lines.push(`${getReceiptTypeLabel(type)},$${amount.toLocaleString(ARGENTINA_LOCALE)},${percentage}%`);
     });
     lines.push('');
   }
@@ -185,10 +187,10 @@ const generateAccountingHTML = (
       <div class="section">
         <div class="section-title">Resumen Ejecutivo</div>
         <table>
-          <tr><td><strong>Total de ingresos del mes</strong></td><td>$${reportData.total_amount.toLocaleString('es-ES')}</td></tr>
+          <tr><td><strong>Total de ingresos del mes</strong></td><td>$${reportData.total_amount.toLocaleString(ARGENTINA_LOCALE)}</td></tr>
           <tr><td><strong>Cantidad de comprobantes</strong></td><td>${reportData.total_receipts}</td></tr>
-          <tr><td><strong>Acumulado anual</strong></td><td>$${reportData.annual_accumulated.toLocaleString('es-ES')}</td></tr>
-          <tr><td><strong>Promedio por comprobante</strong></td><td>$${(reportData.total_amount / Math.max(reportData.total_receipts, 1)).toLocaleString('es-ES')}</td></tr>
+          <tr><td><strong>Acumulado anual</strong></td><td>$${reportData.annual_accumulated.toLocaleString(ARGENTINA_LOCALE)}</td></tr>
+          <tr><td><strong>Promedio por comprobante</strong></td><td>$${(reportData.total_amount / Math.max(reportData.total_receipts, 1)).toLocaleString(ARGENTINA_LOCALE)}</td></tr>
         </table>
       </div>
 
@@ -209,7 +211,7 @@ const generateAccountingHTML = (
               ${Object.entries(reportData.amount_by_payment_method).map(([method, amount]) => `
                 <tr>
                   <td>${getPaymentMethodLabel(method)}</td>
-                  <td>$${amount.toLocaleString('es-ES')}</td>
+                  <td>$${amount.toLocaleString(ARGENTINA_LOCALE)}</td>
                   <td>${((amount / reportData.total_amount) * 100).toFixed(1)}%</td>
                 </tr>
               `).join('')}
@@ -229,7 +231,7 @@ const generateAccountingHTML = (
               ${Object.entries(reportData.amount_by_receipt_type).map(([type, amount]) => `
                 <tr>
                   <td>${getReceiptTypeLabel(type)}</td>
-                  <td>$${amount.toLocaleString('es-ES')}</td>
+                  <td>$${amount.toLocaleString(ARGENTINA_LOCALE)}</td>
                   <td>${((amount / reportData.total_amount) * 100).toFixed(1)}%</td>
                 </tr>
               `).join('')}
@@ -239,7 +241,7 @@ const generateAccountingHTML = (
       ` : ''}
 
       <div class="section">
-        <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+        <p><strong>Fecha de generación:</strong> ${formatDateArgentina(new Date())}</p>
         <p><strong>ID del reporte:</strong> ${reportData.id}</p>
       </div>
     </body>

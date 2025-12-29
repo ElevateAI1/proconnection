@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from './useProfile';
+import { formatDateArgentina } from '@/utils/dateFormatting';
 
 interface AppointmentStats {
   totalAppointments: number;
@@ -147,7 +148,7 @@ export const useReportsData = () => {
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
-        const month = date.toLocaleDateString('es-ES', { month: 'short' });
+        const month = formatDateArgentina(date, { month: 'short' });
         
         const monthAppointments = appointments?.filter(apt => {
           const aptDate = new Date(apt.appointment_date);

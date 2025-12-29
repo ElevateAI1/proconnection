@@ -2,6 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, FileText, MessageCircle, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface PatientStats {
   totalAppointments: number;
@@ -37,10 +38,7 @@ export const PatientStatsCards = ({ stats, loading = false }: PatientStatsCardsP
     {
       title: "Última Cita",
       value: stats.lastAppointment 
-        ? (() => {
-            const date = new Date(stats.lastAppointment);
-            return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
-          })()
+        ? formatDateArgentina(stats.lastAppointment)
         : 'Sin citas',
       icon: Activity,
       iconColor: "from-orange-500 to-orange-600",

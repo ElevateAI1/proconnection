@@ -20,6 +20,7 @@ import { MonthlyReportGenerator } from "./MonthlyReportGenerator";
 import { MonotaxCategorySelector } from "./MonotaxCategorySelector";
 import { InvoiceGenerator } from "./InvoiceGenerator";
 import { InvoiceList } from "./InvoiceList";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 interface AccountingDashboardProps {
   psychologistId: string;
@@ -276,7 +277,7 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
                     )}
                     {report.generation_date && (
                       <p className="text-xs">
-                        Generado: {new Date(report.generation_date).toLocaleDateString('es-ES')}
+                        Generado: {formatDateArgentina(report.generation_date)}
                       </p>
                     )}
                   </div>

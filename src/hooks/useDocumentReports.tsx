@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { toast } from '@/hooks/use-toast';
+import { formatDateArgentina } from '@/utils/dateFormatting';
 
 interface DocumentReportData {
   totalDocuments: number;
@@ -105,7 +106,7 @@ export const useDocumentReports = (filters: ReportFilters = {}) => {
 
     // Count by month
     const documentsByMonth = documents.reduce((acc, doc) => {
-      const month = new Date(doc.created_at).toLocaleDateString('es-ES', { 
+      const month = formatDateArgentina(doc.created_at, { 
         year: 'numeric', 
         month: 'short' 
       });
@@ -138,7 +139,7 @@ export const useDocumentReports = (filters: ReportFilters = {}) => {
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
-      const monthKey = date.toLocaleDateString('es-ES', { 
+      const monthKey = formatDateArgentina(date, { 
         year: 'numeric', 
         month: 'short' 
       });
@@ -196,7 +197,7 @@ export const useDocumentReports = (filters: ReportFilters = {}) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('es-ES', { 
+    const formattedDate = formatDateArgentina(currentDate, { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -545,7 +546,7 @@ export const useDocumentReports = (filters: ReportFilters = {}) => {
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
     doc.text('ProConnection - Sistema de Gestion Documental Profesional', 15, yPos + 8);
-    doc.text(`Pagina 2 de 2 | ${new Date().toLocaleDateString('es-ES')}`, 15, yPos + 15);
+    doc.text(`Pagina 2 de 2 | ${formatDateArgentina(new Date())}`, 15, yPos + 15);
     
     doc.text('Reporte generado automaticamente', 150, yPos + 12);
     

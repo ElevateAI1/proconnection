@@ -11,6 +11,7 @@ import { ProfessionalCodeManager } from '@/components/landing/ProfessionalCodeMa
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from '@/utils/dateFormatting';
 
 interface Appointment {
   id: string;
@@ -312,12 +313,7 @@ export const PatientPortal = () => {
             <span className="text-blue-petrol"> 👋</span>
           </h1>
           <p className="text-blue-petrol/70 text-lg sm:text-xl font-medium mb-4">
-            {new Date().toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+            {formatDateArgentina(new Date(), dateFormatOptions.full)}
           </p>
           <p className="text-blue-petrol/80 text-lg">
             Aquí podés gestionar tus citas y pagos de forma segura
@@ -378,16 +374,8 @@ export const PatientPortal = () => {
                       const aptDate = new Date(appointment.appointment_date);
                       if (isNaN(aptDate.getTime())) return null;
                       
-                      const dateStr = aptDate.toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      });
-                      const timeStr = aptDate.toLocaleTimeString('es-ES', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      });
+                      const dateStr = formatDateArgentina(aptDate, dateFormatOptions.full);
+                      const timeStr = formatTimeArgentina(aptDate);
                       
                       if (!dateStr || !timeStr) return null;
                       
@@ -506,7 +494,7 @@ export const PatientPortal = () => {
                     if (!receiptDate) return null;
                     const receiptDateObj = new Date(receiptDate);
                     if (isNaN(receiptDateObj.getTime())) return null;
-                    const dateStr = receiptDateObj.toLocaleDateString('es-ES');
+                    const dateStr = formatDateArgentina(receiptDateObj);
                   const statusLabels: Record<string, { label: string; color: string }> = {
                     'approved': { label: 'Aprobado', color: 'bg-green-100 text-green-800' },
                     'pending': { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },

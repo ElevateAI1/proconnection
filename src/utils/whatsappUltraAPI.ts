@@ -1,6 +1,7 @@
 
 // 🔥 Cliente TypeScript Ultra-Optimizado para WhatsApp Server v4.0
 // Integración perfecta con React y Supabase
+import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from './dateFormatting';
 
 interface WhatsAppMessage {
   phoneNumber: string;
@@ -371,7 +372,7 @@ class WhatsAppUltraAPI {
     appointmentDate: Date,
     notificationId?: string
   ): Promise<ApiResponse> {
-    const message = `Hola ${patientName}, te recordamos tu cita con ${psychologistName} para el ${appointmentDate.toLocaleDateString('es-ES')} a las ${appointmentDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}. ¡Te esperamos!`;
+    const message = `Hola ${patientName}, te recordamos tu cita con ${psychologistName} para el ${formatDateArgentina(appointmentDate, dateFormatOptions.full)} a las ${formatTimeArgentina(appointmentDate)}. ¡Te esperamos!`;
     
     return this.sendMessage(patientPhone, message, { priority: 'high' });
   }
@@ -383,7 +384,7 @@ class WhatsAppUltraAPI {
     paymentDate: Date,
     notificationId?: string
   ): Promise<ApiResponse> {
-    const message = `Hola ${patientName}, hemos confirmado tu pago de $${amount} realizado el ${paymentDate.toLocaleDateString('es-ES')}. ¡Gracias!`;
+    const message = `Hola ${patientName}, hemos confirmado tu pago de $${amount} realizado el ${formatDateArgentina(paymentDate)}. ¡Gracias!`;
     
     return this.sendMessage(patientPhone, message, { priority: 'high' });
   }

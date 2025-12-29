@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { MessageStatus } from "../MessageStatus";
+import { formatTimeArgentina } from "@/utils/dateFormatting";
 
 interface Message {
   id: string;
@@ -234,14 +235,7 @@ export const PatientMessages = ({ patientId }: PatientMessagesProps) => {
                     <p className="text-sm">{message.content}</p>
                     <div className={`flex items-center justify-between mt-1 ${message.sender_id === psychologist?.id ? "text-blue-100" : "text-slate-500"}`}>
                       <p className="text-xs">
-                        {message.created_at 
-                          ? (() => {
-                              const date = new Date(message.created_at);
-                              return !isNaN(date.getTime()) 
-                                ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-                                : 'Hora inválida';
-                            })()
-                          : 'Hora no disponible'}
+                        {formatTimeArgentina(message.created_at)}
                       </p>
                       <MessageStatus 
                         isOwnMessage={message.sender_id === psychologist?.id}

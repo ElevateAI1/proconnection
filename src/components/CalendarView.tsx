@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { NewAppointmentModal } from "./NewAppointmentModal";
 import { CancelAppointmentModal } from "./CancelAppointmentModal";
+import { formatDateArgentina, formatTimeArgentina, formatDateTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 
 interface Appointment {
   id: string;
@@ -106,8 +107,8 @@ export const Calendar = () => {
           console.log(`Calendar: Appointment ${index + 1}:`, {
             id: apt.id,
             originalTime: apt.appointment_date,
-            localTime: aptDate.toLocaleString(),
-            timeOnly: aptDate.toLocaleTimeString('en-GB', { 
+            localTime: formatDateTimeArgentina(aptDate),
+            timeOnly: formatTimeArgentina(aptDate, { 
               hour: '2-digit', 
               minute: '2-digit',
               hour12: false 
@@ -141,7 +142,7 @@ export const Calendar = () => {
     
     appointments.forEach(apt => {
       const aptDate = new Date(apt.appointment_date);
-      const aptTime = aptDate.toLocaleTimeString('en-GB', { 
+      const aptTime = formatTimeArgentina(aptDate, { 
         hour: '2-digit', 
         minute: '2-digit',
         hour12: false 
@@ -240,7 +241,7 @@ export const Calendar = () => {
   };
 
   const formatSelectedDate = () => {
-    return selectedDate.toLocaleDateString('es-ES', {
+    return formatDateArgentina(selectedDate, {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
@@ -363,7 +364,7 @@ export const Calendar = () => {
                     <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
                       {appointments.map(apt => (
                         <span key={apt.id} className="text-xs bg-blue-100 text-blue-800 font-medium px-2.5 py-0.5 rounded-full">
-                          {new Date(apt.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTimeArgentina(apt.appointment_date)}
                         </span>
                       ))}
                     </div>

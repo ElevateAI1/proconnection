@@ -134,16 +134,8 @@ export const PatientAppointments = ({ patientId }: PatientAppointmentsProps) => 
       return { date: 'Fecha inválida', time: 'Hora inválida' };
     }
     return {
-      date: date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      time: date.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      date: formatDateArgentina(date, dateFormatOptions.full),
+      time: formatTimeArgentina(date)
     };
   };
 

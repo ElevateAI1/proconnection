@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePsychologistRates } from './usePsychologistRates';
+import { ARGENTINA_LOCALE } from '@/utils/dateFormatting';
 
 interface AppointmentRate {
   sessionType: string;
@@ -37,7 +38,7 @@ export const useAppointmentRates = (psychologistId?: string) => {
       'EUR': '€'
     };
     const symbol = currencySymbols[currency] || currency;
-    return `${symbol}${price.toLocaleString()}`;
+    return `${symbol}${price.toLocaleString(ARGENTINA_LOCALE)}`;
   };
 
   return {

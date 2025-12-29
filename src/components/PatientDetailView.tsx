@@ -12,6 +12,7 @@ import { PatientDocuments } from "@/components/patient-detail/PatientDocuments";
 import { PatientBilling } from "@/components/patient-detail/PatientBilling";
 import { PatientAppointments } from "@/components/patient-detail/PatientAppointments";
 import { PatientSkeleton } from "@/components/patient-detail/PatientSkeleton";
+import { formatDateArgentina } from "@/utils/dateFormatting";
 
 export const PatientDetailView = () => {
   const { patientId } = useParams();
@@ -115,12 +116,7 @@ export const PatientDetailView = () => {
               </h1>
               <p className="text-xs text-blue-petrol/70 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Paciente desde {patient.created_at 
-                  ? (() => {
-                      const date = new Date(patient.created_at);
-                      return !isNaN(date.getTime()) ? date.toLocaleDateString('es-ES') : 'Fecha inválida';
-                    })()
-                  : 'Fecha no disponible'}
+                Paciente desde {formatDateArgentina(patient.created_at)}
               </p>
             </div>
           </div>
