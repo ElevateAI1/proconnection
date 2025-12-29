@@ -294,8 +294,8 @@ export const AppointmentRequestCard = ({
 
             {/* Información de fecha */}
             <div className="text-xs text-slate-500 border-t pt-4">
-              <p>Solicitud creada: {new Date(request.created_at).toLocaleString('es-ES')}</p>
-              {request.updated_at !== request.created_at && (
+              <p>Solicitud creada: {request.created_at ? new Date(request.created_at).toLocaleString('es-ES') : 'Fecha no disponible'}</p>
+              {request.updated_at && request.updated_at !== request.created_at && (
                 <p>Última actualización: {new Date(request.updated_at).toLocaleString('es-ES')}</p>
               )}
             </div>

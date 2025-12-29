@@ -36,6 +36,8 @@ import { MinimalistSidebar } from "@/components/MinimalistSidebar";
 import { MobileNavigation } from "@/components/MobileNavigation";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { activatePlusPlan } from "@/utils/activatePlusPlan";
+import { PlanGate } from "@/components/PlanGate";
+import { usePlanCapabilities } from "@/hooks/usePlanCapabilities";
 
 type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations";
 
@@ -196,6 +198,18 @@ export default function Index() {
 
   // Psychologist dashboard - Now loads immediately when profile is ready
   if (profile.user_type === 'psychologist') {
+    // Verificar si psychologist está cargando
+    if (!psychologist && !profileLoading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">Cargando información del profesional...</p>
+          </div>
+        </div>
+      );
+    }
+
     const renderCurrentView = () => {
       switch (currentView) {
         case "dashboard":
@@ -223,7 +237,11 @@ export default function Index() {
         case "rates":
           return <PsychologistRatesManager />;
         case "accounting":
-          return <AccountingDashboard psychologistId={psychologist?.id || ''} />;
+          return (
+            <PlanGate capability="financial_features">
+              <AccountingDashboard psychologistId={psychologist?.id || ''} />
+            </PlanGate>
+          );
         case "notifications":
           return <NotificationCenter />;
         case "reminder-settings":

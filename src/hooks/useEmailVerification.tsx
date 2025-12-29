@@ -22,6 +22,11 @@ export const useEmailVerification = () => {
       // Si no hay token o el type no es signup, no hacer nada
       if (!token || (type && type !== 'signup')) return;
 
+      // Validar formato básico del token (debe tener al menos 10 caracteres)
+      if (token.length < 10) {
+        console.warn('Token format seems invalid, but proceeding...');
+      }
+
       try {
         console.log('Processing Supabase email verification...');
         
@@ -63,6 +68,21 @@ export const useEmailVerification = () => {
         }
         
         // Si es token en query params, usar verifyOtp
+        // Primero verificar si el usuario ya está verificado
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (currentUser?.email_confirmed_at) {
+          const userType = currentUser.user_metadata?.user_type || 'patient';
+          const loginPath = getLoginPath(userType);
+          
+          toast({
+            title: "Email ya verificado",
+            description: "Tu cuenta ya está verificada. Puedes iniciar sesión.",
+          });
+          navigate(loginPath);
+          return;
+        }
+
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'signup'
@@ -72,7 +92,7 @@ export const useEmailVerification = () => {
           console.error('Error verifying email:', error);
           
           // Si el token ya fue usado o expiró, verificar si el usuario ya está verificado
-          if (error.message.includes('expired') || error.message.includes('invalid')) {
+          if (error.message.includes('expired') || error.message.includes('invalid') || error.message.includes('403')) {
             // Obtener el usuario actual si existe
             const { data: { user } } = await supabase.auth.getUser();
             

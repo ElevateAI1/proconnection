@@ -56,19 +56,24 @@ export const PatientPortal = () => {
   const [psychologistInfo, setPsychologistInfo] = useState<{ first_name: string; last_name: string } | null>(null);
   const [psychologistRelations, setPsychologistRelations] = useState<PsychologistRelation[]>([]);
   const [selectedPsychologistId, setSelectedPsychologistId] = useState<string | null>(null);
+  const [relationsLoading, setRelationsLoading] = useState(true);
 
   useEffect(() => {
     if (user && profile) {
       // Primero cargar relaciones, luego datos
       if (user.id) {
+        setRelationsLoading(true);
         fetchPsychologistRelations().then(() => {
+          setRelationsLoading(false);
           fetchPatientData();
         });
       } else {
+        setRelationsLoading(false);
         fetchPatientData();
       }
     } else if (!user) {
       setLoading(false);
+      setRelationsLoading(false);
     }
   }, [user, profile]);
 
@@ -115,9 +120,16 @@ export const PatientPortal = () => {
         setSelectedPsychologistId(patient.psychologist_id);
       }
       
+      // Log para debugging
+      console.log('Psychologist relations loaded:', relations.length, relations);
+      
       return relations;
     } catch (error) {
       console.error('Error fetching psychologist relations:', error);
+      // Si hay error pero tenemos patient.psychologist_id, usarlo como fallback
+      if (patient?.psychologist_id) {
+        setSelectedPsychologistId(patient.psychologist_id);
+      }
       return [];
     }
   };
@@ -216,12 +228,13 @@ export const PatientPortal = () => {
     }
   };
 
-  if (loading) {
+  // Mostrar preloader mientras cargan datos
+  if (loading || relationsLoading || (!patient && user && profile)) {
     return (
       <div className="min-h-screen bg-white-warm flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-petrol border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-blue-petrol font-semibold">Cargando tu portal...</p>
+          <p className="text-blue-petrol font-semibold">Cargando información del paciente...</p>
         </div>
       </div>
     );
@@ -309,10 +322,16 @@ export const PatientPortal = () => {
           <p className="text-blue-petrol/80 text-lg">
             Aquí podés gestionar tus citas y pagos de forma segura
           </p>
-          {psychologistInfo && (
+          {(psychologistInfo || (psychologistRelations.length > 0)) && (
             <div className="mt-4 p-4 bg-blue-soft/20 backdrop-blur-sm border-2 border-blue-soft/30 rounded-xl shadow-lg">
               <p className="text-sm text-blue-petrol font-semibold">
-                <strong>Tu profesional:</strong> {psychologistInfo.first_name} {psychologistInfo.last_name}
+                <strong>Tu profesional:</strong> {
+                  psychologistInfo 
+                    ? `${psychologistInfo.first_name} ${psychologistInfo.last_name}`
+                    : psychologistRelations.length > 0
+                      ? `${psychologistRelations[0].psychologist?.first_name || ''} ${psychologistRelations[0].psychologist?.last_name || ''}`.trim()
+                      : 'Cargando...'
+                }
               </p>
             </div>
           )}

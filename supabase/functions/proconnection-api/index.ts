@@ -872,6 +872,14 @@ async function handleSendVerificationEmail(req: Request) {
 // ============================================================================
 
 async function handleCreateJitsiMeeting(req: Request, supabase: any) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
+  }
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }
