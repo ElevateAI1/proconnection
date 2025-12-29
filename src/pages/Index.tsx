@@ -31,6 +31,7 @@ import { NotificationDashboard } from "@/components/NotificationDashboard";
 import { ClinicAdminDashboard } from "@/components/ClinicAdminDashboard";
 import { ClinicReports } from "@/components/ClinicReports";
 import { ApiIntegrations } from "@/components/ApiIntegrations";
+import { PsychologistMessagesView } from "@/components/PsychologistMessagesView";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { MinimalistSidebar } from "@/components/MinimalistSidebar";
 import { MobileNavigation } from "@/components/MobileNavigation";
@@ -39,7 +40,7 @@ import { activatePlusPlan } from "@/utils/activatePlusPlan";
 import { PlanGate } from "@/components/PlanGate";
 import { usePlanCapabilities } from "@/hooks/usePlanCapabilities";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations";
+type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations" | "messages";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
@@ -185,7 +186,11 @@ export default function Index() {
   if (profile.user_type === 'patient') {
     console.log('=== REDIRECTING TO PATIENT PORTAL ===');
     console.log('Profile:', profile);
-    return <PatientPortal />;
+    return (
+      <RealtimeProvider>
+        <PatientPortal />
+      </RealtimeProvider>
+    );
   }
 
   if (profile.user_type === 'admin') {
@@ -253,6 +258,8 @@ export default function Index() {
           return <ClinicReports />;
         case "api-integrations":
           return <ApiIntegrations />;
+        case "messages":
+          return <PsychologistMessagesView />;
         default:
           return <Dashboard />;
       }

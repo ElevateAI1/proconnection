@@ -195,23 +195,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (psychologistId) {
             console.log('=== CODE VALIDATED, CREATING PATIENT ===', psychologistId);
             
-            const { error: patientError } = await supabase.from('patients').insert({
+            const { error: patientError } = await supabase.from('patients').upsert({
               id: user.id,
               first_name: user.user_metadata.first_name,
               last_name: user.user_metadata.last_name,
               psychologist_id: psychologistId,
               phone: user.user_metadata.phone,
               age: user.user_metadata.age ? parseInt(user.user_metadata.age.toString()) : null
+            }, {
+              onConflict: 'id'
             });
             
             if (patientError) {
               console.error('=== ERROR CREATING PATIENT ===', patientError);
+              // Si es error 409, el paciente ya existe, continuar normalmente
+              if (patientError.code === '23505' || patientError.message.includes('duplicate')) {
+                console.log('=== PATIENT ALREADY EXISTS (409), CONTINUING ===');
+              }
             } else {
-              console.log('=== PATIENT CREATED SUCCESSFULLY ===');
-              toast({
-                title: "¡Bienvenido!",
-                description: "Tu perfil de paciente ha sido configurado exitosamente",
-              });
+              console.log('=== PATIENT CREATED/UPDATED SUCCESSFULLY ===');
             }
           } else {
             console.error('=== INVALID PROFESSIONAL CODE ===', user.user_metadata.professional_code);

@@ -8,6 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { PatientAppointmentRequestForm } from '@/components/PatientAppointmentRequestForm';
 import { ProfessionalCodeManager } from '@/components/landing/ProfessionalCodeManager';
+import { PatientInfoModal } from '@/components/patient/PatientInfoModal';
+import { PatientProfileModal } from '@/components/patient/PatientProfileModal';
+import { PatientChatDrawer } from '@/components/patient/PatientChatDrawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -25,6 +28,33 @@ interface Appointment {
     last_name: string;
   };
 }
+
+interface AppointmentRequest {
+  id: string;
+  preferred_date: string;
+  preferred_time: string;
+  type: string;
+  status: string;
+  notes?: string;
+  psychologist?: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
+type UnifiedAppointment = {
+  id: string;
+  date: Date;
+  type: string;
+  status: string;
+  meeting_url?: string;
+  notes?: string;
+  psychologist?: {
+    first_name: string;
+    last_name: string;
+  };
+  isRequest: boolean;
+};
 
 interface PaymentReceipt {
   id: string;
@@ -44,6 +74,7 @@ interface PsychologistRelation {
     first_name: string;
     last_name: string;
     professional_code: string;
+    profile_image_url?: string | null;
   };
 }
 
@@ -51,6 +82,8 @@ export const PatientPortal = () => {
   const { user, signOut } = useAuth();
   const { profile, patient } = useProfile();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentRequests, setAppointmentRequests] = useState<AppointmentRequest[]>([]);
+  const [unifiedAppointments, setUnifiedAppointments] = useState<UnifiedAppointment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -59,6 +92,9 @@ export const PatientPortal = () => {
   const [selectedPsychologistId, setSelectedPsychologistId] = useState<string | null>(null);
   const [relationsLoading, setRelationsLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [showPatientInfoModal, setShowPatientInfoModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
 
   useEffect(() => {
     // Solo cargar datos una vez cuando el usuario y perfil estén disponibles
@@ -67,16 +103,19 @@ export const PatientPortal = () => {
       // Primero cargar relaciones, luego datos
       if (user.id) {
         setRelationsLoading(true);
-        fetchPsychologistRelations().then(() => {
+        fetchPsychologistRelations().then((relations) => {
           setRelationsLoading(false);
-          fetchPatientData().then(() => {
+          fetchPatientData(relations || []).then(() => {
             setDataLoaded(true);
           });
         });
       } else {
         setRelationsLoading(false);
-        fetchPatientData().then(() => {
+        fetchPatientData([]).then(() => {
           setDataLoaded(true);
+          if (!patient?.age) {
+            setShowPatientInfoModal(true);
+          }
         });
       }
     } else if (!user) {
@@ -90,7 +129,11 @@ export const PatientPortal = () => {
     if (patient?.psychologist_id) {
       fetchPsychologistInfo();
     }
-  }, [patient]);
+    // Verificar si falta información después de cargar el paciente
+    if (dataLoaded && !patient?.age) {
+      setShowPatientInfoModal(true);
+    }
+  }, [patient, dataLoaded]);
   
   const fetchPsychologistRelations = async () => {
     if (!user?.id) return;
@@ -106,7 +149,8 @@ export const PatientPortal = () => {
           psychologist:psychologists!inner(
             first_name,
             last_name,
-            professional_code
+            professional_code,
+            profile_image_url
           )
         `)
         .eq('patient_id', user.id)
@@ -143,31 +187,19 @@ export const PatientPortal = () => {
     }
   };
 
-  const fetchPatientData = async () => {
+  const fetchPatientData = async (relations: PsychologistRelation[] = []) => {
     if (!user?.id) return;
 
     try {
       setLoading(true);
 
-      // Obtener todos los psychologist_ids vinculados
-      const psychologistIds: string[] = [];
-      
-      // De las relaciones actuales
-      psychologistRelations.forEach(r => {
-        if (!psychologistIds.includes(r.psychologist_id)) {
-          psychologistIds.push(r.psychologist_id);
-        }
-      });
-      
-      // Del patient (compatibilidad)
-      if (patient?.psychologist_id && !psychologistIds.includes(patient.psychologist_id)) {
-        psychologistIds.push(patient.psychologist_id);
-      }
-      
       // Fetch appointments - mostrar todas las citas (pasadas recientes y futuras)
-      // Incluir todos los estados: pending, accepted, rejected, scheduled, confirmed, cancelled
+      // Estados válidos: scheduled, confirmed, completed, cancelled, no-show
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      console.log('Fetching appointments for patient:', user.id);
+      console.log('Date filter (30 days ago):', thirtyDaysAgo.toISOString());
       
       let appointmentsQuery = supabase
         .from('appointments')
@@ -177,7 +209,7 @@ export const PatientPortal = () => {
         `)
         .eq('patient_id', user.id)
         .gte('appointment_date', thirtyDaysAgo.toISOString())
-        .in('status', ['scheduled', 'confirmed', 'accepted', 'pending', 'rejected', 'cancelled']);
+        .in('status', ['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show']);
       
       const { data: appointmentsData, error: appointmentsError } = await appointmentsQuery
         .order('appointment_date', { ascending: true });
@@ -185,8 +217,69 @@ export const PatientPortal = () => {
       if (appointmentsError) {
         console.error('Error fetching appointments:', appointmentsError);
       } else {
+        console.log('Appointments loaded:', appointmentsData?.length || 0, appointmentsData);
         setAppointments(appointmentsData || []);
       }
+
+      // Fetch appointment requests - todas las solicitudes
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('appointment_requests')
+        .select(`
+          *,
+          psychologist:psychologists(first_name, last_name)
+        `)
+        .eq('patient_id', user.id)
+        .in('status', ['pending', 'approved', 'rejected', 'cancelled'])
+        .gte('preferred_date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('preferred_date', { ascending: true })
+        .order('preferred_time', { ascending: true });
+
+      if (requestsError) {
+        console.error('Error fetching appointment requests:', requestsError);
+      } else {
+        console.log('Appointment requests loaded:', requestsData?.length || 0, requestsData);
+        setAppointmentRequests(requestsData || []);
+      }
+
+      // Combinar appointments y requests en una lista unificada
+      const unified: UnifiedAppointment[] = [];
+      
+      // Agregar appointments confirmadas
+      (appointmentsData || []).forEach(apt => {
+        const aptDate = new Date(apt.appointment_date);
+        if (!isNaN(aptDate.getTime())) {
+          unified.push({
+            id: apt.id,
+            date: aptDate,
+            type: apt.type,
+            status: apt.status,
+            meeting_url: apt.meeting_url,
+            notes: apt.notes,
+            psychologist: apt.psychologist,
+            isRequest: false
+          });
+        }
+      });
+
+      // Agregar appointment requests
+      (requestsData || []).forEach(req => {
+        const reqDate = new Date(`${req.preferred_date}T${req.preferred_time}`);
+        if (!isNaN(reqDate.getTime())) {
+          unified.push({
+            id: req.id,
+            date: reqDate,
+            type: req.type,
+            status: req.status,
+            notes: req.notes,
+            psychologist: req.psychologist,
+            isRequest: true
+          });
+        }
+      });
+
+      // Ordenar por fecha
+      unified.sort((a, b) => a.date.getTime() - b.date.getTime());
+      setUnifiedAppointments(unified);
 
       // Fetch payment receipts
       const { data: receiptsData, error: receiptsError } = await supabase
@@ -285,12 +378,35 @@ export const PatientPortal = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-soft/30">
-                  {patientName.charAt(0).toUpperCase()}
-                </div>
+              {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowChatDrawer(true)}
+                  className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
+                  aria-label="Abrir chat"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat
+                </Button>
+              )}
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                {patient?.profile_image_url ? (
+                  <img
+                    src={patient.profile_image_url}
+                    alt={patientName}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-soft shadow-lg"
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-soft/30">
+                    {patientName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <span className="text-blue-petrol font-semibold">{patientName}</span>
-              </div>
+              </button>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -351,11 +467,12 @@ export const PatientPortal = () => {
               psychologistRelations={psychologistRelations}
               psychologistInfo={psychologistInfo}
               onUpdate={() => {
-                fetchPatientData();
-                fetchPsychologistRelations();
-                if (patient?.psychologist_id) {
-                  fetchPsychologistInfo();
-                }
+                fetchPsychologistRelations().then((relations) => {
+                  fetchPatientData(relations || psychologistRelations);
+                  if (patient?.psychologist_id) {
+                    fetchPsychologistInfo();
+                  }
+                });
               }}
             />
           )}
@@ -371,55 +488,49 @@ export const PatientPortal = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {appointments.length > 0 ? (
+              {unifiedAppointments.length > 0 ? (
                 <div className="space-y-4">
-                  {appointments
-                    .filter((appointment) => {
-                      // Filter out appointments with invalid dates
-                      if (!appointment.appointment_date) return false;
-                      const aptDate = new Date(appointment.appointment_date);
-                      return !isNaN(aptDate.getTime());
-                    })
-                    .map((appointment) => {
-                      if (!appointment.appointment_date) return null;
-                      const aptDate = new Date(appointment.appointment_date);
-                      if (isNaN(aptDate.getTime())) return null;
-                      
-                      const dateStr = formatDateArgentina(aptDate, dateFormatOptions.full);
-                      const timeStr = formatTimeArgentina(aptDate);
+                  {unifiedAppointments.map((item) => {
+                      const dateStr = formatDateArgentina(item.date, dateFormatOptions.full);
+                      const timeStr = formatTimeArgentina(item.date);
                       
                       if (!dateStr || !timeStr) return null;
                       
-                      const isOnline = appointment.type === 'online' || appointment.meeting_url;
+                      const isOnline = item.type === 'online' || item.meeting_url;
                       const statusLabels: Record<string, string> = {
                         'scheduled': 'Programada',
                         'confirmed': 'Confirmada',
-                        'accepted': 'Confirmada',
+                        'completed': 'Completada',
+                        'cancelled': 'Cancelada',
+                        'no-show': 'No asistió',
                         'pending': 'Pendiente',
-                        'rejected': 'Rechazada',
-                        'cancelled': 'Cancelada'
+                        'approved': 'Aprobada',
+                        'rejected': 'Rechazada'
                       };
 
                       return (
-                      <div key={appointment.id} className="bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                      <div key={item.id} className="bg-white-warm/90 backdrop-blur-sm border-2 border-celeste-gray/30 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <div className="font-semibold text-blue-petrol text-lg">
                               {dateStr}
                             </div>
                             <div className="text-blue-petrol/70 font-medium">{timeStr}</div>
-                            {appointment.psychologist && (
+                            {item.psychologist && (
                               <div className="text-sm text-blue-petrol/60 mt-1">
-                                Con {appointment.psychologist.first_name} {appointment.psychologist.last_name}
+                                Con {item.psychologist.first_name} {item.psychologist.last_name}
                               </div>
                             )}
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            appointment.status === 'confirmed' || appointment.status === 'accepted'
+                            item.status === 'confirmed' || item.status === 'completed' || item.status === 'approved'
                               ? 'bg-green-mint/30 text-blue-petrol border border-green-mint/50' 
+                              : item.status === 'cancelled' || item.status === 'no-show' || item.status === 'rejected'
+                              ? 'bg-red-100/30 text-blue-petrol border border-red-200/50'
                               : 'bg-peach-pale/30 text-blue-petrol border border-peach-pale/50'
                           }`}>
-                            {statusLabels[appointment.status] || appointment.status}
+                            {statusLabels[item.status] || item.status}
+                            {item.isRequest && ' (Solicitud)'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-blue-petrol/70 mb-3">
@@ -430,11 +541,11 @@ export const PatientPortal = () => {
                           }`}>
                             {!isOnline ? 'Presencial' : 'Online'}
                           </span>
-                          {appointment.meeting_url && (
+                          {item.meeting_url && (
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => window.open(appointment.meeting_url, '_blank')}
+                              onClick={() => window.open(item.meeting_url, '_blank')}
                               className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                               aria-label="Unirse a reunión"
                             >
@@ -573,15 +684,69 @@ export const PatientPortal = () => {
               </Button>
               <Button 
                 variant="outline"
+                onClick={() => setShowChatDrawer(true)}
+                disabled={psychologistRelations.length === 0 && !patient?.psychologist_id}
                 className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
               >
-                <User className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-4 h-4 mr-2" />
                 Hablar con mi psicólogo
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal para completar información del paciente */}
+      <PatientInfoModal
+        open={showPatientInfoModal}
+        onComplete={() => {
+          setShowPatientInfoModal(false);
+          // Refresh patient data - force reload
+          window.location.reload();
+        }}
+      />
+
+      {/* Chat Drawer */}
+      {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
+        <PatientChatDrawer
+          open={showChatDrawer}
+          onOpenChange={setShowChatDrawer}
+          psychologistId={
+            psychologistRelations.length > 0 
+              ? psychologistRelations[0]?.psychologist_id 
+              : patient?.psychologist_id || undefined
+          }
+          psychologistName={
+            psychologistRelations.length > 0 && psychologistRelations[0]?.psychologist
+              ? `${psychologistRelations[0].psychologist.first_name} ${psychologistRelations[0].psychologist.last_name}`
+              : psychologistInfo
+              ? `${psychologistInfo.first_name} ${psychologistInfo.last_name}`
+              : 'Tu Psicólogo'
+          }
+          psychologistImage={
+            psychologistRelations.length > 0 
+              ? psychologistRelations[0]?.psychologist?.profile_image_url || null
+              : null
+          }
+        />
+      )}
+
+      {/* Modal para editar perfil */}
+      {patient && (
+        <PatientProfileModal
+          open={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          patient={patient}
+          onUpdate={() => {
+            // Refresh patient data and profile
+            if (user?.id) {
+              fetchPatientData(psychologistRelations);
+            }
+            // Force profile refresh
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* Modal para pedir turno */}
       <Dialog open={showAppointmentModal} onOpenChange={setShowAppointmentModal}>
@@ -624,7 +789,7 @@ export const PatientPortal = () => {
                 psychologistId={selectedPsychologistId || patient?.psychologist_id || ''}
                 onClose={() => setShowAppointmentModal(false)}
                 onRequestCreated={() => {
-                  fetchPatientData();
+                  fetchPatientData(psychologistRelations);
                   setShowAppointmentModal(false);
                 }}
               />

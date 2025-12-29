@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, X, User, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +43,8 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [adding, setAdding] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [relationToRemove, setRelationToRemove] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     // Si tenemos relaciones pasadas como prop, usarlas primero
@@ -312,16 +324,19 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
     }
   };
 
-  const handleRemoveRelation = async (relationId: string, psychologistName: string) => {
-    if (!confirm(`¿Estás seguro de que quieres desvincular a ${psychologistName}?`)) {
-      return;
-    }
+  const handleRemoveClick = (relationId: string, psychologistName: string) => {
+    setRelationToRemove({ id: relationId, name: psychologistName });
+    setRemoveDialogOpen(true);
+  };
+
+  const handleRemoveRelation = async () => {
+    if (!relationToRemove) return;
 
     try {
       const { error } = await supabase
         .from('patient_psychologists')
         .delete()
-        .eq('id', relationId);
+        .eq('id', relationToRemove.id);
 
       if (error) throw error;
 
@@ -330,6 +345,8 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
         description: "El psicólogo ha sido removido exitosamente",
       });
 
+      setRemoveDialogOpen(false);
+      setRelationToRemove(null);
       fetchRelations();
       onUpdate?.();
     } catch (error: any) {
@@ -376,7 +393,28 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
   };
 
   return (
-    <Card className="border-2 border-celeste-gray/50 shadow-lg bg-white-warm/90 backdrop-blur-md rounded-2xl">
+    <>
+      <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desvincular psicólogo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres desvincular a {relationToRemove?.name}? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveRelation}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Desvincular
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Card className="border-2 border-celeste-gray/50 shadow-lg bg-white-warm/90 backdrop-blur-md rounded-2xl">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-blue-petrol font-bold">
@@ -504,9 +542,9 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleRemoveRelation(
+                    onClick={() => handleRemoveClick(
                       relation.id,
-                      `${relation.psychologist.first_name} ${relation.psychologist.last_name}`
+                      `${relation.psychologist?.first_name || ''} ${relation.psychologist?.last_name || ''}`.trim() || 'este psicólogo'
                     )}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
@@ -520,6 +558,7 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
 

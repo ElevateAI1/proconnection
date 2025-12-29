@@ -17,7 +17,8 @@ import {
   UserPlus,
   Search,
   Eye,
-  Zap
+  Zap,
+  MessageSquare
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -39,7 +40,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations";
+type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "reports" | "support" | "early-access" | "visibility" | "rates" | "accounting" | "documents" | "appointment-requests" | "notifications" | "reminder-settings" | "advanced-reminder-settings" | "notification-dashboard" | "clinic-admin" | "clinic-reports" | "api-integrations" | "messages";
 
 interface MinimalistSidebarProps {
   currentView: ViewType;
@@ -98,6 +99,12 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
       icon: CalendarCheck,
       available: true,
       badge: pendingCount > 0 ? pendingCount.toString() : undefined
+    },
+    {
+      id: "messages" as ViewType,
+      label: "Mensajes",
+      icon: MessageSquare,
+      available: true
     },
     {
       id: "calendar" as ViewType,

@@ -13,6 +13,7 @@ export interface Patient {
   phone?: string;
   age?: number;
   notes?: string;
+  profile_image_url?: string | null;
 }
 
 // Re-export types for backward compatibility

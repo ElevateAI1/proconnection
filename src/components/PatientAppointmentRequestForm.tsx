@@ -8,12 +8,11 @@ import { Calendar, Clock, User, FileText, Upload, X, DollarSign } from "lucide-r
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAvailableSlots } from "@/hooks/useAvailableSlots";
 import { useAppointmentRates } from "@/hooks/useAppointmentRates";
 import { useConversations } from "@/hooks/useConversations";
-import { PhoneInput } from "@/components/forms/PhoneInput";
-import { isValidArgentinePhoneNumber } from "@/utils/phoneValidation";
 
 interface PatientAppointmentRequestFormProps {
   psychologistId: string;
@@ -23,13 +22,10 @@ interface PatientAppointmentRequestFormProps {
 
 export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onRequestCreated }: PatientAppointmentRequestFormProps) => {
   const { user } = useAuth();
+  const { profile, patient } = useProfile();
   const { createOrGetConversation, sendMessage } = useConversations();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    patientName: "",
-    patientEmail: "",
-    patientPhone: "",
-    patientAge: "",
     preferredDate: "",
     preferredTime: "",
     sessionType: "individual",
@@ -38,7 +34,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
   });
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
 
   // Available slots and rates
   const {
@@ -51,7 +46,36 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
   });
   
   const { getRateForType, formatPrice, loading: ratesLoading } = useAppointmentRates(psychologistId);
-  const availableSlots = getAvailableSlots();
+  const allAvailableSlots = getAvailableSlots();
+  
+  // Filtrar slots según validación de hora (mínimo 2 horas de antelación si es hoy)
+  const availableSlots = allAvailableSlots.filter(slot => {
+    if (!formData.preferredDate) return true;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(formData.preferredDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Si es una fecha futura, todos los slots son válidos
+    if (selectedDate > today) return true;
+    
+    // Si es hoy, validar que la hora sea al menos 2 horas después de ahora
+    if (selectedDate.getTime() === today.getTime()) {
+      const [hours, minutes] = slot.split(':').map(Number);
+      const slotTime = new Date();
+      slotTime.setHours(hours, minutes, 0, 0);
+      
+      const now = new Date();
+      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      
+      return slotTime >= twoHoursLater;
+    }
+    
+    // Fecha pasada, no permitir
+    return false;
+  });
+  
   const selectedRate = getRateForType(formData.sessionType);
 
   // Update available slots when date changes
@@ -66,30 +90,6 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear phone error when user starts typing
-    if (field === 'patientPhone' && phoneError) {
-      setPhoneError("");
-    }
-  };
-
-  const handlePhoneChange = (phone: string) => {
-    setFormData(prev => ({ ...prev, patientPhone: phone }));
-    setPhoneError("");
-  };
-
-  const validatePhone = () => {
-    if (!formData.patientPhone.trim()) {
-      setPhoneError("El número de teléfono es obligatorio");
-      return false;
-    }
-    
-    if (!isValidArgentinePhoneNumber(formData.patientPhone)) {
-      setPhoneError("Ingresa un número de teléfono válido");
-      return false;
-    }
-    
-    return true;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,13 +177,20 @@ export const PatientAppointmentRequestForm = ({ psychologistId, onClose, onReque
       const conversation = await createOrGetConversation(psychologistId, user.id);
       if (!conversation) return;
 
+      const patientName = patient 
+        ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() 
+        : profile?.email || 'Paciente';
+      const patientAge = patient?.age ? `${patient.age} años` : 'No especificada';
+      const patientEmail = profile?.email || 'No disponible';
+      const patientPhone = patient?.phone || 'No disponible';
+
       const messageContent = `Nueva solicitud de cita recibida:
 
 📅 Fecha: ${formData.preferredDate}
 🕐 Hora: ${formData.preferredTime}
-👤 Paciente: ${formData.patientName} (${formData.patientAge} años)
-📧 Email: ${formData.patientEmail}
-📞 Teléfono: ${formData.patientPhone}
+👤 Paciente: ${patientName} (${patientAge})
+📧 Email: ${patientEmail}
+📞 Teléfono: ${patientPhone}
 🏥 Tipo de consulta: ${getTypeLabel(formData.sessionType)}
 💰 Tarifa: ${selectedRate ? formatPrice(selectedRate.price, selectedRate.currency) : 'No definida'}
 
@@ -215,8 +222,7 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.patientName || !formData.patientEmail || !formData.patientAge || 
-        !formData.preferredDate || !formData.preferredTime || !formData.consultationReason) {
+    if (!formData.preferredDate || !formData.preferredTime || !formData.consultationReason) {
       toast({
         title: "Error",
         description: "Por favor completa todos los campos obligatorios",
@@ -225,17 +231,39 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
       return;
     }
 
-    // Validar teléfono obligatorio
-    if (!validatePhone()) {
+    // Validar hora: no puede ser anterior a la hora actual y debe ser al menos 2 horas después
+    const selectedDate = new Date(formData.preferredDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate.getTime() === today.getTime()) {
+      // Es hoy, validar hora
+      const [hours, minutes] = formData.preferredTime.split(':').map(Number);
+      const selectedDateTime = new Date();
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+      
+      const now = new Date();
+      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      
+      if (selectedDateTime < twoHoursLater) {
+        toast({
+          title: "Error",
+          description: "La cita debe ser al menos 2 horas después de la hora actual.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (selectedDate < today) {
       toast({
         title: "Error",
-        description: "Por favor ingresa un número de teléfono válido",
+        description: "No se pueden seleccionar fechas pasadas.",
         variant: "destructive"
       });
       return;
     }
 
-    if (!availableSlots.includes(formData.preferredTime)) {
+    if (!allAvailableSlots.includes(formData.preferredTime)) {
       toast({
         title: "Error",
         description: "El horario seleccionado no es válido o ya no está disponible.",
@@ -295,8 +323,15 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
         }
       }
 
-      // Create appointment request with phone number
+      // Create appointment request
       console.log('=== CREATING APPOINTMENT REQUEST ===');
+      const patientName = patient 
+        ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() 
+        : profile?.email || 'Paciente';
+      const patientAge = patient?.age ? `${patient.age} años` : 'No especificada';
+      const patientEmail = profile?.email || 'No disponible';
+      const patientPhone = patient?.phone || 'No disponible';
+      
       const { error } = await supabase
         .from('appointment_requests')
         .insert({
@@ -305,7 +340,7 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
           preferred_date: formData.preferredDate,
           preferred_time: formData.preferredTime,
           type: formData.sessionType,
-          notes: `Nombre: ${formData.patientName}\nEdad: ${formData.patientAge} años\nEmail: ${formData.patientEmail}\nTeléfono: ${formData.patientPhone}\n\nMotivo de consulta: ${formData.consultationReason}\n\nNotas adicionales: ${formData.notes}`,
+          notes: `Nombre: ${patientName}\nEdad: ${patientAge}\nEmail: ${patientEmail}\nTeléfono: ${patientPhone}\n\nMotivo de consulta: ${formData.consultationReason}\n\nNotas adicionales: ${formData.notes || 'Ninguna'}`,
           payment_proof_url: proofUrl,
           status: 'pending'
         });
@@ -359,62 +394,6 @@ ${paymentProof ? '💳 Comprobante de pago adjunto' : ''}`;
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-3">
-              <User className="w-4 h-4" />
-              <h3 className="font-medium">Información Personal</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientName">Nombre Completo *</Label>
-                <Input
-                  id="patientName"
-                  value={formData.patientName}
-                  onChange={(e) => handleInputChange('patientName', e.target.value)}
-                  placeholder="Tu nombre completo"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="patientAge">Edad *</Label>
-                <Input
-                  id="patientAge"
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={formData.patientAge}
-                  onChange={(e) => handleInputChange('patientAge', e.target.value)}
-                  placeholder="Tu edad"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientEmail">Email *</Label>
-                <Input
-                  id="patientEmail"
-                  type="email"
-                  value={formData.patientEmail}
-                  onChange={(e) => handleInputChange('patientEmail', e.target.value)}
-                  placeholder="tu@email.com"
-                  required
-                />
-              </div>
-              
-              <PhoneInput
-                value={formData.patientPhone}
-                onChange={handlePhoneChange}
-                label="Teléfono"
-                required={true}
-                error={phoneError}
-              />
-            </div>
-          </div>
-
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4" />
