@@ -1,9 +1,8 @@
-import { GoogleGenAI, Type } from "npm:@google/genai@1.34.0";
+// import { GoogleGenAI, Type } from "npm:@google/genai@1.34.0"; // Removed incompatible lib
 
 const GEMINI_API_KEY = "AIzaSyAbVz3x93uOEuZakjP1yCc0EM1-aOxfEEk";
-const MODEL_ID = "gemini-3-flash-preview";
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const MODEL_ID = "gemini-2.0-flash-exp"; // Changed to stable model available via REST
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${GEMINI_API_KEY}`;
 
 const PRICE_PER_1M_INPUT = 0.075;
 const PRICE_PER_1M_OUTPUT = 0.30;
@@ -86,72 +85,86 @@ const COMPLIANCE_RULES: Record<string, string[]> = {
   ]
 };
 
+// Simplified schema for REST API
 const analysisSchema = {
-  type: Type.OBJECT,
+  type: "OBJECT",
   properties: {
     importe_total: {
-      type: Type.NUMBER,
+      type: "NUMBER",
       description: "Exact total amount. No rounding.",
     },
     moneda: {
-      type: Type.STRING,
+      type: "STRING",
       description: "ISO Code (ARS,USD,EUR).",
     },
     fecha: {
-      type: Type.STRING,
+      type: "STRING",
       description: "YYYY-MM-DD.",
     },
     emisor: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Sender Name (NOT Bank/App).",
     },
     receptor: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Receiver Name.",
     },
     tipo_comprobante: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Type: factura_a, factura_b, factura_c, transferencia, ticket, recibo.",
     },
     metodo_pago: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Payment method: efectivo, transferencia, tarjeta_debito, tarjeta_credito, mercadopago.",
     },
     cuit_paciente: {
-      type: Type.STRING,
+      type: "STRING",
       description: "CUIT/CUIL of the patient (sender). Format: XX-XXXXXXXX-X.",
     },
     numero_comprobante: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Receipt number if visible.",
     },
     es_valido: {
-      type: Type.BOOLEAN,
+      type: "BOOLEAN",
       description: "Is valid receipt?",
     },
     nivel_riesgo: {
-      type: Type.NUMBER,
+      type: "NUMBER",
       description: "Score 0-100 (100=Fraud).",
     },
     confidence_score: {
-      type: Type.NUMBER,
+      type: "NUMBER",
       description: "0.0-1.0 readability.",
     },
     razonamiento_fraude: {
-      type: Type.STRING,
+      type: "STRING",
       description: "Concise forensic logic.",
     },
   },
   required: ["importe_total", "moneda", "fecha", "emisor", "receptor", "es_valido", "nivel_riesgo", "confidence_score", "razonamiento_fraude"],
 };
 
-async function generateContentWithRetry(params: any, retries = 3) {
+async function generateContentWithRetry(payload: any, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      return await ai.models.generateContent(params);
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
     } catch (error: any) {
       const isRetryable = error.message?.includes('500') || 
-                          error.message?.includes('xhr') || 
+                          error.message?.includes('429') || 
                           error.status === 500 || 
                           error.status === 503;
       
@@ -179,33 +192,41 @@ export const analyzeBillingPipeline = async (
 
     stepUpdate("🔍 Paso 1: Clasificando...");
     
-    const classificationResponse = await generateContentWithRetry({
-      model: MODEL_ID,
-      contents: {
+    // STEP 1: CLASSIFICATION
+    const classificationPayload = {
+      contents: [{
         parts: [
-          { 
-            inlineData: { 
-              mimeType: mimeType === 'application/pdf' ? 'application/pdf' : mimeType, 
-              data: imageBase64 
-            } 
-          },
           { text: `TASK:Classify.
             RULES:
             1.IF(Bill/Service)->'FACTURA'.
             2.ELSE->BestMatch(Mercado Pago,Uala,NX,Personal Pay,Lemon,Prex,MODO,Brubank,Cuenta DNI,Galicia,Santander,BBVA).
             3.DEFAULT->'Generico'.
             OUTPUT:String.` 
+          },
+          {
+            inline_data: {
+              mime_type: mimeType === 'application/pdf' ? 'application/pdf' : mimeType,
+              data: imageBase64
+            }
           }
         ]
+      }],
+      generationConfig: {
+        temperature: 0.0
       }
-    });
+    };
+
+    const classificationResponse = await generateContentWithRetry(classificationPayload);
 
     if (classificationResponse.usageMetadata) {
       totalInputTokens += classificationResponse.usageMetadata.promptTokenCount || 0;
       totalOutputTokens += classificationResponse.usageMetadata.candidatesTokenCount || 0;
     }
 
-    let detectedIssuer = classificationResponse.text?.trim() || "Generico";
+    let detectedIssuer = "Generico";
+    if (classificationResponse.candidates && classificationResponse.candidates[0]?.content?.parts[0]?.text) {
+      detectedIssuer = classificationResponse.candidates[0].content.parts[0].text.trim();
+    }
     
     const upperIssuer = detectedIssuer.toUpperCase();
     if (upperIssuer.includes("FACTURA") || upperIssuer.includes("SERVICIO")) detectedIssuer = "FACTURA_SERVICIO";
@@ -244,33 +265,35 @@ export const analyzeBillingPipeline = async (
     3.EXTRACT:Sender,Receiver,Amt,ReceiptType,PaymentMethod,CUIT,ReceiptNumber.
     OUTPUT:JSON.`;
 
-    const response = await generateContentWithRetry({
-      model: MODEL_ID,
-      contents: {
+    // STEP 2: EXTRACTION
+    const analysisPayload = {
+      contents: [{
         parts: [
-          { 
-            inlineData: { 
-              mimeType: mimeType === 'application/pdf' ? 'application/pdf' : mimeType, 
-              data: imageBase64 
-            } 
-          },
-          { text: prompt }
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: mimeType === 'application/pdf' ? 'application/pdf' : mimeType,
+              data: imageBase64
+            }
+          }
         ]
-      },
-      config: {
+      }],
+      generationConfig: {
+        temperature: 0.0,
         responseMimeType: "application/json",
-        responseSchema: analysisSchema,
-        temperature: 0.0
+        responseSchema: analysisSchema
       }
-    });
+    };
+
+    const response = await generateContentWithRetry(analysisPayload);
 
     if (response.usageMetadata) {
       totalInputTokens += response.usageMetadata.promptTokenCount || 0;
       totalOutputTokens += response.usageMetadata.candidatesTokenCount || 0;
     }
 
-    if (response.text) {
-      const parsed = JSON.parse(response.text);
+    if (response.candidates && response.candidates[0]?.content?.parts[0]?.text) {
+      const parsed = JSON.parse(response.candidates[0].content.parts[0].text);
       const finalCost = calculateCost(totalInputTokens, totalOutputTokens);
 
       return { 
@@ -294,9 +317,8 @@ export const analyzeBillingPipeline = async (
     const errorDetails = error instanceof Error ? error.stack : String(error);
     console.error("Error details:", { errorMessage, errorDetails });
     
-    // Proporcionar mensaje de error más descriptivo
     if (errorMessage.includes('API') || errorMessage.includes('fetch')) {
-      throw new Error(`Error de conexión con Gemini API: ${errorMessage}. Verifica la API key.`);
+      throw new Error(`Error de conexión con Gemini API: ${errorMessage}.`);
     } else if (errorMessage.includes('schema') || errorMessage.includes('JSON')) {
       throw new Error(`Error al procesar respuesta de Gemini: ${errorMessage}`);
     } else {
@@ -304,4 +326,3 @@ export const analyzeBillingPipeline = async (
     }
   }
 };
-
