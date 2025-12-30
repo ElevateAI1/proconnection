@@ -1,0 +1,26 @@
+RECIBO DE PAGO
+PSICOLOGÍA CLÍNICA
+
+Factura N°: FAC-2025-001
+Fecha de emisión: 02/01/2025
+Fecha de servicio: 30/12/2024
+
+DATOS DEL PACIENTE:
+Nombre: Carlos Rodríguez García
+DNI: 12.345.678
+
+DETALLE DE SERVICIOS:
+- Sesión de terapia individual (50 min): $2.800,00
+- Materiales terapéuticos: $350,00
+
+SUBTOTAL: $3.150,00
+IVA 21%: $661,50
+TOTAL A PAGAR: $3.811,50
+
+FORMA DE PAGO: Transferencia bancaria
+Fecha de pago: 02/01/2025
+
+Profesional: Lic. Patricia Morales
+Matrícula: MP 12345
+
+Este comprobante tiene validez fiscal.

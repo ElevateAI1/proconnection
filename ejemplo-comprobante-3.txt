@@ -1,0 +1,9 @@
+Comprobante médico
+Consulta psicológica
+Total:    1800,00
+Pagado en efectivo
+Fecha: 15/12/2024
+Paciente: Ana López
+Sesiones: 2
+Valor por sesión: 900,00
+Total a pagar: 1800,00

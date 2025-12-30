@@ -2,25 +2,30 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { usePaymentProof } from '@/hooks/usePaymentProof';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Upload, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, Calculator } from 'lucide-react';
 
 interface PaymentProofUploaderProps {
   psychologistId: string;
   patientId: string;
+  expectedAmount?: number;
   onUploadComplete?: () => void;
 }
 
 export const PaymentProofUploader: React.FC<PaymentProofUploaderProps> = ({
   psychologistId,
   patientId,
+  expectedAmount: propExpectedAmount,
   onUploadComplete
 }) => {
   const { uploadPaymentProof, uploading } = usePaymentProof();
   const [dragActive, setDragActive] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
+  const [expectedAmount, setExpectedAmount] = useState<string>(propExpectedAmount?.toString() || '');
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -49,10 +54,11 @@ export const PaymentProofUploader: React.FC<PaymentProofUploaderProps> = ({
     }
   };
 
+
   const handleFileUpload = async (file: File) => {
     try {
       setUploadStatus('uploading');
-      
+
       // Validar tipo y tamaño de archivo
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
@@ -95,9 +101,9 @@ export const PaymentProofUploader: React.FC<PaymentProofUploaderProps> = ({
         // Iniciar procesamiento OCR
         try {
           const { data: ocrData, error: ocrError } = await supabase.functions.invoke('process-receipt-ocr', {
-            body: { 
-              fileUrl: fileUrl, 
-              receiptId: data.id 
+            body: {
+              fileUrl: fileUrl,
+              receiptId: data.id
             }
           });
 
@@ -200,6 +206,26 @@ export const PaymentProofUploader: React.FC<PaymentProofUploaderProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Campo opcional para importe esperado */}
+        <div className="mb-6">
+          <Label htmlFor="expected-amount" className="flex items-center gap-2 text-sm font-medium">
+            <Calculator className="w-4 h-4" />
+            Importe esperado (opcional)
+          </Label>
+          <Input
+            id="expected-amount"
+            type="number"
+            step="0.01"
+            placeholder="Ej: 1500.00"
+            value={expectedAmount}
+            onChange={(e) => setExpectedAmount(e.target.value)}
+            className="mt-1"
+            disabled={isDisabled}
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            El importe será extraído automáticamente por el sistema de IA
+          </p>
+        </div>
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
             dragActive && !isDisabled ? 'border-blue-500 bg-blue-50' : 

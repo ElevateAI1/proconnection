@@ -1,0 +1,7 @@
+Recibo de pago
+Servicio: Terapia individual
+Importe:    $3.500,00
+Fecha: 28/12/2024
+Profesional: Dra. María González
+Pago realizado por transferencia bancaria
+Monto total: $3.500,00
