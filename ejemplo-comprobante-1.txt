@@ -1,0 +1,7 @@
+Factura N° 000123
+Fecha: 01/01/2025
+Paciente: Juan Pérez
+Importe:    2850,00
+Método de pago: Efectivo
+Servicio: Consulta psicológica
+IVA incluido

@@ -23,6 +23,7 @@ import {
   Zap
 } from "lucide-react";
 import { usePaymentReceipts } from "@/hooks/usePaymentReceipts";
+import { toast } from "@/hooks/use-toast";
 
 interface ReceiptValidationPanelProps {
   psychologistId: string;
@@ -39,6 +40,22 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
     r.validation_status === 'needs_review' ||
     r.extraction_status === 'processing'
   );
+
+  // Función para determinar el método de extracción
+  const getExtractionMethod = (receipt: any) => {
+    if (receipt.extracted_data?.method) {
+      switch (receipt.extracted_data.method) {
+        case 'gpt4_fallback':
+        case 'gpt4_processing':
+          return { label: 'IA GPT-4o', icon: FileText, color: 'bg-blue-100 text-blue-800', description: 'Procesado con Inteligencia Artificial' };
+        case 'bank_extraction':
+          return { label: 'Extracción Bancaria', icon: FileText, color: 'bg-green-100 text-green-800', description: 'Extraído automáticamente del comprobante' };
+        default:
+          return { label: 'Manual', icon: Edit, color: 'bg-purple-100 text-purple-800', description: 'Ingresado manualmente' };
+      }
+    }
+    return { label: 'Desconocido', icon: AlertCircle, color: 'bg-gray-100 text-gray-800', description: 'Método no especificado' };
+  };
 
   const handleEditData = (receipt: any) => {
     setSelectedReceipt(receipt);
@@ -68,7 +85,19 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
 
   const handleRetryOCR = async (receipt: any) => {
     if (receipt.original_file_url) {
-      await retryOCRProcessing(receipt.id);
+      try {
+        await retryOCRProcessing(receipt.id);
+        toast({
+          title: "✅ Procesando comprobante",
+          description: "El sistema de IA está extrayendo el monto automáticamente. Esto puede tardar unos segundos...",
+        });
+      } catch (error) {
+        toast({
+          title: "❌ Error al procesar",
+          description: "No se pudo ejecutar el procesamiento OCR. Intenta nuevamente o ingresa el monto manualmente.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -178,6 +207,16 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
                   <div className="flex items-center gap-2 mb-3">
                     {getStatusBadge(receipt.validation_status)}
                     {getExtractionStatusBadge(receipt.extraction_status)}
+                    {(() => {
+                      const method = getExtractionMethod(receipt);
+                      const IconComponent = method.icon;
+                      return (
+                        <Badge variant="outline" className={`${method.color} border-0`}>
+                          <IconComponent className="w-3 h-3 mr-1" />
+                          {method.label}
+                        </Badge>
+                      );
+                    })()}
                     <span className="text-sm text-slate-600 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(receipt.created_at).toLocaleDateString()}
@@ -194,11 +233,21 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
                           <p className={`font-bold text-lg ${
                             receipt.amount > 0 ? 'text-green-600' : 'text-slate-400'
                           }`}>
-                            {formatCurrency(receipt.amount)}
+                            {receipt.amount > 0 ? formatCurrency(receipt.amount) : 'No especificado'}
                           </p>
-                          {receipt.extraction_status === 'extracted' && receipt.amount > 0 && (
-                            <p className="text-xs text-green-600 font-medium">✨ Detectado por IA</p>
+                          {receipt.amount === 0 && receipt.extraction_status === 'pending' && (
+                            <p className="text-xs text-orange-600 font-medium mt-1">
+                              ⚠️ El OCR no se ejecutó. Haz clic en "Reintentar OCR" para extraer el monto automáticamente.
+                            </p>
                           )}
+                          {receipt.amount > 0 && (() => {
+                            const method = getExtractionMethod(receipt);
+                            return (
+                              <p className="text-xs text-green-600 font-medium">
+                                ✨ {method.description}
+                              </p>
+                            );
+                          })()}
                         </div>
                       </div>
                       
@@ -292,7 +341,9 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
                       </Button>
                     )}
                     
-                    {receipt.extraction_status === 'error' && (
+                    {(receipt.extraction_status === 'error' || 
+                      (receipt.extraction_status === 'pending' && !receipt.amount) ||
+                      (receipt.extraction_status === 'processing' && !receipt.amount)) && (
                       <Button 
                         variant="outline" 
                         size="sm"

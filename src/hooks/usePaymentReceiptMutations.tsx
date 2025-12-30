@@ -6,7 +6,7 @@ export const usePaymentReceiptMutations = (
   psychologistId: string | undefined,
   onSuccess: () => void
 ) => {
-  const uploadReceipt = async (file: File, patientId?: string): Promise<PaymentReceipt | null> => {
+  const uploadReceipt = async (file: File, expectedAmount?: number, patientId?: string): Promise<PaymentReceipt | null> => {
     if (!psychologistId) {
       throw new Error('Psychologist ID is required');
     }
@@ -57,9 +57,9 @@ export const usePaymentReceiptMutations = (
 
       // Trigger OCR processing
       const { error: ocrError } = await supabase.functions.invoke('process-receipt-ocr', {
-        body: { 
-          fileUrl: urlData.publicUrl, 
-          receiptId: receiptData.id 
+        body: {
+          fileUrl: urlData.publicUrl,
+          receiptId: receiptData.id
         }
       });
 
