@@ -147,7 +147,8 @@ export const usePaymentReceiptMutations = (
 
       if (ocrError) {
         console.error('Error triggering OCR retry:', ocrError);
-        throw ocrError;
+        const errorMessage = ocrError.message || 'Error desconocido al procesar con IA';
+        throw new Error(errorMessage);
       }
 
       toast({

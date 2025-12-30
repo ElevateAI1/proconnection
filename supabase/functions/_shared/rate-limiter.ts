@@ -97,6 +97,9 @@ export const getRateLimitIdentifier = (req: Request): string => {
 export const createRateLimitResponse = (result: RateLimitResult): Response => {
   const headers = new Headers({
     'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'X-RateLimit-Limit': '10',
     'X-RateLimit-Remaining': result.remaining.toString(),
     'X-RateLimit-Reset': result.resetTime.toString(),

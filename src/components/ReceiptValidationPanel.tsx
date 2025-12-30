@@ -88,13 +88,13 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
       try {
         await retryOCRProcessing(receipt.id);
         toast({
-          title: "✅ Procesando comprobante",
-          description: "El sistema de IA está extrayendo el monto automáticamente. Esto puede tardar unos segundos...",
+          title: "✅ Procesando comprobante con IA",
+          description: "El sistema de inteligencia artificial está extrayendo los datos del comprobante. Esto puede tardar unos segundos...",
         });
       } catch (error) {
         toast({
-          title: "❌ Error al procesar",
-          description: "No se pudo ejecutar el procesamiento OCR. Intenta nuevamente o ingresa el monto manualmente.",
+          title: "❌ Error al procesar con IA",
+          description: "No se pudo ejecutar el procesamiento automático. Intenta nuevamente o ingresa los datos manualmente.",
           variant: "destructive"
         });
       }
@@ -237,7 +237,7 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
                           </p>
                           {receipt.amount === 0 && receipt.extraction_status === 'pending' && (
                             <p className="text-xs text-orange-600 font-medium mt-1">
-                              ⚠️ El OCR no se ejecutó. Haz clic en "Reintentar OCR" para extraer el monto automáticamente.
+                              ⚠️ No se procesó automáticamente. Haz clic en "Procesar con IA" para extraer los datos del comprobante.
                             </p>
                           )}
                           {receipt.amount > 0 && (() => {
@@ -350,8 +350,8 @@ export const ReceiptValidationPanel = ({ psychologistId }: ReceiptValidationPane
                         onClick={() => handleRetryOCR(receipt)}
                         className="text-orange-600 border-orange-300 hover:bg-orange-50"
                       >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Reintentar OCR
+                        <Zap className="w-4 h-4 mr-1" />
+                        Procesar con IA
                       </Button>
                     )}
                     

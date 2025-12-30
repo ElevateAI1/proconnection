@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateOCRRequest, validateReceiptExists, validateExtractionStatus } from './_utils/validators.ts';
 import { handleOCRError, createErrorResponse } from './_utils/error-handler.ts';
-import { processReceiptWithN8N } from './_utils/ocr-processor.ts';
+import { processReceiptWithPipeline } from './_utils/pipeline-processor.ts';
 import { checkRateLimit, getRateLimitIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 const corsHeaders = {
@@ -20,7 +20,10 @@ const RATE_LIMIT_CONFIG = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   // Check rate limit
@@ -107,8 +110,8 @@ serve(async (req) => {
       console.log('✅ Receipt status updated to processing');
     }
 
-    // Process with N8N
-    return await processReceiptWithN8N(fileUrl, receiptId);
+    // Process with Gemini Pipeline (RAG)
+    return await processReceiptWithPipeline(fileUrl, receiptId);
   } catch (error) {
     return await handleOCRError(error as Error, receiptId);
   }

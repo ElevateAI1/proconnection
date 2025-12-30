@@ -35,6 +35,6 @@ export const validateReceiptExists = (receipt: any): boolean => {
 };
 
 export const validateExtractionStatus = (status: string): boolean => {
-  return status !== 'extracted';
+  return status === 'pending' || status === 'processing' || status === 'error';
 };
 
