@@ -849,7 +849,11 @@ async function handleSendVerificationEmail(req: Request) {
       email: email
     })
 
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"))
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      return errorResponse("RESEND_API_KEY no está configurada", 500);
+    }
+    const resend = new Resend(resendApiKey);
     
     const emailResponse = await resend.emails.send({
       from: "ProConnection <lord@mattyeh.com>",
