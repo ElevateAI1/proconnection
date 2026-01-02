@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, MessageCircle, CreditCard, Clock, LogOut, User } from 'lucide-react';
+import { Calendar, MessageCircle, CreditCard, Clock, LogOut, User, Video } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from '@/utils/dateFormatting';
+import { createJitsiMeetingForAppointment } from '@/utils/jitsiUtils';
 
 interface Appointment {
   id: string;
@@ -95,6 +96,7 @@ export const PatientPortal = () => {
   const [showPatientInfoModal, setShowPatientInfoModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [creatingMeeting, setCreatingMeeting] = useState<string | null>(null);
 
   useEffect(() => {
     // Solo cargar datos una vez cuando el usuario y perfil estén disponibles
@@ -331,6 +333,37 @@ export const PatientPortal = () => {
     }
   };
 
+  const handleCreateMeeting = async (item: UnifiedAppointment) => {
+    // Solo crear reunión para citas confirmadas, no para solicitudes
+    if (item.isRequest || item.status === 'cancelled' || item.status === 'completed') {
+      return;
+    }
+
+    setCreatingMeeting(item.id);
+
+    const psychologistName = item.psychologist
+      ? `${item.psychologist.first_name} ${item.psychologist.last_name}`
+      : 'Psicólogo';
+
+    const patientName = patient?.first_name && patient?.last_name
+      ? `${patient.first_name} ${patient.last_name}`
+      : 'Paciente';
+
+    const meetingUrl = await createJitsiMeetingForAppointment(
+      item.id,
+      item.date.toISOString(),
+      patientName,
+      psychologistName
+    );
+
+    setCreatingMeeting(null);
+
+    if (meetingUrl) {
+      // Refrescar datos para mostrar el nuevo meeting_url
+      await fetchPatientData(psychologistRelations);
+    }
+  };
+
   // Mostrar preloader mientras cargan datos
   if (loading || relationsLoading || (!patient && user && profile)) {
     return (
@@ -541,6 +574,19 @@ export const PatientPortal = () => {
                           }`}>
                             {!isOnline ? 'Presencial' : 'Online'}
                           </span>
+                          {!item.meeting_url && !item.isRequest && item.status !== 'cancelled' && item.status !== 'completed' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleCreateMeeting(item)}
+                              disabled={creatingMeeting === item.id}
+                              className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol disabled:opacity-50"
+                              aria-label="Crear reunión"
+                            >
+                              <Video className="w-3 h-3 mr-1" />
+                              {creatingMeeting === item.id ? 'Creando...' : 'Crear reunión'}
+                            </Button>
+                          )}
                           {item.meeting_url && (
                             <Button 
                               size="sm" 
@@ -549,6 +595,7 @@ export const PatientPortal = () => {
                               className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                               aria-label="Unirse a reunión"
                             >
+                              <Video className="w-3 h-3 mr-1" />
                               Unirse
                             </Button>
                           )}

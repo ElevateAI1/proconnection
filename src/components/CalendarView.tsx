@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { NewAppointmentModal } from "./NewAppointmentModal";
 import { CancelAppointmentModal } from "./CancelAppointmentModal";
 import { formatDateArgentina, formatTimeArgentina, formatDateTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
+import { createJitsiMeetingForAppointment } from "@/utils/jitsiUtils";
 
 interface Appointment {
   id: string;
@@ -272,6 +273,30 @@ export const Calendar = () => {
     window.open(meetingUrl, '_blank');
   };
 
+  const handleCreateMeeting = async (appointment: Appointment) => {
+    if (!appointment.id || appointment.status === 'cancelled' || appointment.status === 'completed') {
+      return;
+    }
+
+    const patientName = appointment.patient 
+      ? `${appointment.patient.first_name} ${appointment.patient.last_name}`
+      : 'Paciente';
+
+    const meetingUrl = await createJitsiMeetingForAppointment(
+      appointment.id,
+      appointment.appointment_date,
+      patientName,
+      psychologist?.first_name && psychologist?.last_name 
+        ? `${psychologist.first_name} ${psychologist.last_name}`
+        : 'Psicólogo'
+    );
+
+    if (meetingUrl) {
+      // Refrescar citas para mostrar el nuevo meeting_url
+      await fetchAppointments();
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       "scheduled": "bg-blue-100 text-blue-700",
@@ -440,6 +465,15 @@ export const Calendar = () => {
                                     {appointment.duration_minutes ? `${appointment.duration_minutes} min` : '60 min'}
                                   </span>
                                   <div className="flex gap-2">
+                                    {!appointment.meeting_url && appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                      <button
+                                        onClick={() => handleCreateMeeting(appointment)}
+                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                      >
+                                        <Video className="w-3 h-3" />
+                                        Crear reunión
+                                      </button>
+                                    )}
                                     {appointment.meeting_url && appointment.status !== 'cancelled' && (
                                       <button
                                         onClick={() => handleJoinMeeting(appointment.meeting_url!)}
