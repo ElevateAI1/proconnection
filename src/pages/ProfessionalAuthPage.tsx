@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home, LogOut } from "lucide-react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthLoader } from "@/components/ui/AuthLoader";
 import { EmailConfirmationScreen } from "@/components/EmailConfirmationScreen";
+import { AsYouType } from 'libphonenumber-js';
 
 // Professional categories
 const PROFESSIONAL_CATEGORIES = {
@@ -51,7 +53,8 @@ const PROFESSIONAL_CATEGORIES = {
 };
 
 export const ProfessionalAuthPage = () => {
-  const { signIn, signUp, loading, user } = useAuth();
+  const { signIn, signUp, loading, user, signOut } = useAuth();
+  const { profile, loading: profileLoading } = useOptimizedProfile();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const affiliateCode = searchParams.get('ref');
@@ -63,6 +66,9 @@ export const ProfessionalAuthPage = () => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const authRef = useRef<HTMLDivElement>(null);
   
   const [signInData, setSignInData] = useState({
@@ -105,13 +111,66 @@ export const ProfessionalAuthPage = () => {
     };
   }, []);
 
-  // Redirect authenticated users to dashboard
+  // Redirect only if user is a professional, otherwise allow switching account
   useEffect(() => {
-    if (user) {
-      console.log('User is authenticated, redirecting to dashboard');
-      navigate("/dashboard", { replace: true });
+    if (user && !profileLoading && profile) {
+      if (profile.user_type === 'psychologist') {
+        console.log('Professional is authenticated, redirecting to dashboard');
+        navigate("/dashboard", { replace: true });
+      }
+      // Si es paciente, no redirigimos - deja que pueda cerrar sesión o cambiar
     }
-  }, [user, navigate]);
+  }, [user, profile, profileLoading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Sesión cerrada",
+      description: "Puedes iniciar sesión con otra cuenta",
+    });
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail || !validateEmail(resetEmail)) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa un email válido",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/professional?type=recovery`
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Email enviado",
+          description: "Revisa tu bandeja de entrada para restablecer tu contraseña",
+        });
+        setShowForgotPassword(false);
+        setResetEmail("");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al enviar el email",
+        variant: "destructive"
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -125,6 +184,25 @@ export const ProfessionalAuthPage = () => {
     setSignInData({ ...signInData, [e.target.name]: e.target.value });
   };
 
+  const formatPhoneInput = (value: string): string => {
+    if (!value) return '';
+    
+    try {
+      // Si empieza con + o 54, usar formato internacional
+      if (value.startsWith('+') || value.trim().startsWith('54')) {
+        const formatterIntl = new AsYouType();
+        return formatterIntl.input(value);
+      }
+      
+      // Para números locales argentinos, usar formato nacional
+      const formatter = new AsYouType('AR');
+      return formatter.input(value);
+    } catch (error) {
+      // Si hay error, devolver el valor sin formatear (pero limpio)
+      return value.replace(/[^\d+\s-()]/g, '');
+    }
+  };
+
   const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
@@ -136,6 +214,8 @@ export const ProfessionalAuthPage = () => {
         otherProfessionalType: ""
       });
       setShowOtherInput(false);
+    } else if (name === 'phone') {
+      setSignUpData({ ...signUpData, [name]: formatPhoneInput(value) });
     } else {
       setSignUpData({ 
         ...signUpData, 
@@ -313,6 +393,9 @@ export const ProfessionalAuthPage = () => {
             otherProfessionalType: ""
           });
         }}
+        onEmailChange={(newEmail) => {
+          setRegisteredEmail(newEmail);
+        }}
       />
     );
   }
@@ -392,7 +475,7 @@ export const ProfessionalAuthPage = () => {
           <div className="bg-white-warm border-4 border-blue-petrol/30 rounded-2xl p-8 sm:p-10 shadow-[12px_12px_0px_0px_rgba(62,95,120,0.15)]">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="flex justify-end mb-2">
+              <div className="flex justify-between items-center mb-2">
                 <Link to="/">
                   <Button
                     variant="ghost"
@@ -403,7 +486,26 @@ export const ProfessionalAuthPage = () => {
                     <span className="text-sm">Volver al inicio</span>
                   </Button>
                 </Link>
+                {user && profile && profile.user_type !== 'psychologist' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSignOut}
+                    className="text-blue-petrol/60 hover:text-blue-petrol border-blue-petrol/20"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span className="text-sm">Cerrar sesión</span>
+                  </Button>
+                )}
               </div>
+              {user && profile && profile.user_type !== 'psychologist' && (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-amber-800 font-sans-geometric">
+                    Tienes una sesión activa como {profile.user_type === 'patient' ? 'paciente' : 'admin'}. 
+                    Cierra sesión para iniciar como profesional.
+                  </p>
+                </div>
+              )}
               {/* Diferenciador visual: Badge de Profesional */}
               <div className="flex items-center justify-center mb-4">
                 <div className="inline-flex items-center gap-2 bg-blue-petrol/10 border-2 border-blue-petrol/30 rounded-full px-4 py-2">
@@ -439,7 +541,16 @@ export const ProfessionalAuthPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="font-sans-geometric font-semibold text-blue-petrol">Contraseña</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="password" className="font-sans-geometric font-semibold text-blue-petrol">Contraseña</Label>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm font-sans-geometric text-blue-petrol/70 hover:text-blue-petrol hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
                     <Input
@@ -470,6 +581,24 @@ export const ProfessionalAuthPage = () => {
                   disabled={loading}
                 >
                   {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+                </Button>
+
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-blue-petrol/20"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white-warm text-blue-petrol/60 font-sans-geometric">O</span>
+                  </div>
+                </div>
+
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full border-2 border-blue-petrol/30 text-blue-petrol hover:bg-blue-petrol/5 font-sans-geometric font-semibold py-6 rounded-lg transition-all duration-200"
+                  disabled
+                >
+                  Acceder con otro método (Próximamente)
                 </Button>
                 
                 <div className="text-center pt-4">
@@ -547,12 +676,16 @@ export const ProfessionalAuthPage = () => {
                       id="phone"
                       type="tel"
                       name="phone"
-                      placeholder="+54 11 1234-5678"
+                      placeholder="+54 11 12345-6789"
                       className="pl-12 pr-4 py-3 border-4 border-blue-petrol/20 rounded-lg focus:border-blue-soft focus:ring-4 focus:ring-blue-soft/20 font-sans-geometric text-blue-petrol"
                       value={signUpData.phone}
                       onChange={handleSignUpChange}
+                      maxLength={18}
                     />
                   </div>
+                  <p className="text-xs text-blue-petrol/60 font-sans-geometric">
+                    Formato: +54 11 12345-6789
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -703,6 +836,49 @@ export const ProfessionalAuthPage = () => {
                   </p>
                 </div>
               </form>
+            )}
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white-warm border-4 border-blue-petrol/30 rounded-2xl p-6 max-w-md w-full shadow-[12px_12px_0px_0px_rgba(62,95,120,0.15)]">
+                  <h2 className="font-serif-display text-2xl font-bold text-blue-petrol mb-4">Recuperar Contraseña</h2>
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="resetEmail" className="font-sans-geometric font-semibold text-blue-petrol">Email</Label>
+                      <Input
+                        id="resetEmail"
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="border-4 border-blue-petrol/20 rounded-lg py-3 font-sans-geometric"
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setResetEmail("");
+                        }}
+                        className="flex-1 border-2 border-blue-petrol/30 text-blue-petrol"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={resetLoading}
+                        className="flex-1 bg-blue-petrol text-white-warm border-4 border-blue-petrol"
+                      >
+                        {resetLoading ? "Enviando..." : "Enviar"}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             )}
 
             {/* Privacy notice */}
