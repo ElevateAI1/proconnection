@@ -412,16 +412,28 @@ export const PatientPortal = () => {
             
             <div className="flex items-center gap-4">
               {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowChatDrawer(true)}
-                  className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
-                  aria-label="Abrir chat"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAppointmentModal(true)}
+                    className="border-2 border-blue-soft/50 bg-blue-soft/10 backdrop-blur-sm hover:bg-blue-soft/20 hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
+                    aria-label="Agendar cita"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Agendar cita
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowChatDrawer(true)}
+                    className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
+                    aria-label="Abrir chat"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat
+                  </Button>
+                </>
               )}
               <button
                 onClick={() => setShowProfileModal(true)}
