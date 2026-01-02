@@ -1,6 +1,6 @@
 // import { GoogleGenAI, Type } from "npm:@google/genai@1.34.0"; // Removed incompatible lib
 
-const GEMINI_API_KEY = "AIzaSyAbVz3x93uOEuZakjP1yCc0EM1-aOxfEEk";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const MODEL_ID = "gemini-2.0-flash-exp"; // Changed to stable model available via REST
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -184,6 +184,10 @@ export const analyzeBillingPipeline = async (
   mimeType: string = "image/jpeg",
   onStepUpdate?: (step: string) => void
 ): Promise<any> => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY no está configurada");
+  }
+
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 

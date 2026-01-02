@@ -3,8 +3,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createVerificationEmailTemplate } from "./_utils/email-template.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -32,6 +30,12 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY no está configurada");
+    }
+    
+    const resend = new Resend(resendApiKey);
     const { email, token, action_type, user_type, first_name, redirect_to }: EmailData = await req.json();
     
     console.log('Processing verification email for:', email);
