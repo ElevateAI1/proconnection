@@ -1,19 +1,33 @@
-import { Mail, Home, LogIn, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Mail, Home, LogIn, CheckCircle2, RefreshCw, Edit2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface EmailConfirmationScreenProps {
   email: string;
   userType?: "patient" | "professional";
   onBackToLogin?: () => void;
+  onEmailChange?: (newEmail: string) => void;
 }
 
 export const EmailConfirmationScreen = ({ 
   email, 
   userType = "patient",
-  onBackToLogin 
+  onBackToLogin,
+  onEmailChange
 }: EmailConfirmationScreenProps) => {
   const navigate = useNavigate();
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [lastResendTime, setLastResendTime] = useState<number | null>(null);
+  const [cooldownTime, setCooldownTime] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleOpenEmail = () => {
     // Intentar abrir el cliente de email del usuario

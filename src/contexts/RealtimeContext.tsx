@@ -18,7 +18,6 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [, forceUpdate] = useState({});
 
   const disableChannel = useCallback((channelName: string) => {
-    console.log(`🚫 Disabling problematic channel: ${channelName}`);
     disabledChannelsRef.current.add(channelName);
     forceUpdate({});
   }, []);
