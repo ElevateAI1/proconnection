@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import { useUnifiedDashboardStats } from "@/hooks/useUnifiedDashboardStats";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Dashboard } from "@/components/Dashboard";
 import { PatientManagement } from "@/components/PatientManagement";
@@ -61,17 +61,30 @@ export default function Index() {
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [showTrialModal, setShowTrialModal] = useState(false);
   const navigate = useNavigate();
+  const params = useParams();
 
-  // Leer query parameter para cambiar la vista
+  // Leer vista desde URL o query parameter
   useEffect(() => {
+    // Prioridad 1: parámetro de ruta /dashboard/:view
+    if (params.view) {
+      const validViews: ViewType[] = ["dashboard", "patients", "calendar", "affiliates", "seo", "reports", "support", "early-access", "visibility", "rates", "accounting", "documents", "appointment-requests", "notifications", "reminder-settings", "advanced-reminder-settings", "notification-dashboard", "clinic-admin", "clinic-reports", "api-integrations", "messages"];
+      if (validViews.includes(params.view as ViewType)) {
+        setCurrentView(params.view as ViewType);
+        return;
+      }
+    }
+
+    // Prioridad 2: query parameter (legacy)
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get('view');
-    if (viewParam && ['dashboard', 'patients', 'calendar', 'documents', 'appointment-requests'].includes(viewParam)) {
-      setCurrentView(viewParam as ViewType);
-      // Limpiar el query parameter después de leerlo
-      window.history.replaceState({}, '', window.location.pathname);
+    if (viewParam) {
+      const validViews: ViewType[] = ["dashboard", "patients", "calendar", "affiliates", "seo", "reports", "support", "early-access", "visibility", "rates", "accounting", "documents", "appointment-requests", "notifications", "reminder-settings", "advanced-reminder-settings", "notification-dashboard", "clinic-admin", "clinic-reports", "api-integrations", "messages"];
+      if (validViews.includes(viewParam as ViewType)) {
+        setCurrentView(viewParam as ViewType);
+        navigate(`/dashboard/${viewParam}`, { replace: true });
+      }
     }
-  }, []);
+  }, [params.view, navigate]);
 
   // Handle email verification from URL
   useEmailVerification();
@@ -272,6 +285,11 @@ export default function Index() {
                        'Profesional';
 
     const handleViewChange = (view: ViewType) => {
+      if (view === "dashboard") {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate(`/dashboard/${view}`, { replace: true });
+      }
       setCurrentView(view);
     };
 
