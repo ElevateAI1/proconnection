@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 *.env
+
+# ggshield
+.cache_ggshield
+
+# cursor logs
+.cursor/*
+.cursor/
