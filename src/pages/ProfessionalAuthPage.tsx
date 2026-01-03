@@ -18,7 +18,7 @@ import { Eye, EyeOff, Mail, Lock, User, Phone, FileText, Stethoscope, Shield, Lo
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthLoader } from "@/components/ui/AuthLoader";
 import { EmailConfirmationScreen } from "@/components/EmailConfirmationScreen";
-import { AsYouType } from 'libphonenumber-js';
+import { formatIncompletePhoneNumber } from 'libphonenumber-js';
 
 // Professional categories
 const PROFESSIONAL_CATEGORIES = {
@@ -188,18 +188,29 @@ export const ProfessionalAuthPage = () => {
     if (!value) return '';
     
     try {
-      // Si empieza con + o 54, usar formato internacional
-      if (value.startsWith('+') || value.trim().startsWith('54')) {
-        const formatterIntl = new AsYouType();
-        return formatterIntl.input(value);
+      // Limpiar entrada: solo números, +, espacios y guiones
+      const cleaned = value.replace(/[^\d+\s-]/g, '');
+      
+      // Si empieza con +, usar formato internacional
+      if (cleaned.startsWith('+')) {
+        return formatIncompletePhoneNumber(cleaned, 'AR');
       }
       
-      // Para números locales argentinos, usar formato nacional
-      const formatter = new AsYouType('AR');
-      return formatter.input(value);
+      // Si empieza con 54 sin +, agregar +
+      if (cleaned.replace(/\D/g, '').startsWith('54')) {
+        return formatIncompletePhoneNumber('+' + cleaned.replace(/\D/g, ''), 'AR');
+      }
+      
+      // Para números locales, agregar +54 y formatear
+      const digitsOnly = cleaned.replace(/\D/g, '');
+      if (digitsOnly.length > 0) {
+        return formatIncompletePhoneNumber('+54' + digitsOnly, 'AR');
+      }
+      
+      return cleaned;
     } catch (error) {
       // Si hay error, devolver el valor sin formatear (pero limpio)
-      return value.replace(/[^\d+\s-()]/g, '');
+      return value.replace(/[^\d+\s-]/g, '');
     }
   };
 

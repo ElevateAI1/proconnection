@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Mail, Home, LogIn, CheckCircle2, Edit2, AlertCircle, RefreshCw } from "lucide-react";
+import { Mail, Home, LogIn, CheckCircle2, RefreshCw, Edit2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ interface EmailConfirmationScreenProps {
   email: string;
   userType?: "patient" | "professional";
   onBackToLogin?: () => void;
-  onEmailChange?: (email: string) => void;
+  onEmailChange?: (newEmail: string) => void;
 }
 
 export const EmailConfirmationScreen = ({ 
@@ -21,12 +21,12 @@ export const EmailConfirmationScreen = ({
   onEmailChange
 }: EmailConfirmationScreenProps) => {
   const navigate = useNavigate();
-  const [cooldownTime, setCooldownTime] = useState(0);
-  const [lastResendTime, setLastResendTime] = useState<number | null>(null);
-  const [isResending, setIsResending] = useState(false);
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [lastResendTime, setLastResendTime] = useState<number | null>(null);
+  const [cooldownTime, setCooldownTime] = useState(0);
+  const [isResending, setIsResending] = useState(false);
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleOpenEmail = () => {
