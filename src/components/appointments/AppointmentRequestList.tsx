@@ -8,15 +8,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppointmentRequestCard, type AppointmentRequest } from "./AppointmentRequestCard";
 import { approveAppointmentRequest, rejectAppointmentRequest, cancelAppointment } from "./AppointmentRequestActions";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AppointmentRequestListProps {
   isDashboardView?: boolean;
@@ -32,6 +32,7 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const fetchRequests = async () => {
@@ -163,16 +164,21 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
 
   const handleRejectClick = (requestId: string) => {
     setRejectingId(requestId);
+    setRejectionReason('');
     setShowRejectDialog(true);
   };
 
-  const handleReject = async () => {
-    if (!rejectingId) return;
+  const handleReject = async (rejectionReason?: string) => {
+    if (!rejectingId || !user?.id) return;
+
+    const request = requests.find(r => r.id === rejectingId);
+    if (!request) return;
 
     try {
-      await rejectAppointmentRequest(rejectingId, () => {
+      await rejectAppointmentRequest(rejectingId, user.id, request.patient_id, rejectionReason, () => {
         setShowRejectDialog(false);
         setRejectingId(null);
+        setRejectionReason('');
         fetchRequests();
       });
     } catch (error) {
@@ -215,26 +221,46 @@ export const AppointmentRequestList = ({ isDashboardView = false }: AppointmentR
         )}
       </CardContent>
 
-      {/* Dialog de confirmación para rechazar */}
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar rechazo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que deseas rechazar esta solicitud de cita? Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleReject}
-              className="bg-red-600 hover:bg-red-700"
+      {/* Dialog de rechazo con razón */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar Solicitud de Cita</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas rechazar esta solicitud? El paciente recibirá un mensaje informando el rechazo. Puedes agregar una razón (opcional).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">Razón del rechazo (opcional)</Label>
+              <Textarea
+                id="rejectionReason"
+                placeholder="Ej: La fecha solicitada no está disponible. Por favor, solicita otra fecha."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectDialog(false);
+                setRejectionReason('');
+              }}
             >
-              Sí, rechazar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleReject(rejectionReason.trim() || undefined)}
+            >
+              Rechazar Solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

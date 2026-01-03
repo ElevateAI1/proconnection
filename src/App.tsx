@@ -23,6 +23,7 @@ const AdminRoute = lazy(() => import("./components/AdminRoute").then(m => ({ def
 const PatientDetailView = lazy(() => import("./components/PatientDetailView").then(m => ({ default: m.PatientDetailView })));
 const PatientEditView = lazy(() => import("./components/PatientEditView").then(m => ({ default: m.PatientEditView })));
 const PlansPage = lazy(() => import("./pages/PlansPage").then(m => ({ default: m.PlansPage })));
+const PatientChatPage = lazy(() => import("./pages/PatientChatPage").then(m => ({ default: m.PatientChatPage })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -48,6 +49,8 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register/professional" element={<ProfessionalAuthPage />} />
           <Route path="/register/patient" element={<PatientAuthPage />} />
+          <Route path="/dashboard/chat/:psychologistId?" element={<PatientChatPage />} />
+          <Route path="/dashboard/chat" element={<PatientChatPage />} />
           <Route path="/dashboard/:view" element={<Index />} />
           <Route path="/dashboard" element={<Index />} />
           <Route path="/app" element={<Navigate to="/dashboard" replace />} />

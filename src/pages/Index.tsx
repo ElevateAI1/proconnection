@@ -197,8 +197,6 @@ export default function Index() {
   }
 
   if (profile.user_type === 'patient') {
-    console.log('=== REDIRECTING TO PATIENT PORTAL ===');
-    console.log('Profile:', profile);
     return (
       <RealtimeProvider>
         <PatientPortal />

@@ -20,34 +20,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const profileEnsuredRef = useRef<Set<string>>(new Set());
+  const processingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    let mounted = true;
+    
+    // Check for existing session first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      if (mounted) {
+        setLoading(false);
+      }
+    });
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Solo asegurar perfil en SIGNED_IN inicial, no en TOKEN_REFRESHED
-        if (event === 'SIGNED_IN' && session?.user && !profileEnsuredRef.current.has(session.user.id)) {
-          profileEnsuredRef.current.add(session.user.id);
-          setTimeout(async () => {
-            await ensureCompleteProfile(session.user);
-          }, 100);
+        // Solo asegurar perfil en SIGNED_IN inicial, no en TOKEN_REFRESHED ni en re-renders
+        if (event === 'SIGNED_IN' && session?.user && 
+            !profileEnsuredRef.current.has(session.user.id) && 
+            !processingRef.current.has(session.user.id)) {
+          
+          processingRef.current.add(session.user.id);
+          
+          // Verificar si el perfil ya existe antes de ejecutar (sin bloquear el loading)
+          supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle()
+            .then(({ data: existingProfile }) => {
+              if (!mounted) return;
+              
+              // Solo ejecutar si el perfil no existe
+              if (!existingProfile) {
+                profileEnsuredRef.current.add(session.user.id);
+                setTimeout(async () => {
+                  if (mounted) {
+                    await ensureCompleteProfile(session.user);
+                    processingRef.current.delete(session.user.id);
+                  }
+                }, 100);
+              } else {
+                profileEnsuredRef.current.add(session.user.id);
+                processingRef.current.delete(session.user.id);
+              }
+            })
+            .catch((error) => {
+              console.error('Error checking profile:', error);
+              if (mounted) {
+                processingRef.current.delete(session.user.id);
+              }
+            });
         }
         
         setLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const ensureCompleteProfile = async (user: User) => {

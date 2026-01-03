@@ -64,34 +64,33 @@ export const useOptimizedProfile = () => {
 
   const fetchProfile = useCallback(async (forceRefresh = false) => {
     if (!user) {
-      console.log('No user found');
       setLoading(false);
+      fetchingRef.current = false;
       return;
     }
 
     // Protección contra llamadas simultáneas
     if (fetchingRef.current && !forceRefresh) {
-      console.log('Fetch already in progress, skipping');
       return;
     }
 
     // Use cache if same user and not forcing refresh
     if (!forceRefresh && profileCache.userId === user.id && profileCache.profile) {
-      console.log('Using cached profile data');
       setData({
         profile: profileCache.profile,
         psychologist: profileCache.psychologist,
         patient: profileCache.patient
       });
       setLoading(false);
+      fetchingRef.current = false;
       return;
     }
 
     fetchingRef.current = true;
+    setLoading(true);
+    setError(null);
+    
     try {
-      console.log('Fetching fresh profile data for user:', user.id);
-      setLoading(true);
-      setError(null);
       
       // Single query to get profile
       let profileData = null;
@@ -242,12 +241,12 @@ export const useOptimizedProfile = () => {
     }
 
     if (profileCache.userId !== user.id) {
-      console.log('User changed, clearing cache');
       profileCache = { profile: null, psychologist: null, patient: null, userId: user.id };
     }
 
     fetchProfile();
-  }, [user?.id, fetchProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const createPsychologistProfile = async (profileData: Omit<Psychologist, 'id' | 'professional_code'>) => {
     if (!user) return { error: 'No user logged in' };

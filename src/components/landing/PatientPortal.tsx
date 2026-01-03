@@ -10,7 +10,7 @@ import { PatientAppointmentRequestForm } from '@/components/PatientAppointmentRe
 import { ProfessionalCodeManager } from '@/components/landing/ProfessionalCodeManager';
 import { PatientInfoModal } from '@/components/patient/PatientInfoModal';
 import { PatientProfileModal } from '@/components/patient/PatientProfileModal';
-import { PatientChatDrawer } from '@/components/patient/PatientChatDrawer';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -82,6 +82,7 @@ interface PsychologistRelation {
 export const PatientPortal = () => {
   const { user, signOut } = useAuth();
   const { profile, patient } = useProfile();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [appointmentRequests, setAppointmentRequests] = useState<AppointmentRequest[]>([]);
   const [unifiedAppointments, setUnifiedAppointments] = useState<UnifiedAppointment[]>([]);
@@ -95,7 +96,6 @@ export const PatientPortal = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showPatientInfoModal, setShowPatientInfoModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [creatingMeeting, setCreatingMeeting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -426,7 +426,16 @@ export const PatientPortal = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowChatDrawer(true)}
+                    onClick={() => {
+                      const psychologistId = psychologistRelations.length > 0 
+                        ? psychologistRelations[0]?.psychologist_id 
+                        : patient?.psychologist_id;
+                      if (psychologistId) {
+                        navigate(`/dashboard/chat/${psychologistId}`);
+                      } else {
+                        navigate('/dashboard/chat');
+                      }
+                    }}
                     className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                     aria-label="Abrir chat"
                   >
@@ -765,30 +774,6 @@ export const PatientPortal = () => {
         }}
       />
 
-      {/* Chat Drawer */}
-      {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
-        <PatientChatDrawer
-          open={showChatDrawer}
-          onOpenChange={setShowChatDrawer}
-          psychologistId={
-            psychologistRelations.length > 0 
-              ? psychologistRelations[0]?.psychologist_id 
-              : patient?.psychologist_id || undefined
-          }
-          psychologistName={
-            psychologistRelations.length > 0 && psychologistRelations[0]?.psychologist
-              ? `${psychologistRelations[0].psychologist.first_name} ${psychologistRelations[0].psychologist.last_name}`
-              : psychologistInfo
-              ? `${psychologistInfo.first_name} ${psychologistInfo.last_name}`
-              : 'Tu Psicólogo'
-          }
-          psychologistImage={
-            psychologistRelations.length > 0 
-              ? psychologistRelations[0]?.psychologist?.profile_image_url || null
-              : null
-          }
-        />
-      )}
 
       {/* Modal para editar perfil */}
       {patient && (

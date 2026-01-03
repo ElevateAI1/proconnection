@@ -4,18 +4,27 @@ import { PsychologistChat } from "./psychologist/PsychologistChat";
 
 export const PsychologistMessagesView = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>();
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
 
   return (
     <div className="h-[calc(100vh-4rem)] grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-1 h-full">
         <PsychologistChatList
-          onSelectConversation={setSelectedPatientId}
+          onSelectConversation={(patientId, conversationId) => {
+            console.log('[MESSAGES VIEW] Conversación seleccionada:', { patientId, conversationId });
+            setSelectedPatientId(patientId);
+            setSelectedConversationId(conversationId);
+          }}
           selectedPatientId={selectedPatientId}
         />
       </div>
-      <div className="lg:col-span-2 hidden lg:block">
+      <div className="lg:col-span-2 hidden lg:block h-full overflow-hidden">
         {selectedPatientId ? (
-          <PsychologistChat patientId={selectedPatientId} />
+          <PsychologistChat
+            patientId={selectedPatientId}
+            conversationId={selectedConversationId}
+            key={`${selectedPatientId}-${selectedConversationId}`}
+          />
         ) : (
           <div className="h-full flex items-center justify-center bg-white-warm rounded-lg border-2 border-celeste-gray/30">
             <div className="text-center p-6">
@@ -37,7 +46,11 @@ export const PsychologistMessagesView = () => {
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <PsychologistChat patientId={selectedPatientId} />
+              <PsychologistChat
+                patientId={selectedPatientId}
+                conversationId={selectedConversationId}
+                key={`${selectedPatientId}-${selectedConversationId}`}
+              />
             </div>
           </div>
         </div>
@@ -45,4 +58,3 @@ export const PsychologistMessagesView = () => {
     </div>
   );
 };
-

@@ -112,18 +112,17 @@ export const useAccountingReports = (psychologistId?: string) => {
     }
   };
 
-  // Use the new realtime hook
+  // Use the new realtime hook - deshabilitado si hay error de bindings
   useRealtimeChannel({
     channelName: `accounting-receipts-${psychologistId}`,
     enabled: !!psychologistId,
     table: 'payment_receipts',
     filter: `psychologist_id=eq.${psychologistId}`,
     onUpdate: (payload) => {
-      console.log('Payment receipt changed:', payload);
-      
       const newRecord = payload.new as any;
       const oldRecord = payload.old as any;
       
+      // Solo refrescar si hay cambios relevantes para los reportes
       if (
         payload.eventType === 'INSERT' ||
         payload.eventType === 'DELETE' ||
@@ -133,7 +132,6 @@ export const useAccountingReports = (psychologistId?: string) => {
           newRecord?.include_in_report !== oldRecord?.include_in_report
         ))
       ) {
-        console.log('Refreshing reports due to receipt changes');
         fetchReports();
       }
     }
