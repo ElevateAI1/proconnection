@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,12 +49,10 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
   useEffect(() => {
     // Si tenemos relaciones pasadas como prop, usarlas primero
     if (psychologistRelations && psychologistRelations.length > 0) {
-      console.log('ProfessionalCodeManager: Using psychologistRelations from props:', psychologistRelations);
       setRelations(psychologistRelations);
       setLoading(false);
     } else if (psychologistInfo) {
       // Si tenemos psychologistInfo pero no relaciones, crear una relación temporal
-      console.log('ProfessionalCodeManager: Using psychologistInfo from props, creating temp relation:', psychologistInfo);
       const tempRelation: PsychologistRelation = {
         id: `temp-${psychologistInfo.id}`,
         patient_id: patientId,
@@ -80,11 +78,8 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
   const fetchRelations = async () => {
     try {
       setLoading(true);
-      console.log('=== FETCHING RELATIONS ===');
-      console.log('Patient ID:', patientId);
       
       // Primero intentar obtener las relaciones sin el join para verificar si existen
-      console.log('Step 1: Fetching relations without join...');
       const { data: relationsOnly, error: relationsError } = await supabase
         .from('patient_psychologists')
         .select(`
@@ -99,31 +94,23 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
         .order('is_primary', { ascending: false })
         .order('added_at', { ascending: false });
 
-      console.log('Relations without join:', { relationsOnly, relationsError });
-
       if (relationsError) {
         console.error('Error fetching relations:', relationsError);
         throw relationsError;
       }
 
       if (!relationsOnly || relationsOnly.length === 0) {
-        console.log('No relations found in patient_psychologists table');
         setRelations([]);
         return;
       }
 
-      console.log(`Found ${relationsOnly.length} relation(s) in patient_psychologists`);
-
       // Ahora intentar obtener los datos de los psicólogos
       const psychologistIds = relationsOnly.map(r => r.psychologist_id);
-      console.log('Step 2: Fetching psychologists data for IDs:', psychologistIds);
       
       const { data: psychologistsData, error: psychError } = await supabase
         .from('psychologists')
         .select('id, first_name, last_name, professional_code')
         .in('id', psychologistIds);
-
-      console.log('Psychologists data:', { psychologistsData, psychError });
 
       if (psychError) {
         console.error('Error fetching psychologists:', psychError);
@@ -133,7 +120,6 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
           psychologist: null
         }));
         setRelations(relationsWithNullPsych);
-        console.log('Set relations with null psychologist data due to RLS error');
         return;
       }
 
@@ -142,22 +128,8 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
         ...rel,
         psychologist: psychologistsData?.find(p => p.id === rel.psychologist_id) || null
       }));
-
-      console.log('Combined relations data:', JSON.stringify(combinedData, null, 2));
-      
-      // Verificar estructura de datos
-      if (combinedData && combinedData.length > 0) {
-        console.log('First relation structure:', {
-          id: combinedData[0].id,
-          psychologist_id: combinedData[0].psychologist_id,
-          professional_code: combinedData[0].professional_code,
-          is_primary: combinedData[0].is_primary,
-          psychologist: combinedData[0].psychologist
-        });
-      }
       
       setRelations(combinedData);
-      console.log('Relations state updated, count:', combinedData.length);
     } catch (error: any) {
       console.error('Error fetching psychologist relations:', error);
       console.error('Error details:', {
@@ -191,19 +163,11 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
       
       // Validar y agregar usando la función RPC
       const codeToUse = newCode.trim().toUpperCase();
-      console.log('=== ADDING PSYCHOLOGIST ===');
-      console.log('Code entered:', newCode);
-      console.log('Code after trim/uppercase:', codeToUse);
-      console.log('Patient ID:', patientId);
-      console.log('Patient ID type:', typeof patientId);
       
       // Primero validar el código con la función validate_professional_code
-      console.log('Step 1: Validating professional code...');
       const { data: validatedId, error: validateError } = await supabase.rpc('validate_professional_code', {
         code: codeToUse
       });
-      
-      console.log('Validation result:', { validatedId, validateError });
       
       if (validateError) {
         console.error('Code validation failed:', validateError);
@@ -225,40 +189,14 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
         return;
       }
       
-      console.log('Step 2: Adding psychologist to patient...');
-      console.log('Calling add_psychologist_to_patient with:', {
-        patient_id_param: patientId,
-        professional_code_param: codeToUse,
-        patientIdType: typeof patientId,
-        codeType: typeof codeToUse
-      });
-      
       const { data, error } = await supabase.rpc('add_psychologist_to_patient', {
         patient_id_param: patientId,
         professional_code_param: codeToUse
       });
-      
-      console.log('RPC response:', { data, error });
-      console.log('Error details:', error ? {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        status: error.status,
-        statusCode: error.statusCode
-      } : 'No error');
 
       if (error) {
-        console.error('=== ERROR ADDING PSYCHOLOGIST ===');
-        console.error('Full error object:', JSON.stringify(error, null, 2));
-        console.error('Error message:', error.message);
-        console.error('Error code:', error.code);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        
         // Verificar primero si es "already linked" (incluso con código P0001)
         if (error.message.includes('already linked')) {
-          console.log('Patient already linked - reloading relations...');
           // Recargar relaciones primero para mostrar el que ya existe
           await fetchRelations();
           setNewCode('');
@@ -276,7 +214,6 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
             variant: "destructive"
           });
         } else if (error.code === '23505' || error.status === 409 || error.statusCode === 409) {
-          console.log('Conflict error - reloading relations...');
           await fetchRelations();
           setNewCode('');
           setShowAddDialog(false);
@@ -435,6 +372,9 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Agregar Psicólogo</DialogTitle>
+                <DialogDescription>
+                  Ingresa el código profesional que te proporcionó tu psicólogo para vincularlo a tu cuenta
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -496,7 +436,6 @@ export const ProfessionalCodeManager = ({ patientId, psychologistRelations, psyc
               Mostrando {relations.length} psicólogo(s) vinculado(s)
             </div>
             {relations.map((relation) => {
-              console.log('Rendering relation:', relation);
               return (
               <div
                 key={relation.id}

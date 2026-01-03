@@ -190,9 +190,6 @@ export const usePlanCapabilities = () => {
     }
 
     try {
-      console.log('=== FETCHING PLAN CAPABILITIES ===');
-      console.log('Psychologist ID:', currentPsychologistId);
-      console.log('Force refresh:', forceRefresh);
       
       lastFetchTimeRef.current = now;
       setLoading(true);
@@ -208,7 +205,6 @@ export const usePlanCapabilities = () => {
         throw error;
       }
 
-      console.log('Raw capabilities data from DB:', data);
       
       let validCapabilities: PlanCapabilities;
       
@@ -241,7 +237,6 @@ export const usePlanCapabilities = () => {
         timestamp: now
       };
       
-      console.log('Final capabilities set:', validCapabilities);
       setCapabilities(validCapabilities);
       
     } catch (err) {
@@ -384,9 +379,7 @@ export const usePlanCapabilities = () => {
   }, [fetchCapabilities]);
 
   const hasCapability = useCallback((capability: keyof PlanCapabilities): boolean => {
-    const result = capabilities?.[capability] ?? false;
-    console.log(`Checking capability ${capability}:`, result, 'from capabilities:', capabilities);
-    return result;
+    return capabilities?.[capability] ?? false;
   }, [capabilities]);
 
 

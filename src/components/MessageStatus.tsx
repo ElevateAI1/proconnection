@@ -11,11 +11,11 @@ interface MessageStatusProps {
 export const MessageStatus = ({ isOwnMessage, readAt, createdAt, className = "" }: MessageStatusProps) => {
   if (!isOwnMessage) return null;
 
-  // Estado: leído (azul)
+  // Estado: leído (negro muy oscuro)
   if (readAt) {
     return (
       <div className={`flex items-center gap-0.5 ml-1 ${className}`}>
-        <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
+        <CheckCheck className="w-3.5 h-3.5 text-black" />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export const MessageStatus = ({ isOwnMessage, readAt, createdAt, className = "" 
   if (isDelivered) {
     return (
       <div className={`flex items-center gap-0.5 ml-1 ${className}`}>
-        <CheckCheck className="w-3.5 h-3.5 text-slate-400" />
+        <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
       </div>
     );
   }
@@ -38,7 +38,7 @@ export const MessageStatus = ({ isOwnMessage, readAt, createdAt, className = "" 
   // Estado: enviado (gris simple check)
   return (
     <div className={`flex items-center gap-0.5 ml-1 ${className}`}>
-      <Check className="w-3.5 h-3.5 text-slate-400" />
+      <Check className="w-3.5 h-3.5 text-gray-400" />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 import type { AppointmentRequest } from "./AppointmentRequestCard";
 
 interface PaymentReceiptData {
@@ -11,6 +12,68 @@ interface PaymentReceiptData {
   notes: string;
   id: string;
 }
+
+const sendAutoMessage = async (
+  psychologistId: string,
+  patientId: string,
+  message: string
+) => {
+  try {
+    // Buscar o crear conversación
+    const { data: existingConversation } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('psychologist_id', psychologistId)
+      .eq('patient_id', patientId)
+      .single();
+
+    let conversationId: string;
+
+    if (existingConversation) {
+      conversationId = existingConversation.id;
+    } else {
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          psychologist_id: psychologistId,
+          patient_id: patientId,
+          last_message_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating conversation:', createError);
+        return;
+      }
+
+      conversationId = newConversation.id;
+    }
+
+    // Enviar mensaje
+    const { error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: psychologistId,
+        content: message,
+        message_type: 'text'
+      });
+
+    if (messageError) {
+      console.error('Error sending auto message:', messageError);
+    } else {
+      // Actualizar last_message_at
+      await supabase
+        .from('conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', conversationId);
+    }
+  } catch (error) {
+    console.error('Error in sendAutoMessage:', error);
+    // No mostramos error al usuario, solo logueamos
+  }
+};
 
 export const createPaymentReceipt = async (requestData: PaymentReceiptData) => {
   if (!requestData.payment_proof_url || !requestData.payment_amount) {
@@ -205,9 +268,18 @@ export const approveAppointmentRequest = async (
 
     console.log('AppointmentRequestActions: Request status updated successfully');
 
+    // Enviar mensaje automático al paciente
+    const appointmentDate = new Date(appointmentDateTime);
+    const formattedDate = formatDateArgentina(appointmentDate, dateFormatOptions.full);
+    const formattedTime = formatTimeArgentina(appointmentDate);
+    
+    const approvalMessage = `✅ Tu solicitud de cita ha sido aprobada.\n\n📅 Fecha: ${formattedDate}\n🕐 Hora: ${formattedTime}\n\nSi necesitas modificar la fecha o hora, puedes responderme este mensaje y coordinamos. ¡Te esperamos!`;
+    
+    await sendAutoMessage(userId, request.patient_id, approvalMessage);
+
     toast({
       title: "Solicitud aprobada",
-      description: "La cita ha sido programada exitosamente"
+      description: "La cita ha sido programada exitosamente y se envió un mensaje al paciente"
     });
 
     onSuccess();
@@ -224,7 +296,10 @@ export const approveAppointmentRequest = async (
 
 export const rejectAppointmentRequest = async (
   requestId: string,
-  onSuccess: () => void
+  psychologistId: string,
+  patientId: string,
+  rejectionReason?: string,
+  onSuccess?: () => void
 ) => {
   try {
     const { error } = await supabase
@@ -234,12 +309,19 @@ export const rejectAppointmentRequest = async (
 
     if (error) throw error;
 
+    // Enviar mensaje automático al paciente
+    const rejectionMessage = rejectionReason 
+      ? `❌ Lamentablemente, tu solicitud de cita ha sido rechazada.\n\nMotivo: ${rejectionReason}\n\nSi tienes alguna pregunta o deseas coordinar otra fecha, puedes responderme este mensaje.`
+      : `❌ Lamentablemente, tu solicitud de cita ha sido rechazada.\n\nSi tienes alguna pregunta o deseas coordinar otra fecha, puedes responderme este mensaje.`;
+    
+    await sendAutoMessage(psychologistId, patientId, rejectionMessage);
+
     toast({
       title: "Solicitud rechazada",
-      description: "La solicitud ha sido rechazada"
+      description: "La solicitud ha sido rechazada y se envió un mensaje al paciente"
     });
 
-    onSuccess();
+    if (onSuccess) onSuccess();
   } catch (error) {
     console.error('Error rejecting request:', error);
     toast({

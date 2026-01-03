@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send } from "lucide-react";
@@ -12,16 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { MessageStatus } from "@/components/MessageStatus";
 import { formatMessageTime } from "@/utils/messageFormatting";
-
-interface Message {
-  id: string;
-  sender_id: string;
-  conversation_id: string;
-  content: string;
-  message_type?: string;
-  read_at?: string | null;
-  created_at: string;
-}
+import { useAttachmentUpload } from "@/hooks/useAttachmentUpload";
+import { encryptForConversation } from "@/utils/secureMessaging";
+import { decodeMessage, DecodedMessage } from "@/utils/messages";
 
 interface PatientChatProps {
   psychologistId?: string;
@@ -29,35 +22,109 @@ interface PatientChatProps {
   psychologistImage?: string | null;
 }
 
+const ATTACHMENT_BUCKET = "message-attachments";
+
 export const PatientChat = ({ psychologistId, psychologistName, psychologistImage }: PatientChatProps) => {
   const { user } = useAuth();
   const { patient } = useProfile();
   const { sendMessage, createOrGetConversation } = useConversations();
   const { markMessagesAsRead } = useMarkMessagesAsRead();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { uploadAttachment, uploading } = useAttachmentUpload();
+
+  const [messages, setMessages] = useState<DecodedMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceChannelRef = useRef<any>(null);
+  const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<Blob[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const prepareContent = useCallback(
+    async (payload: any) => {
+      if (!conversationId) return typeof payload === "string" ? payload : JSON.stringify(payload);
+      const asString = typeof payload === "string" ? payload : JSON.stringify(payload);
+      const encrypted = await encryptForConversation(asString, conversationId);
+      return encrypted ? JSON.stringify(encrypted) : asString;
+    },
+    [conversationId]
+  );
+
+  const resolveAttachmentUrl = useCallback(
+    async (path: string) => {
+      if (attachmentUrls[path]) return attachmentUrls[path];
+      const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 7);
+      if (error) {
+        console.error("Error creando signed url", error);
+        return "";
+      }
+      const url = data?.signedUrl || "";
+      setAttachmentUrls((prev) => ({ ...prev, [path]: url }));
+      return url;
+    },
+    [attachmentUrls]
+  );
 
   // Realtime subscription para mensajes
+  const handleRealtimeUpdate = useCallback(
+    (payload: any) => {
+      const eventType = payload.eventType;
+
+      if (eventType === "INSERT" && payload.new) {
+        decodeMessage(payload.new, payload.new.conversation_id).then((decoded) => {
+          setMessages((prev) => {
+            const exists = prev.some((msg) => msg.id === decoded.id);
+            if (exists) return prev;
+            const sorted = [...prev, decoded].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            return sorted;
+          });
+          if (decoded.sender_id !== patient?.id && !decoded.read_at && conversationId) {
+            setTimeout(() => {
+              markMessagesAsRead(conversationId, patient?.id || "");
+            }, 500);
+          }
+        });
+      } else if (eventType === "UPDATE" && payload.new) {
+        decodeMessage(payload.new, payload.new.conversation_id).then((decoded) => {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === decoded.id ? decoded : msg))
+          );
+        });
+      } else if (eventType === "DELETE" && payload.old) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
+      }
+    },
+    [conversationId, patient?.id, markMessagesAsRead]
+  );
+
   useRealtimeChannel({
     channelName: `patient-messages-${conversationId}`,
     enabled: !!conversationId,
-    table: 'messages',
+    table: "messages",
     filter: `conversation_id=eq.${conversationId}`,
-    onUpdate: () => {
-      fetchMessages();
-    }
+    onUpdate: handleRealtimeUpdate
   });
 
+  // Log cuando conversationId cambia
+  useEffect(() => {
+    if (conversationId) {
+      console.log('[PATIENT] ConversationId establecido para realtime:', conversationId);
+    }
+  }, [conversationId]);
+
   // Typing indicator
-  const { sendTyping } = useTypingIndicator({
+  const { sendTyping, stopTyping } = useTypingIndicator({
     conversationId,
-    userId: user?.id || '',
+    userId: user?.id || "",
     enabled: !!conversationId && !!user?.id,
     onTypingChange: (typing, senderId) => {
       if (senderId !== user?.id) {
@@ -66,10 +133,12 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
     }
   });
 
-  // Scroll to bottom cuando hay nuevos mensajes
+  // Scroll to bottom cuando hay nuevos mensajes (solo si el usuario está al final)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, shouldAutoScroll]);
 
   useEffect(() => {
     if (patient?.id && psychologistId) {
@@ -80,16 +149,66 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
   useEffect(() => {
     if (conversationId && patient?.id) {
       fetchMessages();
-      markMessagesAsRead(conversationId, patient.id).then((success) => {
-        if (success) {
-          setMessages(prev => prev.map(msg => ({
-            ...msg,
-            read_at: msg.sender_id !== patient.id ? new Date().toISOString() : msg.read_at
-          })));
-        }
-      });
     }
   }, [conversationId, patient?.id]);
+
+  // Marcar mensajes como leídos solo una vez cuando se carga la conversación
+  useEffect(() => {
+    if (conversationId && patient?.id && messages.length > 0) {
+      const timer = setTimeout(() => {
+        markMessagesAsRead(conversationId, patient.id);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [conversationId, patient?.id, messages.length, markMessagesAsRead]);
+
+  // Presence tracking
+  useEffect(() => {
+    if (!psychologistId || !user?.id || !conversationId) return;
+
+    const channel = supabase.channel(`presence-${conversationId}`, {
+      config: {
+        presence: {
+          key: user.id
+        }
+      }
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const presenceState = channel.presenceState();
+        const isPsychologistOnline = Object.keys(presenceState).some(
+          (key) => key !== user.id && presenceState[key]?.[0]?.user_id === psychologistId
+        );
+        setIsOnline(isPsychologistOnline);
+      })
+      .on("presence", { event: "join" }, ({ newPresences }) => {
+        if (newPresences[0]?.user_id === psychologistId) {
+          setIsOnline(true);
+        }
+      })
+      .on("presence", { event: "leave" }, ({ leftPresences }) => {
+        if (leftPresences[0]?.user_id === psychologistId) {
+          setIsOnline(false);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString()
+          });
+        }
+      });
+
+    presenceChannelRef.current = channel;
+
+    return () => {
+      if (presenceChannelRef.current) {
+        presenceChannelRef.current.unsubscribe();
+      }
+    };
+  }, [psychologistId, user?.id, conversationId]);
 
   const fetchOrCreateConversation = async () => {
     if (!patient?.id || !psychologistId) return;
@@ -101,7 +220,7 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
         setConversationId(conversation.id);
       }
     } catch (error) {
-      console.error('Error fetching conversation:', error);
+      console.error("Error fetching conversation:", error);
     } finally {
       setLoading(false);
     }
@@ -112,54 +231,258 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
 
     try {
       const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error("Error fetching messages:", error);
         return;
       }
 
-      setMessages(data || []);
+      const decoded = await Promise.all(
+        (data || []).map((msg) => decodeMessage(msg, msg.conversation_id))
+      );
+      setMessages(decoded);
+      return data || [];
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
     }
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !conversationId || !patient?.id) return;
 
-    const messageData = await sendMessage(conversationId, patient.id, newMessage);
-    
+    const messageText = newMessage.trim();
+    setNewMessage("");
+    stopTyping();
+
+    const contentPayload = await prepareContent(messageText);
+    const messageData = await sendMessage(conversationId, patient.id, messageText, {
+      messageType: "text",
+      contentPayload
+    });
+
     if (messageData) {
-      setMessages(prev => [...prev, messageData]);
-      setNewMessage("");
-      
-      // Marcar como leído inmediatamente (optimista)
-      markMessagesAsRead(conversationId, patient.id);
+      const decoded = await decodeMessage(messageData, conversationId);
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === decoded.id);
+        if (exists) return prev;
+        return [...prev, decoded];
+      });
+
+      toast({
+        title: "Mensaje enviado",
+        description: "Tu mensaje ha sido enviado correctamente"
+      });
     }
   };
 
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !conversationId || !patient?.id) return;
+    event.target.value = "";
+
+    const uploaded = await uploadAttachment(file, conversationId);
+    if (!uploaded) return;
+
+    const messageType = uploaded.kind === "image" ? "image" : uploaded.kind === "audio" ? "audio" : "file";
+      const payload = await prepareContent(uploaded.meta);
+      const sent = await sendMessage(conversationId, patient.id, uploaded.meta.path, {
+        messageType,
+        contentPayload: payload
+      });
+
+      if (sent) {
+        const decoded = await decodeMessage(sent, conversationId);
+        setMessages((prev) => {
+          const exists = prev.some((m) => m.id === decoded.id);
+          if (exists) return prev;
+          return [...prev, decoded];
+        });
+      }
+  };
+
+  const stopMediaTracks = (stream?: MediaStream) => {
+    if (!stream) return;
+    stream.getTracks().forEach((t) => t.stop());
+  };
+
+  const startRecording = async () => {
+    if (isRecording || !conversationId || !patient?.id) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          mediaChunksRef.current.push(e.data);
+        }
+      };
+      recorder.onstop = async () => {
+        stopMediaTracks(stream);
+        setIsRecording(false);
+        const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (blob.size === 0) return;
+        const file = new File([blob], `audio-${Date.now()}.webm`, { type: blob.type });
+        const uploaded = await uploadAttachment(file, conversationId);
+        if (!uploaded) return;
+        const payload = await prepareContent(uploaded.meta);
+        const sent = await sendMessage(conversationId, patient.id, uploaded.meta.path, {
+          messageType: "audio",
+          contentPayload: payload
+        });
+        if (sent) {
+          const decoded = await decodeMessage(sent, conversationId);
+          setMessages((prev) => [...prev, decoded]);
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error iniciando grabación", error);
+      toast({
+        title: "Micrófono no disponible",
+        description: "No se pudo acceder al micrófono. Revisa permisos.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (!mediaRecorderRef.current) return;
+    if (mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    setShouldAutoScroll(distanceFromBottom < 80);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     } else {
-      // Enviar indicador de escritura
       sendTyping();
     }
   };
 
   const handleInputChange = (value: string) => {
     setNewMessage(value);
+    setIsTyping(true);
     sendTyping();
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      stopTyping();
+    }, 1000);
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
   };
+
+  const renderMessageBody = (message: DecodedMessage) => {
+    if (message.message_type === "image" && message.attachment?.path) {
+      const url = attachmentUrls[message.attachment.path];
+      if (!url) return <p className="text-sm">Adjunto de imagen</p>;
+      return (
+        <div className="w-[180px] h-[180px] relative">
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="block w-full h-full rounded-lg overflow-hidden shadow-sm border border-celeste-gray/40"
+          >
+            <img
+              src={url}
+              alt={message.attachment.name || "imagen"}
+              className="w-full h-full object-cover"
+            />
+          </a>
+          <a
+            href={url}
+            download={message.attachment.name || "imagen"}
+            className="absolute bottom-2 right-2 bg-white/80 text-blue-petrol text-xs px-2 py-1 rounded shadow"
+          >
+            Descargar
+          </a>
+        </div>
+      );
+    }
+    if (message.message_type === "audio" && message.attachment?.path) {
+      const url = attachmentUrls[message.attachment.path];
+      return url ? (
+        <div className="flex items-center gap-2 bg-gradient-to-r from-blue-soft/15 to-celeste-gray/25 rounded-lg px-3 py-2 shadow-sm border border-celeste-gray/40 min-w-[240px] max-w-[320px]">
+          <div className="w-2 h-2 rounded-full bg-blue-petrol animate-pulse" />
+          <audio controls className="w-full">
+            <source src={url} type={message.attachment.mime || "audio/webm"} />
+            Tu navegador no soporta audio.
+          </audio>
+        </div>
+      ) : (
+        <p className="text-sm">Audio adjunto</p>
+      );
+    }
+    if (message.message_type === "file" && message.attachment?.path) {
+      const url = attachmentUrls[message.attachment.path];
+      const isPdf = (message.attachment.mime || "").includes("pdf");
+      return url ? (
+        <div className="w-[220px] h-[220px] bg-white/70 border border-celeste-gray/40 rounded-lg p-3 shadow-sm flex flex-col justify-between">
+          <div className="flex-1 overflow-hidden">
+            {isPdf ? (
+              <iframe src={`${url}#toolbar=0&zoom=80`} className="w-full h-[140px] rounded border border-celeste-gray/30" />
+            ) : (
+              <div className="w-full h-[140px] bg-celeste-gray/30 text-blue-petrol flex items-center justify-center rounded">
+                <span className="text-sm font-semibold">Documento</span>
+              </div>
+            )}
+            <p className="text-xs text-blue-petrol/80 mt-2 line-clamp-2">
+              {message.attachment.name || "Documento"}
+            </p>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 text-center text-xs bg-blue-soft text-white py-1 rounded"
+            >
+              Abrir
+            </a>
+            <a
+              href={url}
+              download={message.attachment.name || "documento"}
+              className="flex-1 text-center text-xs bg-celeste-gray/70 text-blue-petrol py-1 rounded"
+            >
+              Descargar
+            </a>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm">Documento adjunto</p>
+      );
+    }
+    return <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>;
+  };
+
+  useEffect(() => {
+    const attachments = messages.filter((m) => m.attachment?.path);
+    attachments.forEach((m) => {
+      if (m.attachment?.path) resolveAttachmentUrl(m.attachment.path);
+    });
+  }, [messages, resolveAttachmentUrl]);
 
   if (loading) {
     return (
@@ -178,7 +501,7 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
         <div className="text-center p-6">
           <MessageCircle className="w-16 h-16 mx-auto mb-4 text-blue-petrol/30" />
           <h3 className="text-xl font-semibold text-blue-petrol mb-2">No hay conversación disponible</h3>
-          <p className="text-blue-petrol/70">Tu psicólogo debe iniciar una conversación contigo</p>
+          <p className="text-blue-petrol/70">Inicia una conversación con tu psicólogo</p>
         </div>
       </div>
     );
@@ -191,45 +514,39 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
           {psychologistImage ? (
             <img
               src={psychologistImage}
-              alt={psychologistName || 'Psicólogo'}
+              alt={psychologistName}
               className="w-10 h-10 rounded-full object-cover border-2 border-blue-soft"
             />
           ) : (
             <div className="w-10 h-10 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
-              {psychologistName ? getInitials(psychologistName) : 'Dr'}
+              {getInitials(psychologistName || "Dr")}
             </div>
           )}
           <div className="flex-1">
-            <p className="text-blue-petrol font-semibold">{psychologistName || 'Tu Psicólogo'}</p>
-            <p className="text-xs text-blue-petrol/60">Conversación segura</p>
+            <p className="text-blue-petrol font-semibold">{psychologistName || "Psicólogo"}</p>
+            <p className="text-xs text-blue-petrol/60">{isOnline ? "En línea" : "Desconectado"}</p>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-blue-petrol/60">En línea</span>
+            <div className={`w-2 h-2 rounded-full ${isOnline ? "bg-green-500" : "bg-gray-400"}`}></div>
+            <span className="text-xs text-blue-petrol/60">{isOnline ? "En línea" : "Desconectado"}</span>
           </div>
         </div>
       </div>
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" onScroll={handleScroll}>
           {messages.length > 0 ? (
             <>
               {messages.map((message) => {
                 const isOwn = message.sender_id === patient?.id;
-                const senderName = isOwn 
-                  ? `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim() 
-                  : psychologistName || 'Psicólogo';
-                const senderImage = isOwn ? patient?.profile_image_url : psychologistImage;
+                const senderName = isOwn ? (patient ? `${patient.first_name} ${patient.last_name}` : "Tú") : psychologistName || "Doctor";
 
                 return (
-                  <div
-                    key={message.id}
-                    className={`flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
-                  >
+                  <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}>
                     {!isOwn && (
-                      senderImage ? (
+                      psychologistImage ? (
                         <img
-                          src={senderImage}
+                          src={psychologistImage}
                           alt={senderName}
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                         />
@@ -247,46 +564,33 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
                             : "bg-celeste-gray/30 text-blue-petrol rounded-bl-sm"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                        {renderMessageBody(message)}
                         <div className={`flex items-center gap-2 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
                           <span className={`text-xs ${isOwn ? "text-blue-100" : "text-blue-petrol/60"}`}>
                             {formatMessageTime(message.created_at)}
                           </span>
-                          <MessageStatus 
+                          <MessageStatus
                             isOwnMessage={isOwn}
-                            readAt={message.read_at}
+                            readAt={message.read_at || undefined}
                             createdAt={message.created_at}
                             className={isOwn ? "" : "hidden"}
                           />
                         </div>
                       </div>
                     </div>
-                    {isOwn && (
-                      senderImage ? (
-                        <img
-                          src={senderImage}
-                          alt={senderName}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-                          {getInitials(senderName)}
-                        </div>
-                      )
-                    )}
                   </div>
                 );
               })}
               {otherUserTyping && (
                 <div className="flex justify-start gap-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-soft to-celeste-gray rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                    {psychologistName ? getInitials(psychologistName) : 'Dr'}
+                    {getInitials(psychologistName || "Dr")}
                   </div>
                   <div className="bg-celeste-gray/30 text-blue-petrol px-4 py-2 rounded-2xl rounded-bl-sm">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                      <div className="w-2 h-2 bg-blue-petrol/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
                     </div>
                   </div>
                 </div>
@@ -303,7 +607,7 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
             </div>
           )}
         </div>
-        
+
         <div className="p-4 border-t border-celeste-gray/30 bg-white-warm">
           <div className="flex gap-2">
             <Input
@@ -313,9 +617,26 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
               onKeyPress={handleKeyPress}
               className="flex-1 border-2 border-celeste-gray/50 focus:border-blue-soft"
             />
+            <label className="cursor-pointer px-3 py-2 bg-celeste-gray/40 text-blue-petrol rounded-md text-sm hover:bg-celeste-gray/60">
+              Adjuntar
+              <input
+                type="file"
+                accept="image/*,audio/*,application/pdf"
+                className="hidden"
+                onChange={handleFileSelected}
+              />
+            </label>
+            <Button
+              type="button"
+              onClick={isRecording ? stopRecording : startRecording}
+              variant={isRecording ? "destructive" : "secondary"}
+              className={isRecording ? "bg-red-500 text-white" : ""}
+            >
+              {isRecording ? "Detener" : "Grabar"}
+            </Button>
             <Button
               onClick={handleSendMessage}
-              disabled={!newMessage.trim()}
+              disabled={!newMessage.trim() || uploading}
               className="bg-blue-petrol text-white-warm hover:bg-blue-petrol/90 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
@@ -326,4 +647,3 @@ export const PatientChat = ({ psychologistId, psychologistName, psychologistImag
     </div>
   );
 };
-

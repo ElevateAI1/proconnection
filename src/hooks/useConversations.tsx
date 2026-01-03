@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -11,6 +10,11 @@ interface Conversation {
   created_at: string;
   updated_at: string;
 }
+
+type SendMessageOptions = {
+  messageType?: 'text' | 'image' | 'file' | 'audio';
+  contentPayload?: string; // contenido ya preparado (ej. JSON string o texto cifrado)
+};
 
 export const useConversations = (psychologistId?: string, patientId?: string) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -66,23 +70,37 @@ export const useConversations = (psychologistId?: string, patientId?: string) =>
     }
   };
 
-  const sendMessage = async (conversationId: string, senderId: string, content: string) => {
+  const sendMessage = async (
+    conversationId: string,
+    senderId: string,
+    content: string,
+    options?: SendMessageOptions
+  ) => {
     try {
+      const payloadContent = options?.contentPayload || content.trim();
+      console.log('[SEND MESSAGE] Insertando mensaje:', {
+        conversationId,
+        senderId,
+        contentLength: payloadContent.length,
+        messageType: options?.messageType || 'text'
+      });
       const { data, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: senderId,
-          content: content.trim(),
-          message_type: 'text'
+          content: payloadContent,
+          message_type: options?.messageType || 'text'
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error sending message:', error);
+        console.error('[SEND MESSAGE] Error:', error);
         throw error;
       }
+
+      console.log('[SEND MESSAGE] Mensaje insertado en DB:', { id: data.id, conversation_id: data.conversation_id, sender_id: data.sender_id });
 
       // Update conversation's last_message_at
       await supabase

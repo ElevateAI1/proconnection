@@ -216,6 +216,9 @@ export const DocumentTemplateManager: React.FC = () => {
           }
         }}>
           <DialogContent className="max-w-7xl max-h-[90vh] p-0">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Editor de Plantilla</DialogTitle>
+            </DialogHeader>
             <TemplateEditor
               template={editingTemplate}
               onSave={handleUpdateTemplate}

@@ -30,11 +30,6 @@ export const AccountingDashboard = ({ psychologistId }: AccountingDashboardProps
   const { reports, categories, currentCategory, checkLimitAlerts, updateMonotaxCategory } = useAccountingReports(psychologistId);
   const { receipts } = usePaymentReceipts(psychologistId);
 
-  console.log('=== ACCOUNTING DASHBOARD DEBUG ===');
-  console.log('Psychologist ID:', psychologistId);
-  console.log('All receipts:', receipts);
-  console.log('Reports:', reports);
-
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();

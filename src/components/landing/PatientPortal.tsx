@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, MessageCircle, CreditCard, Clock, LogOut, User } from 'lucide-react';
+import { Calendar, MessageCircle, CreditCard, Clock, LogOut, User, Video } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,11 +10,12 @@ import { PatientAppointmentRequestForm } from '@/components/PatientAppointmentRe
 import { ProfessionalCodeManager } from '@/components/landing/ProfessionalCodeManager';
 import { PatientInfoModal } from '@/components/patient/PatientInfoModal';
 import { PatientProfileModal } from '@/components/patient/PatientProfileModal';
-import { PatientChatDrawer } from '@/components/patient/PatientChatDrawer';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from '@/utils/dateFormatting';
+import { createJitsiMeetingForAppointment } from '@/utils/jitsiUtils';
 
 interface Appointment {
   id: string;
@@ -81,6 +82,7 @@ interface PsychologistRelation {
 export const PatientPortal = () => {
   const { user, signOut } = useAuth();
   const { profile, patient } = useProfile();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [appointmentRequests, setAppointmentRequests] = useState<AppointmentRequest[]>([]);
   const [unifiedAppointments, setUnifiedAppointments] = useState<UnifiedAppointment[]>([]);
@@ -94,7 +96,7 @@ export const PatientPortal = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showPatientInfoModal, setShowPatientInfoModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [creatingMeeting, setCreatingMeeting] = useState<string | null>(null);
 
   useEffect(() => {
     // Solo cargar datos una vez cuando el usuario y perfil estén disponibles
@@ -331,6 +333,37 @@ export const PatientPortal = () => {
     }
   };
 
+  const handleCreateMeeting = async (item: UnifiedAppointment) => {
+    // Solo crear reunión para citas confirmadas, no para solicitudes
+    if (item.isRequest || item.status === 'cancelled' || item.status === 'completed') {
+      return;
+    }
+
+    setCreatingMeeting(item.id);
+
+    const psychologistName = item.psychologist
+      ? `${item.psychologist.first_name} ${item.psychologist.last_name}`
+      : 'Psicólogo';
+
+    const patientName = patient?.first_name && patient?.last_name
+      ? `${patient.first_name} ${patient.last_name}`
+      : 'Paciente';
+
+    const meetingUrl = await createJitsiMeetingForAppointment(
+      item.id,
+      item.date.toISOString(),
+      patientName,
+      psychologistName
+    );
+
+    setCreatingMeeting(null);
+
+    if (meetingUrl) {
+      // Refrescar datos para mostrar el nuevo meeting_url
+      await fetchPatientData(psychologistRelations);
+    }
+  };
+
   // Mostrar preloader mientras cargan datos
   if (loading || relationsLoading || (!patient && user && profile)) {
     return (
@@ -379,16 +412,37 @@ export const PatientPortal = () => {
             
             <div className="flex items-center gap-4">
               {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowChatDrawer(true)}
-                  className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
-                  aria-label="Abrir chat"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAppointmentModal(true)}
+                    className="border-2 border-blue-soft/50 bg-blue-soft/10 backdrop-blur-sm hover:bg-blue-soft/20 hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol font-semibold"
+                    aria-label="Agendar cita"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Agendar cita
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const psychologistId = psychologistRelations.length > 0 
+                        ? psychologistRelations[0]?.psychologist_id 
+                        : patient?.psychologist_id;
+                      if (psychologistId) {
+                        navigate(`/dashboard/chat/${psychologistId}`);
+                      } else {
+                        navigate('/dashboard/chat');
+                      }
+                    }}
+                    className="border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
+                    aria-label="Abrir chat"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat
+                  </Button>
+                </>
               )}
               <button
                 onClick={() => setShowProfileModal(true)}
@@ -541,6 +595,19 @@ export const PatientPortal = () => {
                           }`}>
                             {!isOnline ? 'Presencial' : 'Online'}
                           </span>
+                          {!item.meeting_url && !item.isRequest && item.status !== 'cancelled' && item.status !== 'completed' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleCreateMeeting(item)}
+                              disabled={creatingMeeting === item.id}
+                              className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol disabled:opacity-50"
+                              aria-label="Crear reunión"
+                            >
+                              <Video className="w-3 h-3 mr-1" />
+                              {creatingMeeting === item.id ? 'Creando...' : 'Crear reunión'}
+                            </Button>
+                          )}
                           {item.meeting_url && (
                             <Button 
                               size="sm" 
@@ -549,6 +616,7 @@ export const PatientPortal = () => {
                               className="text-xs border-2 border-celeste-gray/50 bg-white-warm/90 backdrop-blur-sm hover:bg-white-warm hover:scale-105 hover:shadow-lg transition-all duration-300 text-blue-petrol"
                               aria-label="Unirse a reunión"
                             >
+                              <Video className="w-3 h-3 mr-1" />
                               Unirse
                             </Button>
                           )}
@@ -706,30 +774,6 @@ export const PatientPortal = () => {
         }}
       />
 
-      {/* Chat Drawer */}
-      {(psychologistRelations.length > 0 || patient?.psychologist_id) && (
-        <PatientChatDrawer
-          open={showChatDrawer}
-          onOpenChange={setShowChatDrawer}
-          psychologistId={
-            psychologistRelations.length > 0 
-              ? psychologistRelations[0]?.psychologist_id 
-              : patient?.psychologist_id || undefined
-          }
-          psychologistName={
-            psychologistRelations.length > 0 && psychologistRelations[0]?.psychologist
-              ? `${psychologistRelations[0].psychologist.first_name} ${psychologistRelations[0].psychologist.last_name}`
-              : psychologistInfo
-              ? `${psychologistInfo.first_name} ${psychologistInfo.last_name}`
-              : 'Tu Psicólogo'
-          }
-          psychologistImage={
-            psychologistRelations.length > 0 
-              ? psychologistRelations[0]?.psychologist?.profile_image_url || null
-              : null
-          }
-        />
-      )}
 
       {/* Modal para editar perfil */}
       {patient && (

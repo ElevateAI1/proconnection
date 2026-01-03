@@ -257,9 +257,9 @@ export const EmailConfirmationScreen = ({
               Hemos enviado un email de verificación a:
             </p>
             <div className="flex items-center justify-center gap-2 flex-wrap">
-              <p className="font-sans-geometric text-xl font-semibold text-blue-petrol break-all">
-                {email}
-              </p>
+            <p className="font-sans-geometric text-xl font-semibold text-blue-petrol break-all">
+              {email}
+            </p>
               {!showChangeEmail && (
                 <Button
                   type="button"

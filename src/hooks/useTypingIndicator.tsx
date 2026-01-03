@@ -36,11 +36,15 @@ export const useTypingIndicator = ({
     channel
       .on('broadcast', { event: 'typing' }, (payload) => {
         const { userId: senderId, isTyping: typing } = payload.payload || {};
-        if (senderId !== userId && onTypingChange) {
+        if (senderId && senderId !== userId && onTypingChange) {
           onTypingChange(typing, senderId);
         }
       })
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Canal listo
+        }
+      });
 
     channelRef.current = channel;
 
@@ -58,20 +62,23 @@ export const useTypingIndicator = ({
   const sendTyping = useCallback(() => {
     if (!channelRef.current || !conversationId || !userId) return;
 
-    if (!isTyping) {
-      setIsTyping(true);
-    }
-
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId, conversationId, isTyping: true }
-    });
-
+    // Limpiar timeout anterior si existe
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
+    // Si no estaba escribiendo, enviar señal de comenzar a escribir
+    if (!isTyping) {
+      setIsTyping(true);
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId, conversationId, isTyping: true }
+      });
+    }
+
+    // Después de 3 segundos sin escribir más, enviar señal de dejar de escribir
     timeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       if (channelRef.current) {
@@ -84,6 +91,22 @@ export const useTypingIndicator = ({
     }, 3000);
   }, [conversationId, userId, isTyping]);
 
-  return { sendTyping, isTyping };
+  // Función para detener typing (usar cuando se envía un mensaje)
+  const stopTyping = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (isTyping && channelRef.current) {
+      setIsTyping(false);
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId, conversationId, isTyping: false }
+      });
+    }
+  }, [conversationId, userId, isTyping]);
+
+  return { sendTyping, stopTyping, isTyping };
 };
 

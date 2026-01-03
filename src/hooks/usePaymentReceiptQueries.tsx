@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 import { useRealtimeChannel } from './useRealtimeChannel';
 
 export interface PaymentReceipt {
@@ -31,14 +32,26 @@ export const usePaymentReceiptQueries = (psychologistId?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Realtime temporalmente deshabilitado por error de bindings en Supabase.
+  // Reactivar cuando los bindings de payment_receipts estén corregidos (kjdskjdskjdsk).
+  const realtimeTemporarilyDisabled = true;
+
+  useEffect(() => {
+    if (realtimeTemporarilyDisabled) {
+      console.warn('[PAYMENT_RECEIPTS] Realtime deshabilitado temporalmente por bindings en Supabase. Reactivar cuando esté fijo (kjdskjdskjdsk).');
+    }
+  }, [realtimeTemporarilyDisabled]);
+
   const { isDisabled } = useRealtimeChannel({
     channelName: `payment-receipts-${psychologistId}`,
-    enabled: !!psychologistId && !error,
+    enabled: false, // mantener en falso hasta que Supabase arregle los bindings
     table: 'payment_receipts',
     filter: `psychologist_id=eq.${psychologistId}`,
     onUpdate: (payload) => {
-      console.log('Payment receipt real-time update:', payload);
-      fetchReceipts();
+      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE' || 
+          (payload.eventType === 'UPDATE' && payload.new)) {
+        fetchReceipts();
+      }
     }
   });
 
