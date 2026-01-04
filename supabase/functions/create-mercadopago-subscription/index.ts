@@ -118,6 +118,26 @@ serve(async (req) => {
     const priceInPesos = plan.price_cents / 100
     console.log('💰 Price in pesos:', priceInPesos)
 
+    // Obtener información del collector desde MercadoPago
+    console.log('👤 Getting collector info from MercadoPago...')
+    const collectorResponse = await fetch('https://api.mercadopago.com/users/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${mercadoPagoAccessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!collectorResponse.ok) {
+      const errorText = await collectorResponse.text()
+      console.error('❌ Error getting collector info:', errorText)
+      throw new Error('No se pudo obtener la información del collector de MercadoPago')
+    }
+
+    const collectorData = await collectorResponse.json()
+    const collectorId = collectorData.id
+    console.log('✅ Collector ID:', collectorId)
+
     // Crear Preapproval en MercadoPago (suscripción recurrente)
     console.log('📝 Creating Preapproval data...')
     const preapprovalData = {
@@ -131,6 +151,7 @@ serve(async (req) => {
         end_date: null // Sin fecha de fin (suscripción indefinida hasta cancelación)
       },
       payer_email: payerEmail,
+      collector_id: collectorId, // Agregar collector_id explícitamente
       back_url: backUrl || `${req.headers.get('origin')}/plans?result=subscription`,
       external_reference: `${psychologistId}_${planKey}_${Date.now()}`,
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
@@ -158,7 +179,15 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.text()
       console.error('❌ MercadoPago API error:', errorData)
-      throw new Error(`Error de MercadoPago: ${response.status}`)
+      let errorMessage = `Error de MercadoPago: ${response.status}`
+      try {
+        const errorJson = JSON.parse(errorData)
+        errorMessage = errorJson.message || errorMessage
+        console.error('❌ Error details:', errorJson)
+      } catch (e) {
+        // Si no se puede parsear, usar el texto original
+      }
+      throw new Error(errorMessage)
     }
 
     const preapproval = await response.json()
