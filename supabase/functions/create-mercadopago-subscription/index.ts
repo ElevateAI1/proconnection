@@ -68,15 +68,7 @@ serve(async (req) => {
       throw new Error('MercadoPago access token not configured')
     }
     
-    // Verificar si es token de test o producción
-    const isTestMode = mercadoPagoAccessToken.startsWith('TEST-') || mercadoPagoAccessToken.includes('test')
-    const environment = isTestMode ? 'TEST MODE' : 'PRODUCTION MODE'
-    console.log(`🔑 Using MercadoPago token: ${environment}`)
     console.log(`🔑 Token preview: ${mercadoPagoAccessToken.substring(0, 10)}...${mercadoPagoAccessToken.substring(mercadoPagoAccessToken.length - 5)}`)
-    
-    if (isTestMode) {
-      console.log('⚠️ TEST MODE: Usando usuarios de prueba de MercadoPago')
-    }
 
     // Obtener información del plan desde la base de datos
     console.log('🔌 Creating Supabase client...')
@@ -153,19 +145,26 @@ serve(async (req) => {
       site_id: collectorData.site_id
     })
 
-    // Detectar ambiente real basándose en el collector email y el token
+    // Detectar ambiente real basándose en el collector (esto es lo más confiable)
+    // Si el collector es de test, estamos en TEST MODE sin importar el token
     const collectorIsTest = collectorData.email?.includes('testuser.com') || 
                             collectorData.nickname?.startsWith('TESTUSER') ||
                             collectorId === 2456815063 // ID específico del vendedor de test
-    const tokenIsTest = mercadoPagoAccessToken.startsWith('TEST-') || 
-                       mercadoPagoAccessToken.includes('test') ||
-                       mercadoPagoAccessToken.includes('APP_USR') && collectorIsTest
+    
+    // También verificar el token por si acaso
+    const tokenIsTest = mercadoPagoAccessToken.startsWith('TEST-') || mercadoPagoAccessToken.includes('test')
+    
+    // Si el collector es de test, SIEMPRE estamos en TEST MODE
     const isTestMode = collectorIsTest || tokenIsTest
     const actualEnvironment = isTestMode ? 'TEST MODE' : 'PRODUCTION MODE'
     
     console.log(`🌍 Ambiente detectado: ${actualEnvironment}`)
     console.log(`🔍 Collector test: ${collectorIsTest} | Token test: ${tokenIsTest}`)
     console.log(`📋 Collector: ${collectorData.email} (ID: ${collectorId})`)
+    
+    if (isTestMode && !collectorIsTest) {
+      console.log('⚠️ ADVERTENCIA: Token parece ser de test pero collector es de producción')
+    }
 
     // Validar payer_email
     console.log('📧 Validating payer email:', payerEmail)
