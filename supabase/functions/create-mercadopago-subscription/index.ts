@@ -98,7 +98,7 @@ serve(async (req) => {
     console.log('🔎 Looking for psychologist:', psychologistId)
     const { data: psychologist, error: psychError } = await supabaseClient
       .from('psychologists')
-      .select('first_name, last_name, email')
+      .select('first_name, last_name')
       .eq('id', psychologistId)
       .single()
 
