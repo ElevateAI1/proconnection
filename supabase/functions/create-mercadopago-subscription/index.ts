@@ -67,7 +67,16 @@ serve(async (req) => {
       console.log('❌ MercadoPago access token not configured')
       throw new Error('MercadoPago access token not configured')
     }
-    console.log('✅ MercadoPago access token found')
+    
+    // Verificar si es token de test o producción
+    const isTestMode = mercadoPagoAccessToken.startsWith('TEST-') || mercadoPagoAccessToken.includes('test')
+    const environment = isTestMode ? 'TEST MODE' : 'PRODUCTION MODE'
+    console.log(`🔑 Using MercadoPago token: ${environment}`)
+    console.log(`🔑 Token preview: ${mercadoPagoAccessToken.substring(0, 10)}...${mercadoPagoAccessToken.substring(mercadoPagoAccessToken.length - 5)}`)
+    
+    if (isTestMode) {
+      console.log('⚠️ TEST MODE: Usando usuarios de prueba de MercadoPago')
+    }
 
     // Obtener información del plan desde la base de datos
     console.log('🔌 Creating Supabase client...')
@@ -137,9 +146,29 @@ serve(async (req) => {
     const collectorData = await collectorResponse.json()
     const collectorId = collectorData.id
     console.log('✅ Collector ID:', collectorId)
+    console.log('📋 Collector data:', {
+      id: collectorId,
+      email: collectorData.email,
+      nickname: collectorData.nickname,
+      site_id: collectorData.site_id
+    })
+
+    // Validar payer_email
+    console.log('📧 Validating payer email:', payerEmail)
+    if (!payerEmail || !payerEmail.includes('@')) {
+      console.log('❌ Invalid payer email')
+      throw new Error('Email de pagador inválido')
+    }
 
     // Crear Preapproval en MercadoPago (suscripción recurrente)
     console.log('📝 Creating Preapproval data...')
+    
+    // Calcular start_date (mañana a las 00:00 en hora de Argentina)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(0, 0, 0, 0)
+    const startDateISO = tomorrow.toISOString()
+    
     const preapprovalData = {
       reason: plan.title,
       auto_recurring: {
@@ -147,11 +176,11 @@ serve(async (req) => {
         frequency_type: 'months',
         transaction_amount: priceInPesos,
         currency_id: 'ARS',
-        start_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
+        start_date: startDateISO,
         end_date: null // Sin fecha de fin (suscripción indefinida hasta cancelación)
       },
-      payer_email: payerEmail,
-      collector_id: collectorId, // Agregar collector_id explícitamente
+      payer_email: payerEmail.trim(),
+      collector_id: parseInt(collectorId.toString()), // Asegurar que sea número
       back_url: backUrl || `${req.headers.get('origin')}/plans?result=subscription`,
       external_reference: `${psychologistId}_${planKey}_${Date.now()}`,
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
@@ -161,6 +190,15 @@ serve(async (req) => {
         plan_id: plan.id
       }
     }
+    
+    console.log('📋 Preapproval data summary:', {
+      reason: preapprovalData.reason,
+      payer_email: preapprovalData.payer_email,
+      collector_id: preapprovalData.collector_id,
+      transaction_amount: preapprovalData.auto_recurring.transaction_amount,
+      start_date: preapprovalData.auto_recurring.start_date,
+      environment: environment
+    })
 
     console.log('📤 Sending request to MercadoPago API...')
     console.log('📋 Preapproval data:', JSON.stringify(preapprovalData, null, 2))
