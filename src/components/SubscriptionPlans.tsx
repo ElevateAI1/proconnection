@@ -274,11 +274,19 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
         {plans.map((plan) => {
           const isProConnection = plan.plan_key === 'proconnection';
           const isClinicas = plan.plan_key === 'clinicas';
+          const currentPlanType = psychologist?.plan_type?.toLowerCase() || 'starter';
+          const isCurrentPlan = currentPlanType === plan.plan_key || 
+                                (currentPlanType === 'teams' && plan.plan_key === 'clinicas') ||
+                                (currentPlanType === 'dev' && plan.plan_key === 'starter');
           
           return (
             <Card 
               key={plan.id} 
               className={`relative border-2 transition-all duration-300 hover:shadow-xl flex flex-col h-full ${
+                isCurrentPlan 
+                  ? 'ring-2 ring-green-500 ring-offset-2' 
+                  : ''
+              } ${
                 isProConnection 
                   ? 'border-amber-400 shadow-2xl bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50' 
                   : isClinicas
@@ -286,7 +294,15 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
                   : 'border-slate-200 shadow-md hover:scale-[1.02]'
               }`}
             >
-              {isProConnection && (
+              {isCurrentPlan && (
+                <div className="absolute -top-2 right-2 z-10">
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 sm:px-3 py-1 text-xs font-bold shadow-lg">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Plan Actual
+                  </Badge>
+                </div>
+              )}
+              {isProConnection && !isCurrentPlan && (
                 <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
                   <Badge className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 text-white px-2 sm:px-3 py-1 text-xs font-bold shadow-lg">
                     <Sparkles className="w-3 h-3 mr-1" />
@@ -295,7 +311,7 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
                 </div>
               )}
 
-              <CardHeader className={`text-center pb-2 p-3 sm:p-4 ${isProConnection ? 'pt-6 sm:pt-7' : 'pt-3 sm:pt-4'}`}>
+              <CardHeader className={`text-center pb-2 p-3 sm:p-4 ${isCurrentPlan ? 'pt-8 sm:pt-9' : isProConnection ? 'pt-6 sm:pt-7' : 'pt-3 sm:pt-4'}`}>
                 <CardTitle className={`text-base sm:text-lg font-bold flex items-center justify-center gap-1.5 ${
                   isProConnection ? 'text-amber-700' : isClinicas ? 'text-blue-petrol' : 'text-slate-800'
                 }`}>

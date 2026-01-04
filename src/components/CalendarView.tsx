@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, X } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Video, X, AlertCircle } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -8,6 +8,16 @@ import { NewAppointmentModal } from "./NewAppointmentModal";
 import { CancelAppointmentModal } from "./CancelAppointmentModal";
 import { formatDateArgentina, formatTimeArgentina, formatDateTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 import { createJitsiMeetingForAppointment } from "@/utils/jitsiUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Appointment {
   id: string;
@@ -34,6 +44,7 @@ export const Calendar = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pastAppointmentAlert, setPastAppointmentAlert] = useState<Appointment | null>(null);
 
   // Updated time slots to include half-hour intervals
   const timeSlots = [
@@ -143,7 +154,20 @@ export const Calendar = () => {
         console.log('Calendar: No appointments found for this date');
       }
       
-      setAppointments(data || []);
+      const appointmentsList = data || [];
+      setAppointments(appointmentsList);
+
+      // Detectar citas pasadas y mostrar alerta
+      const now = new Date();
+      const pastAppointments = appointmentsList.filter(apt => {
+        const aptDate = new Date(apt.appointment_date);
+        return aptDate < now && apt.status !== 'completed' && apt.status !== 'cancelled';
+      });
+
+      if (pastAppointments.length > 0 && pastAppointmentAlert === null) {
+        // Mostrar alerta para la primera cita pasada
+        setPastAppointmentAlert(pastAppointments[0]);
+      }
     } catch (error) {
       console.error('Calendar: Exception fetching appointments:', error);
       toast({
@@ -275,6 +299,19 @@ export const Calendar = () => {
 
   const handleCreateMeeting = async (appointment: Appointment) => {
     if (!appointment.id || appointment.status === 'cancelled' || appointment.status === 'completed') {
+      return;
+    }
+
+    // Validar que la cita no haya pasado
+    const appointmentDate = new Date(appointment.appointment_date);
+    const now = new Date();
+    
+    if (appointmentDate < now) {
+      toast({
+        title: "Cita pasada",
+        description: "Esta cita ya pasó. No se puede crear una reunión para citas pasadas.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -433,11 +470,21 @@ export const Calendar = () => {
                         </div>
                         {(() => {
                           if (appointment && !isContinuation) {
+                            const appointmentDate = new Date(appointment.appointment_date);
+                            const now = new Date();
+                            const isPast = appointmentDate < now && appointment.status !== 'completed' && appointment.status !== 'cancelled';
+                            
                             return (
                               <div className="flex-1 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-white" />
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    isPast ? 'bg-red-500' : 'bg-gradient-to-r from-blue-500 to-emerald-500'
+                                  }`}>
+                                    {isPast ? (
+                                      <AlertCircle className="w-4 h-4 text-white" />
+                                    ) : (
+                                      <User className="w-4 h-4 text-white" />
+                                    )}
                                   </div>
                                   <div>
                                     <p className="font-semibold text-slate-800">
@@ -451,6 +498,11 @@ export const Calendar = () => {
                                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
                                         {getStatusLabel(appointment.status)}
                                       </span>
+                                      {isPast && (
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                          Cita pasada
+                                        </span>
+                                      )}
                                       {appointment.meeting_url && appointment.status !== 'cancelled' && (
                                         <div className="flex items-center gap-1 text-xs text-green-600">
                                           <Video className="w-3 h-3" />
@@ -468,10 +520,15 @@ export const Calendar = () => {
                                     {!appointment.meeting_url && appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
                                       <button
                                         onClick={() => handleCreateMeeting(appointment)}
-                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                        disabled={isPast}
+                                        className={`px-3 py-1.5 text-white text-xs rounded-lg transition-colors flex items-center gap-1 ${
+                                          isPast 
+                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
                                       >
                                         <Video className="w-3 h-3" />
-                                        Crear reunión
+                                        {isPast ? 'Cita pasada' : 'Crear reunión'}
                                       </button>
                                     )}
                                     {appointment.meeting_url && appointment.status !== 'cancelled' && (
@@ -529,6 +586,52 @@ export const Calendar = () => {
           </Card>
         </div>
       </div>
+
+      {/* Alerta de cita pasada */}
+      <AlertDialog open={pastAppointmentAlert !== null} onOpenChange={(open) => !open && setPastAppointmentAlert(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              Cita Pasada Detectada
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pastAppointmentAlert && (
+                <>
+                  La cita con <strong>
+                    {pastAppointmentAlert.patient 
+                      ? `${pastAppointmentAlert.patient.first_name} ${pastAppointmentAlert.patient.last_name}` 
+                      : 'el paciente'
+                    }
+                  </strong> programada para el{" "}
+                  <strong>{formatDateArgentina(new Date(pastAppointmentAlert.appointment_date), dateFormatOptions.full)}</strong> a las{" "}
+                  <strong>{formatTimeArgentina(new Date(pastAppointmentAlert.appointment_date))}</strong> ya pasó.
+                  <br /><br />
+                  ¿Deseas reagendar esta cita?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPastAppointmentAlert(null)}>
+              Más tarde
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pastAppointmentAlert) {
+                  setPastAppointmentAlert(null);
+                  toast({
+                    title: "Reagendar cita",
+                    description: "Puedes usar el botón 'Nueva Cita' para reagendar esta cita.",
+                  });
+                }
+              }}
+            >
+              Reagendar Cita
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

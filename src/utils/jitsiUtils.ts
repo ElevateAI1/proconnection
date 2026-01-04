@@ -8,6 +8,19 @@ export const createJitsiMeetingForAppointment = async (
   psychologistName?: string
 ): Promise<string | null> => {
   try {
+    // Validar que la cita no haya pasado
+    const appointmentDateTime = new Date(appointmentDate);
+    const now = new Date();
+    
+    if (appointmentDateTime < now) {
+      toast({
+        title: "Cita pasada",
+        description: "Esta cita ya pasó. No se puede crear una reunión para citas pasadas.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
     const roomName = `psiconnect-${appointmentId}`;
     const meetingTime = new Date(appointmentDate).getTime();
     const duration = 60;

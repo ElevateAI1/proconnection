@@ -18,6 +18,7 @@ import {
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { formatDateArgentina, formatTimeArgentina, dateFormatOptions } from "@/utils/dateFormatting";
 
 interface Appointment {
   id: string;

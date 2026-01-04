@@ -248,7 +248,7 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
                     onClick={() => onViewChange(item.id)}
                     isActive={currentView === item.id}
                     disabled={!item.available}
-                    className={`w-full h-12 rounded-xl transition-all duration-200 ${
+                    className={`w-full h-12 rounded-xl transition-all duration-200 group ${
                       currentView === item.id 
                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                         : 'hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:shadow-md'
@@ -260,7 +260,7 @@ export function MinimalistSidebar({ currentView, onViewChange }: MinimalistSideb
                       <Badge variant="secondary" className={`ml-auto text-xs px-2 py-1 font-semibold ${
                         currentView === item.id 
                           ? 'bg-white/20 text-white border-white/30' 
-                          : 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border-orange-200'
+                          : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-600 group-hover:bg-gradient-to-r group-hover:from-orange-600 group-hover:to-amber-600'
                       }`}>
                         {item.badge}
                       </Badge>

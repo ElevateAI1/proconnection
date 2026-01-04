@@ -33,6 +33,9 @@ export const useMercadoPago = () => {
 
       if (error) {
         console.error('Error creating MercadoPago subscription:', error);
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          throw new Error('La función de suscripción no está disponible. Por favor, contacta al soporte.');
+        }
         throw new Error(error.message || 'Error al crear la suscripción');
       }
 
