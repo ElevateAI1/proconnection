@@ -153,11 +153,37 @@ serve(async (req) => {
       site_id: collectorData.site_id
     })
 
+    // Detectar ambiente real basándose en el collector email y el token
+    const collectorIsTest = collectorData.email?.includes('testuser.com') || 
+                            collectorData.nickname?.startsWith('TESTUSER') ||
+                            collectorId === 2456815063 // ID específico del vendedor de test
+    const tokenIsTest = mercadoPagoAccessToken.startsWith('TEST-') || 
+                       mercadoPagoAccessToken.includes('test') ||
+                       mercadoPagoAccessToken.includes('APP_USR') && collectorIsTest
+    const isTestMode = collectorIsTest || tokenIsTest
+    const actualEnvironment = isTestMode ? 'TEST MODE' : 'PRODUCTION MODE'
+    
+    console.log(`🌍 Ambiente detectado: ${actualEnvironment}`)
+    console.log(`🔍 Collector test: ${collectorIsTest} | Token test: ${tokenIsTest}`)
+    console.log(`📋 Collector: ${collectorData.email} (ID: ${collectorId})`)
+
     // Validar payer_email
     console.log('📧 Validating payer email:', payerEmail)
     if (!payerEmail || !payerEmail.includes('@')) {
       console.log('❌ Invalid payer email')
       throw new Error('Email de pagador inválido')
+    }
+
+    // Si estamos en TEST MODE, SIEMPRE usar email de usuario de prueba
+    let finalPayerEmail = payerEmail.trim()
+    if (isTestMode) {
+      // Usuario comprador de prueba de MercadoPago
+      finalPayerEmail = 'test_user_1090476560@testuser.com'
+      console.log(`🧪 TEST MODE: Usando email de prueba para payer`)
+      console.log(`📧 Payer email original: ${payerEmail.trim()}`)
+      console.log(`📧 Payer email usando: ${finalPayerEmail}`)
+    } else {
+      console.log(`🚀 PRODUCTION MODE: Usando email real del usuario: ${finalPayerEmail}`)
     }
 
     // Crear Preapproval en MercadoPago (suscripción recurrente)
@@ -169,7 +195,9 @@ serve(async (req) => {
     tomorrow.setHours(0, 0, 0, 0)
     const startDateISO = tomorrow.toISOString()
     
-    const preapprovalData = {
+    // Para producción, no especificar collector_id (MercadoPago lo determina del token)
+    // Para test, especificarlo explícitamente
+    const preapprovalData: any = {
       reason: plan.title,
       auto_recurring: {
         frequency: 1, // Mensual
@@ -179,8 +207,7 @@ serve(async (req) => {
         start_date: startDateISO,
         end_date: null // Sin fecha de fin (suscripción indefinida hasta cancelación)
       },
-      payer_email: payerEmail.trim(),
-      collector_id: parseInt(collectorId.toString()), // Asegurar que sea número
+      payer_email: finalPayerEmail,
       back_url: backUrl || `${req.headers.get('origin')}/plans?result=subscription`,
       external_reference: `${psychologistId}_${planKey}_${Date.now()}`,
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
@@ -190,14 +217,22 @@ serve(async (req) => {
         plan_id: plan.id
       }
     }
+
+    // Solo agregar collector_id si estamos en TEST MODE
+    if (isTestMode) {
+      preapprovalData.collector_id = parseInt(collectorId.toString())
+      console.log('🧪 TEST MODE: Agregando collector_id explícito:', preapprovalData.collector_id)
+    } else {
+      console.log('🚀 PRODUCTION MODE: collector_id será determinado automáticamente por MercadoPago')
+    }
     
     console.log('📋 Preapproval data summary:', {
       reason: preapprovalData.reason,
       payer_email: preapprovalData.payer_email,
-      collector_id: preapprovalData.collector_id,
+      collector_id: preapprovalData.collector_id || 'auto',
       transaction_amount: preapprovalData.auto_recurring.transaction_amount,
       start_date: preapprovalData.auto_recurring.start_date,
-      environment: environment
+      environment: actualEnvironment
     })
 
     console.log('📤 Sending request to MercadoPago API...')
