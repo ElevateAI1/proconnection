@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,22 +18,58 @@ import { formatDateArgentina, formatTimeArgentina } from "@/utils/dateFormatting
 
 interface NewAppointmentModalProps {
   onAppointmentCreated: () => void;
+  defaultPatientId?: string;
+  defaultPatientName?: string;
+  defaultPatientPhone?: string;
+  defaultDate?: string;
+  defaultType?: string;
+  defaultNotes?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModalProps) => {
+export const NewAppointmentModal = ({ 
+  onAppointmentCreated,
+  defaultPatientId = "",
+  defaultPatientName = "",
+  defaultPatientPhone = "",
+  defaultDate = "",
+  defaultType = "",
+  defaultNotes = "",
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange
+}: NewAppointmentModalProps) => {
   const { psychologist } = useProfile();
   const { createScheduledNotification } = useReminderSettings();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setIsOpen = externalOnOpenChange || setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    patientId: "",
-    patientName: "",
-    patientPhone: "",
-    appointmentDate: "",
+    patientId: defaultPatientId,
+    patientName: defaultPatientName,
+    patientPhone: defaultPatientPhone,
+    appointmentDate: defaultDate || "",
     appointmentTime: "",
-    type: "",
-    notes: ""
+    type: defaultType,
+    notes: defaultNotes
   });
+
+  // Actualizar formData cuando cambien las props externas
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        patientId: defaultPatientId || "",
+        patientName: defaultPatientName || "",
+        patientPhone: defaultPatientPhone || "",
+        appointmentDate: defaultDate || "",
+        appointmentTime: "",
+        type: defaultType || "",
+        notes: defaultNotes || ""
+      });
+    }
+  }, [isOpen, defaultPatientId, defaultPatientName, defaultPatientPhone, defaultDate, defaultType, defaultNotes]);
   const [phoneError, setPhoneError] = useState("");
 
   // Solo usar el hook si tenemos un psychologist ID válido y fecha seleccionada
@@ -239,17 +275,19 @@ export const NewAppointmentModal = ({ onAppointmentCreated }: NewAppointmentModa
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="px-6 py-2 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 font-medium">
-          <Plus className="w-4 h-4 mr-2" />
-          Nueva Cita
-        </Button>
-      </DialogTrigger>
+      {externalOpen === undefined && (
+        <DialogTrigger asChild>
+          <Button className="px-6 py-2 bg-blue-petrol text-white-warm border-2 border-blue-petrol shadow-[8px_8px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[4px_4px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200 font-medium">
+            <Plus className="w-4 h-4 mr-2" />
+            Nueva Cita
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Nueva Cita
+            {externalOpen !== undefined ? "Reagendar Cita" : "Nueva Cita"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

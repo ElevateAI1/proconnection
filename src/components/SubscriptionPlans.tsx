@@ -270,7 +270,7 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
         </div>
       )}
 
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 ${hideHeader ? 'max-w-full px-0' : 'max-w-7xl mx-auto px-4'}`}>
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 ${hideHeader ? 'max-w-full px-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
         {plans.map((plan) => {
           const isProConnection = plan.plan_key === 'proconnection';
           const isClinicas = plan.plan_key === 'clinicas';
@@ -284,14 +284,14 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
               key={plan.id} 
               className={`relative border-2 transition-all duration-300 hover:shadow-xl flex flex-col h-full ${
                 isCurrentPlan 
-                  ? 'ring-2 ring-green-500 ring-offset-2' 
+                  ? 'ring-2 ring-green-500 ring-offset-4' 
                   : ''
               } ${
                 isProConnection 
                   ? 'border-amber-400 shadow-2xl bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50' 
                   : isClinicas
-                  ? 'border-blue-petrol/30 shadow-md hover:scale-[1.02]'
-                  : 'border-slate-200 shadow-md hover:scale-[1.02]'
+                  ? 'border-blue-petrol/30 shadow-lg hover:shadow-xl hover:scale-[1.02]'
+                  : 'border-slate-200 shadow-lg hover:shadow-xl hover:scale-[1.02]'
               }`}
             >
               {isCurrentPlan && (
@@ -311,7 +311,7 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
                 </div>
               )}
 
-              <CardHeader className={`text-center pb-2 p-3 sm:p-4 ${isCurrentPlan ? 'pt-8 sm:pt-9' : isProConnection ? 'pt-6 sm:pt-7' : 'pt-3 sm:pt-4'}`}>
+              <CardHeader className={`text-center pb-4 p-6 sm:p-8 ${isCurrentPlan ? 'pt-10 sm:pt-12' : isProConnection ? 'pt-8 sm:pt-10' : 'pt-6 sm:pt-8'}`}>
                 <CardTitle className={`text-base sm:text-lg font-bold flex items-center justify-center gap-1.5 ${
                   isProConnection ? 'text-amber-700' : isClinicas ? 'text-blue-petrol' : 'text-slate-800'
                 }`}>
@@ -354,14 +354,14 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
                 )}
               </CardHeader>
 
-              <CardContent className="space-y-2 p-3 sm:p-4 flex flex-col flex-1">
-                <ul className="space-y-1.5 flex-1">
+              <CardContent className="space-y-4 p-6 sm:p-8 flex flex-col flex-1">
+                <ul className="space-y-3 flex-1">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-1.5">
-                      <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
                         isProConnection ? 'text-amber-600' : isClinicas ? 'text-green-500' : 'text-green-500'
                       }`} />
-                      <span className={`text-xs sm:text-sm leading-tight ${
+                      <span className={`text-sm sm:text-base leading-relaxed ${
                         isProConnection || isClinicas ? 'text-slate-700 font-medium' : 'text-slate-600'
                       }`}>
                         {feature}
@@ -373,7 +373,7 @@ export const SubscriptionPlans = ({ hideHeader = false }: SubscriptionPlansProps
                 <Button
                   onClick={() => plan.price_display === 'Gratis' ? openWhatsApp(plan.title) : handleSelectPlan(plan)}
                   disabled={isLoading && selectedPlan?.id === plan.id}
-                  className={`w-full py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 mt-auto !text-white ${
+                  className={`w-full py-3 sm:py-4 text-sm sm:text-base font-semibold transition-all duration-300 mt-6 !text-white ${
                     isProConnection
                       ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
                       : isClinicas

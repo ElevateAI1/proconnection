@@ -21,6 +21,7 @@ import {
 
 interface Appointment {
   id: string;
+  patient_id: string;
   appointment_date: string;
   type: string;
   duration_minutes: number;
@@ -45,6 +46,14 @@ export const Calendar = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [pastAppointmentAlert, setPastAppointmentAlert] = useState<Appointment | null>(null);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState<{
+    patientId: string;
+    patientName: string;
+    patientPhone: string;
+    type: string;
+    notes: string;
+  } | null>(null);
 
   // Updated time slots to include half-hour intervals
   const timeSlots = [
@@ -617,13 +626,39 @@ export const Calendar = () => {
               Más tarde
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (pastAppointmentAlert) {
                   setPastAppointmentAlert(null);
-                  toast({
-                    title: "Reagendar cita",
-                    description: "Puedes usar el botón 'Nueva Cita' para reagendar esta cita.",
+                  
+                  // Obtener datos del paciente
+                  let patientPhone = "";
+                  if (pastAppointmentAlert.patient_id) {
+                    try {
+                      const { data: patientData } = await supabase
+                        .from('patients')
+                        .select('phone')
+                        .eq('id', pastAppointmentAlert.patient_id)
+                        .single();
+                      
+                      patientPhone = patientData?.phone || "";
+                    } catch (error) {
+                      console.error('Error fetching patient phone:', error);
+                    }
+                  }
+                  
+                  const patientName = pastAppointmentAlert.patient 
+                    ? `${pastAppointmentAlert.patient.first_name} ${pastAppointmentAlert.patient.last_name}` 
+                    : 'Paciente';
+                  
+                  setRescheduleData({
+                    patientId: pastAppointmentAlert.patient_id || "",
+                    patientName,
+                    patientPhone,
+                    type: pastAppointmentAlert.type || "",
+                    notes: pastAppointmentAlert.notes || ""
                   });
+                  
+                  setRescheduleModalOpen(true);
                 }
               }}
             >
@@ -632,6 +667,27 @@ export const Calendar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de reagendamiento */}
+      <NewAppointmentModal
+        onAppointmentCreated={() => {
+          fetchAppointments();
+          setRescheduleModalOpen(false);
+          setRescheduleData(null);
+        }}
+        open={rescheduleModalOpen}
+        onOpenChange={(open) => {
+          setRescheduleModalOpen(open);
+          if (!open) {
+            setRescheduleData(null);
+          }
+        }}
+        defaultPatientId={rescheduleData?.patientId}
+        defaultPatientName={rescheduleData?.patientName}
+        defaultPatientPhone={rescheduleData?.patientPhone}
+        defaultType={rescheduleData?.type}
+        defaultNotes={rescheduleData?.notes}
+      />
     </div>
   );
 };
