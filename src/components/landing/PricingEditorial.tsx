@@ -78,9 +78,9 @@ export const PricingEditorial = () => {
               </h3>
             </div>
             <div className="font-serif-display text-4xl sm:text-5xl font-bold text-blue-petrol mb-2">
-              $15
+              Gratis
             </div>
-            <div className="font-sans-geometric text-blue-petrol/70 text-lg">USD /mes</div>
+            <div className="font-sans-geometric text-blue-petrol/70 text-lg">Para empezar</div>
             <div className="font-sans-geometric text-sm text-blue-petrol/60 mt-2">
               Funcionalidades esenciales
             </div>
@@ -114,11 +114,11 @@ export const PricingEditorial = () => {
           </ul>
           </div>
 
-          <Link to="/register">
+          <Link to="/register/professional">
             <Button
               className="w-full font-sans-geometric text-base px-6 py-4 bg-white-warm border-4 border-blue-petrol/30 text-blue-petrol shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:shadow-[3px_3px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
             >
-              Empezar ahora
+              Empezar gratis
             </Button>
           </Link>
         </div>
@@ -144,9 +144,9 @@ export const PricingEditorial = () => {
               </h3>
             </div>
             <div className="font-serif-display text-4xl sm:text-5xl font-bold text-blue-petrol mb-2">
-              $39
+              $44.900
             </div>
-            <div className="font-sans-geometric text-blue-petrol/80 text-lg">USD /mes</div>
+            <div className="font-sans-geometric text-blue-petrol/80 text-lg">ARS /mes</div>
             <div className="font-sans-geometric text-sm text-blue-petrol/70 mt-2">
               Todo del Plan Starter +
             </div>
@@ -192,7 +192,7 @@ export const PricingEditorial = () => {
           </Button>
         </div>
 
-        {/* Plan Teams */}
+        {/* Plan Clínicas */}
         <div
           className={`flex flex-col bg-white-warm border-4 border-purple-500/30 rounded-2xl p-8 sm:p-12 shadow-[12px_12px_0px_0px_rgba(26,26,26,0.1)] hover:shadow-[16px_16px_0px_0px_rgba(26,26,26,0.15)] hover:-translate-y-1 transition-all duration-300 ${isVisible ? 'animate-card-enter' : 'opacity-0'}`}
           style={{ animationDelay: '400ms' }}
@@ -202,13 +202,13 @@ export const PricingEditorial = () => {
             <div className="inline-flex items-center gap-2 mb-4">
               <Users className="w-6 h-6 text-purple-600" />
               <h3 className="font-serif-display text-2xl sm:text-3xl font-bold text-purple-700">
-                Plan Teams
+                Plan Clínicas
               </h3>
             </div>
             <div className="font-serif-display text-4xl sm:text-5xl font-bold text-purple-700 mb-2">
-              $99
+              $149.000
             </div>
-            <div className="font-sans-geometric text-purple-600/80 text-lg">USD /mes</div>
+            <div className="font-sans-geometric text-purple-600/80 text-lg">ARS /mes</div>
             <div className="font-sans-geometric text-sm text-purple-600/70 mt-2">
               Todo del Plan ProConnection +
             </div>
@@ -251,7 +251,7 @@ export const PricingEditorial = () => {
           </div>
 
           <Button
-            onClick={() => openWhatsApp('Plan Teams')}
+            onClick={() => openWhatsApp('Plan Clínicas')}
             className="w-full font-sans-geometric text-base px-6 py-4 bg-white-warm border-4 border-purple-500/30 text-blue-petrol shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:shadow-[3px_3px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 transition-all duration-200"
           >
             Contactar para activar
