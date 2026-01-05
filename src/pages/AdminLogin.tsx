@@ -194,6 +194,25 @@ export const AdminLogin = () => {
       }
 
       if (data.user) {
+        // Update profile to admin
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ user_type: 'admin' })
+          .eq('id', data.user.id);
+
+        if (profileError) {
+          console.error('Error updating profile to admin:', profileError);
+          // Try to create profile if it doesn't exist
+          const { error: createProfileError } = await supabase
+            .from('profiles')
+            .insert({ id: data.user.id, user_type: 'admin' });
+
+          if (createProfileError) {
+            console.error('Error creating profile:', createProfileError);
+            throw new Error('Error al crear el perfil de administrador');
+          }
+        }
+
         // Add to admins table
         const { error: adminError } = await supabase
           .from('admins')
@@ -201,7 +220,10 @@ export const AdminLogin = () => {
 
         if (adminError) {
           console.error('Error adding to admins table:', adminError);
-          throw new Error('Error al crear la cuenta de administrador');
+          // No lanzar error si ya existe
+          if (!adminError.message.includes('duplicate') && !adminError.code === '23505') {
+            throw new Error('Error al crear la cuenta de administrador');
+          }
         }
 
         toast({

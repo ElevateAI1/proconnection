@@ -22,6 +22,7 @@ import { ReceiptValidationPanel } from "./ReceiptValidationPanel";
 import { WhatsAppManager } from "./WhatsAppManager";
 import { ReminderTestingTab } from "./ReminderTestingTab";
 import { ReminderManagementTab } from "./ReminderManagementTab";
+import { SuperAdminSubscriptions } from "./SuperAdminSubscriptions";
 
 export const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -201,14 +202,7 @@ export const AdminPanel = () => {
         </TabsContent>
 
         <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestión de Usuarios</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Panel de gestión de usuarios - En desarrollo</p>
-            </CardContent>
-          </Card>
+          <SuperAdminSubscriptions />
         </TabsContent>
 
         <TabsContent value="affiliates">

@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
 import { Shield, LogOut, Users, Database, Settings, Activity, UserPlus } from 'lucide-react';
-import { AdminPanel } from '@/components/AdminPanel';
+import { SuperAdminSubscriptions } from '@/components/SuperAdminSubscriptions';
 import { AffiliateAdminPanel } from '@/components/AffiliateAdminPanel';
 
 type AdminSection = 'users' | 'affiliates' | 'database' | 'statistics' | 'settings';
@@ -78,7 +78,7 @@ export const AdminDashboard = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'users':
-        return <AdminPanel />;
+        return <SuperAdminSubscriptions />;
       case 'affiliates':
         return <AffiliateAdminPanel />;
       case 'database':
