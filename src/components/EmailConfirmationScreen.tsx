@@ -86,11 +86,15 @@ export const EmailConfirmationScreen = ({
       
       if (user && !user.email_confirmed_at) {
         // Reenviar email de verificación usando Supabase
+        const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+          ? window.location.origin
+          : 'https://www.proconnection.me';
+        
         const { error } = await supabase.auth.resend({
           type: 'signup',
           email: email,
           options: {
-            emailRedirectTo: `${window.location.origin}/app`
+            emailRedirectTo: `${baseUrl}/app?verify=true`
           }
         });
 
@@ -166,11 +170,15 @@ export const EmailConfirmationScreen = ({
           });
         } else {
           // Reenviar email de verificación al nuevo correo
+          const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+            ? window.location.origin
+            : 'https://www.proconnection.me';
+          
           const { error: resendError } = await supabase.auth.resend({
             type: 'signup',
             email: newEmail,
             options: {
-              emailRedirectTo: `${window.location.origin}/app`
+              emailRedirectTo: `${baseUrl}/app?verify=true`
             }
           });
 
