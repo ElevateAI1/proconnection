@@ -51,14 +51,30 @@ export const useEmailVerification = () => {
 
         // Si solo viene verify=true sin token, verificar si hay sesión activa
         if (verifyParam && !token) {
+          // Esperar un momento para que Supabase procese la sesión del hash
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
           const { data: { session, user } } = await supabase.auth.getSession();
           if (session && user && user.email_confirmed_at) {
             toast({
               title: "¡Email verificado exitosamente!",
               description: "Tu cuenta ha sido verificada. Redirigiendo...",
             });
+            // Forzar refresh completo para que AuthProvider detecte la sesión
             window.location.href = "/dashboard";
             return;
+          } else if (hashParams.get('access_token')) {
+            // Si hay access_token en el hash pero no se procesó, procesarlo ahora
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: { session: newSession, user: newUser } } = await supabase.auth.getSession();
+            if (newSession && newUser && newUser.email_confirmed_at) {
+              toast({
+                title: "¡Email verificado exitosamente!",
+                description: "Tu cuenta ha sido verificada. Redirigiendo...",
+              });
+              window.location.href = "/dashboard";
+              return;
+            }
           }
         }
         

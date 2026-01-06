@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import { useUnifiedDashboardStats } from "@/hooks/useUnifiedDashboardStats";
@@ -45,6 +45,7 @@ type ViewType = "dashboard" | "patients" | "calendar" | "affiliates" | "seo" | "
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
   const { profile, psychologist, patient, loading: profileLoading, error: profileError, forceRefresh } = useOptimizedProfile();
+  const hasTriedRefreshRef = useRef(false);
   
   // Memoizar psychologistInfo para evitar recrearlo en cada render
   const psychologistInfo = useMemo(() => {
@@ -211,12 +212,42 @@ export default function Index() {
   // Psychologist dashboard - Now loads immediately when profile is ready
   if (profile.user_type === 'psychologist') {
     // Verificar si psychologist está cargando
-    if (!psychologist && !profileLoading) {
+    // Solo mostrar loading si realmente está cargando, no si simplemente no existe aún
+    if (profileLoading) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-slate-600">Cargando información del profesional...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Si no hay psychologist pero el perfil está cargado, intentar forzar refresh una vez
+    if (!psychologist && !profileLoading) {
+      // Solo intentar una vez, no en loop
+      if (!hasTriedRefreshRef.current) {
+        hasTriedRefreshRef.current = true;
+        setTimeout(() => {
+          forceRefresh();
+        }, 100);
+      }
+      
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">Cargando información del profesional...</p>
+            <Button 
+              onClick={() => {
+                hasTriedRefreshRef.current = false;
+                forceRefresh();
+              }}
+              className="mt-4"
+            >
+              Reintentar
+            </Button>
           </div>
         </div>
       );
