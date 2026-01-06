@@ -86,8 +86,7 @@ export default function Index() {
     }
   }, [params.view, navigate]);
 
-  // Handle email verification from URL
-  useEmailVerification();
+  // Email verification is now handled in App.tsx to process before routing
 
   // Debug log removido - estaba causando spam en consola
   // Si necesitas debug, usa React DevTools o agrega logs condicionales

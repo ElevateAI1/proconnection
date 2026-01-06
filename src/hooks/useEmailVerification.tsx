@@ -18,9 +18,12 @@ export const useEmailVerification = () => {
       
       const token = urlParams.get('token') || hashParams.get('access_token');
       const type = urlParams.get('type') || hashParams.get('type');
+      const verifyParam = urlParams.get('verify');
       
       // Si no hay token o el type no es signup, no hacer nada
-      if (!token || (type && type !== 'signup')) return;
+      // También verificar si viene de /app?verify=true
+      if (!token && !verifyParam) return;
+      if (token && type && type !== 'signup' && type !== 'email') return;
 
       // Validar formato básico del token (debe tener al menos 10 caracteres)
       if (token.length < 10) {
@@ -34,6 +37,7 @@ export const useEmailVerification = () => {
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('token');
         newUrl.searchParams.delete('type');
+        newUrl.searchParams.delete('verify');
         newUrl.hash = '';
         window.history.replaceState({}, '', newUrl.toString());
         
@@ -45,13 +49,28 @@ export const useEmailVerification = () => {
           return '/auth/patient'; // default a patient
         };
 
+        // Si solo viene verify=true sin token, verificar si hay sesión activa
+        if (verifyParam && !token) {
+          const { data: { session, user } } = await supabase.auth.getSession();
+          if (session && user && user.email_confirmed_at) {
+            toast({
+              title: "¡Email verificado exitosamente!",
+              description: "Tu cuenta ha sido verificada. Redirigiendo...",
+            });
+            window.location.href = "/dashboard";
+            return;
+          }
+        }
+        
         // Verificar el email usando el token de Supabase
         // Si es access_token, Supabase ya procesó la verificación automáticamente
         if (hashParams.get('access_token')) {
           // Supabase ya verificó automáticamente con el hash y creó la sesión
           // Esperar un momento para que la sesión se establezca
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
+          // Verificar sesión actual
+          const { data: { session } } = await supabase.auth.getSession();
           const { data: { user }, error: getUserError } = await supabase.auth.getUser();
           
           if (user && user.email_confirmed_at) {
@@ -65,8 +84,20 @@ export const useEmailVerification = () => {
                 : "Tu cuenta ha sido verificada. Redirigiendo...",
             });
             
-            // Redirigir al dashboard directamente (ya está logueado)
-            navigate("/dashboard", { replace: true });
+            // Si hay sesión activa, redirigir al dashboard
+            if (session) {
+              // Forzar refresh de la página para que el AuthProvider detecte la sesión
+              window.location.href = "/dashboard";
+            } else {
+              // Si no hay sesión, intentar obtenerla de nuevo
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const { data: { session: newSession } } = await supabase.auth.getSession();
+              if (newSession) {
+                window.location.href = "/dashboard";
+              } else {
+                navigate("/dashboard", { replace: true });
+              }
+            }
             return;
           }
         }
@@ -176,11 +207,19 @@ export const useEmailVerification = () => {
           
           // Si hay sesión activa después de verificar, redirigir al dashboard
           if (data.session) {
-            navigate("/dashboard", { replace: true });
+            // Forzar refresh para que el AuthProvider detecte la sesión
+            window.location.href = "/dashboard";
           } else {
-            // Si no hay sesión, redirigir al login
-            const loginPath = getLoginPath(userType);
-            navigate(loginPath);
+            // Verificar si hay sesión en el cliente
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession) {
+              window.location.href = "/dashboard";
+            } else {
+              // Si no hay sesión, redirigir al login
+              const loginPath = getLoginPath(userType);
+              navigate(loginPath);
+            }
           }
         }
 

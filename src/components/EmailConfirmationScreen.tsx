@@ -81,42 +81,40 @@ export const EmailConfirmationScreen = ({
 
     setIsResending(true);
     try {
-      // Intentar obtener el usuario actual (no verificado)
-      const { data: { user } } = await supabase.auth.getUser();
+      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+        ? window.location.origin
+        : 'https://www.proconnection.me';
       
-      if (user && !user.email_confirmed_at) {
-        // Reenviar email de verificación usando Supabase
-        const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
-          ? window.location.origin
-          : 'https://www.proconnection.me';
-        
-        const { error } = await supabase.auth.resend({
-          type: 'signup',
-          email: email,
-          options: {
-            emailRedirectTo: `${baseUrl}/app?verify=true`
-          }
-        });
+      // Reenviar email de verificación usando Supabase
+      // No requiere que el usuario esté logueado, solo necesita el email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${baseUrl}/app?verify=true`
+        }
+      });
 
-        if (error) {
+      if (error) {
+        // Si el error es que el email ya está confirmado, informar al usuario
+        if (error.message.includes('already confirmed') || error.message.includes('already verified')) {
           toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive"
+            title: "Email ya verificado",
+            description: "Este email ya está verificado. Puedes iniciar sesión.",
           });
         } else {
-          setLastResendTime(now);
-          setCooldownTime(30 * 60); // 30 minutos en segundos
           toast({
-            title: "Email reenviado",
-            description: "Se ha reenviado el email de verificación a tu correo",
+            title: "Error",
+            description: error.message || "No se pudo reenviar el email. Verifica que el email sea correcto.",
+            variant: "destructive"
           });
         }
       } else {
+        setLastResendTime(now);
+        setCooldownTime(30 * 60); // 30 minutos en segundos
         toast({
-          title: "Error",
-          description: "No se pudo reenviar el email. Intenta iniciar sesión o crear una nueva cuenta.",
-          variant: "destructive"
+          title: "Email reenviado",
+          description: "Se ha reenviado el email de verificación a tu correo",
         });
       }
     } catch (error: any) {
@@ -154,58 +152,63 @@ export const EmailConfirmationScreen = ({
 
     setIsChangingEmail(true);
     try {
+      // Intentar obtener el usuario actual
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user && !user.email_confirmed_at) {
-        // Actualizar el email del usuario
-        const { error: updateError } = await supabase.auth.updateUser({
-          email: newEmail
-        });
+      // Actualizar el email del usuario (funciona incluso si no está logueado si tiene sesión temporal)
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: newEmail
+      });
 
-        if (updateError) {
+      if (updateError) {
+        // Si el error es que necesita estar logueado, intentar con signUp
+        if (updateError.message.includes('session') || updateError.message.includes('logged')) {
+          toast({
+            title: "Error",
+            description: "No se puede cambiar el email sin iniciar sesión. Por favor, crea una nueva cuenta con el nuevo email.",
+            variant: "destructive"
+          });
+        } else {
           toast({
             title: "Error",
             description: updateError.message,
             variant: "destructive"
           });
-        } else {
-          // Reenviar email de verificación al nuevo correo
-          const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
-            ? window.location.origin
-            : 'https://www.proconnection.me';
-          
-          const { error: resendError } = await supabase.auth.resend({
-            type: 'signup',
-            email: newEmail,
-            options: {
-              emailRedirectTo: `${baseUrl}/app?verify=true`
-            }
-          });
-
-          if (resendError) {
-            toast({
-              title: "Email actualizado",
-              description: "Se actualizó el email pero hubo un error al reenviar. Intenta iniciar sesión.",
-            });
-          } else {
-            toast({
-              title: "Email actualizado",
-              description: `El email se actualizó a ${newEmail}. Se envió un nuevo email de verificación.`,
-            });
-          }
-          
-          if (onEmailChange) {
-            onEmailChange(newEmail);
-          }
-          setShowChangeEmail(false);
-          setNewEmail("");
         }
       } else {
-        toast({
-          title: "Error",
-          description: "No se pudo actualizar el email. La cuenta ya está verificada o no existe.",
-          variant: "destructive"
+        // Reenviar email de verificación al nuevo correo
+        const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+          ? window.location.origin
+          : 'https://www.proconnection.me';
+        
+        // Esperar un momento para que el cambio de email se procese
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { error: resendError } = await supabase.auth.resend({
+          type: 'signup',
+          email: newEmail,
+          options: {
+            emailRedirectTo: `${baseUrl}/app?verify=true`
+          }
         });
+
+        if (resendError) {
+          toast({
+            title: "Email actualizado",
+            description: `El email se actualizó a ${newEmail}. Si no recibes el email de verificación, intenta iniciar sesión o crear una nueva cuenta.`,
+          });
+        } else {
+          toast({
+            title: "Email actualizado",
+            description: `El email se actualizó a ${newEmail}. Se envió un nuevo email de verificación.`,
+          });
+        }
+        
+        if (onEmailChange) {
+          onEmailChange(newEmail);
+        }
+        setShowChangeEmail(false);
+        setNewEmail("");
       }
     } catch (error: any) {
       toast({

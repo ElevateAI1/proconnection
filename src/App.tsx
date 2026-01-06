@@ -2,6 +2,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
+import { useEmailVerification } from "@/hooks/useEmailVerification";
 import Index from "./pages/Index";
 import { LandingPage } from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
@@ -36,6 +37,9 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  // Handle email verification early, before routing
+  useEmailVerification();
+  
   return (
     <>
       <Suspense fallback={<LoadingFallback />}>
