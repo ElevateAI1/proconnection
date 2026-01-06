@@ -22,6 +22,7 @@ export const PatientAuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -264,6 +265,7 @@ export const PatientAuthPage = () => {
       return;
     }
 
+    setIsSigningUp(true);
     try {
       const metadata = {
         first_name: signUpData.firstName,
@@ -274,16 +276,25 @@ export const PatientAuthPage = () => {
 
       const result = await signUp(signUpData.email, signUpData.password, 'patient', metadata);
 
-      if (result.error) {
+      if (result.error && !result.error.silent) {
         console.error('Sign up failed:', result.error);
+        setIsSigningUp(false);
         return;
       }
 
-      // Mostrar pantalla de confirmación en vez de toast
-      setRegisteredEmail(signUpData.email);
-      setShowEmailConfirmation(true);
+      // Si hay usuario creado, el registro fue exitoso (aunque pueda haber warnings)
+      if (result.data?.user) {
+        // Mostrar pantalla de confirmación en vez de toast
+        setRegisteredEmail(signUpData.email);
+        setShowEmailConfirmation(true);
+      } else if (result.error && !result.error.silent) {
+        setIsSigningUp(false);
+      } else {
+        setIsSigningUp(false);
+      }
     } catch (error: any) {
       console.error('Exception during sign up:', error);
+      setIsSigningUp(false);
       toast({
         title: "Error",
         description: error.message || "Error al crear la cuenta",
@@ -680,9 +691,9 @@ export const PatientAuthPage = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-lavender-soft text-blue-petrol border-4 border-lavender-soft shadow-[6px_6px_0px_0px_rgba(201,194,230,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(201,194,230,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200" 
-                  disabled={loading}
+                  disabled={loading || isSigningUp}
                 >
-                  {loading ? "Creando cuenta..." : "Crear Cuenta"}
+                  {loading || isSigningUp ? "Creando cuenta..." : "Crear Cuenta"}
                 </Button>
 
                 <div className="text-center pt-4">

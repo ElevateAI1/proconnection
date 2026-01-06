@@ -64,6 +64,7 @@ export const ProfessionalAuthPage = () => {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -291,6 +292,7 @@ export const ProfessionalAuthPage = () => {
       return;
     }
 
+    setIsSigningUp(true);
     try {
       const professionalTypeToUse = signUpData.professionalType === "Otros..." 
         ? signUpData.otherProfessionalType 
@@ -309,16 +311,25 @@ export const ProfessionalAuthPage = () => {
 
       const result = await signUp(signUpData.email, signUpData.password, 'psychologist', metadata);
 
-      if (result.error) {
+      if (result.error && !result.error.silent) {
         console.error('Sign up failed:', result.error);
+        setIsSigningUp(false);
         return;
       }
 
-      // Mostrar pantalla de confirmación en vez de toast
-      setRegisteredEmail(signUpData.email);
-      setShowEmailConfirmation(true);
+      // Si hay usuario creado, el registro fue exitoso (aunque pueda haber warnings)
+      if (result.data?.user) {
+        // Mostrar pantalla de confirmación en vez de toast
+        setRegisteredEmail(signUpData.email);
+        setShowEmailConfirmation(true);
+      } else if (result.error && !result.error.silent) {
+        setIsSigningUp(false);
+      } else {
+        setIsSigningUp(false);
+      }
     } catch (error: any) {
       console.error('Exception during sign up:', error);
+      setIsSigningUp(false);
       toast({
         title: "Error",
         description: error.message || "Error al crear la cuenta",
@@ -829,9 +840,9 @@ export const ProfessionalAuthPage = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-blue-petrol text-white-warm border-4 border-blue-petrol shadow-[6px_6px_0px_0px_rgba(108,175,240,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(108,175,240,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200" 
-                  disabled={loading}
+                  disabled={loading || isSigningUp}
                 >
-                  {loading ? "Creando cuenta..." : "Crear Cuenta"}
+                  {loading || isSigningUp ? "Creando cuenta..." : "Crear Cuenta"}
                 </Button>
 
                 <div className="text-center pt-4">
