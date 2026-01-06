@@ -281,10 +281,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
+      // Si hay usuario creado, el registro fue exitoso (aunque pueda haber warnings/errores menores)
+      if (data.user) {
+        // Cerrar sesión inmediatamente para evitar auto-login
+        await supabase.auth.signOut();
+        
+        // Si hay error pero el usuario se creó, no mostrar error (solo warnings)
+        if (error) {
+          // Solo mostrar error si es crítico (no warnings de email)
+          if (!error.message.includes('email') && !error.message.includes('Email')) {
+            toast({
+              title: "Cuenta creada",
+              description: "Se creó tu cuenta pero hubo un problema. Revisa tu email para verificar.",
+            });
+          }
+          return { data, error: { ...error, silent: true } };
+        }
+        
+        return { data, error: null };
+      }
+      
+      // Si no hay usuario y hay error, mostrar error
       if (error) {
         // Si el usuario ya existe, no mostrar error (puede ser que ya se registró antes)
         if (error.message.includes('already registered') || error.message.includes('already exists') || error.message.includes('User already registered')) {
-          // No mostrar error, el usuario puede intentar iniciar sesión
           return { data, error: { ...error, silent: true } };
         }
         
@@ -294,11 +314,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive"
         });
         return { data, error };
-      }
-      
-      if (data.user) {
-        // Cerrar sesión inmediatamente para evitar auto-login
-        await supabase.auth.signOut();
       }
       
       return { data, error };

@@ -48,21 +48,25 @@ export const useEmailVerification = () => {
         // Verificar el email usando el token de Supabase
         // Si es access_token, Supabase ya procesó la verificación automáticamente
         if (hashParams.get('access_token')) {
-          // Supabase ya verificó automáticamente con el hash
-          const { data: { user } } = await supabase.auth.getUser();
+          // Supabase ya verificó automáticamente con el hash y creó la sesión
+          // Esperar un momento para que la sesión se establezca
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const { data: { user }, error: getUserError } = await supabase.auth.getUser();
           
           if (user && user.email_confirmed_at) {
             const firstName = user.user_metadata?.first_name || '';
             const userType = user.user_metadata?.user_type || 'patient';
-            const loginPath = getLoginPath(userType);
             
             toast({
               title: "¡Email verificado exitosamente!",
               description: firstName 
-                ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`
-                : "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.",
+                ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Redirigiendo...`
+                : "Tu cuenta ha sido verificada. Redirigiendo...",
             });
-            navigate(loginPath);
+            
+            // Redirigir al dashboard directamente (ya está logueado)
+            navigate("/dashboard", { replace: true });
             return;
           }
         }
@@ -162,17 +166,22 @@ export const useEmailVerification = () => {
           // Obtener información del usuario para el mensaje personalizado
           const firstName = data.user?.user_metadata?.first_name || '';
           const userType = data.user?.user_metadata?.user_type || 'patient';
-          const loginPath = getLoginPath(userType);
           
           toast({
             title: "¡Email verificado exitosamente!",
             description: firstName 
-              ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Ya puedes iniciar sesión.`
-              : "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.",
+              ? `¡Hola ${firstName}! Tu cuenta ha sido verificada. Redirigiendo...`
+              : "Tu cuenta ha sido verificada. Redirigiendo...",
           });
           
-          // Redirigir a la página de login según el tipo de usuario
-          navigate(loginPath);
+          // Si hay sesión activa después de verificar, redirigir al dashboard
+          if (data.session) {
+            navigate("/dashboard", { replace: true });
+          } else {
+            // Si no hay sesión, redirigir al login
+            const loginPath = getLoginPath(userType);
+            navigate(loginPath);
+          }
         }
 
       } catch (error) {
