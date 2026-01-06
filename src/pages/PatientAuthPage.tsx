@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope, Shield, Lock as LockIcon, CheckCircle2, Home, LogOut, Phone } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthLoader } from "@/components/ui/AuthLoader";
 import { EmailConfirmationScreen } from "@/components/EmailConfirmationScreen";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ export const PatientAuthPage = () => {
   const { signIn, signUp, loading, user, signOut } = useAuth();
   const { profile, loading: profileLoading } = useOptimizedProfile();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -27,6 +28,10 @@ export const PatientAuthPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const authRef = useRef<HTMLDivElement>(null);
   
   const [signInData, setSignInData] = useState({
@@ -64,16 +69,36 @@ export const PatientAuthPage = () => {
     };
   }, []);
 
+  // Manejar recovery token
+  useEffect(() => {
+    const handleRecovery = async () => {
+      const type = searchParams.get('type');
+      if (type !== 'recovery') return;
+
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        // Limpiar URL
+        window.history.replaceState({}, '', window.location.pathname);
+        setShowResetPassword(true);
+      }
+    };
+
+    handleRecovery();
+  }, [searchParams]);
+
   // Redirect only if user is a patient, otherwise allow switching account
   useEffect(() => {
-    if (user && !profileLoading && profile) {
+    if (user && !profileLoading && profile && !showResetPassword) {
       if (profile.user_type === 'patient') {
         console.log('Patient is authenticated, redirecting to dashboard');
         navigate("/dashboard", { replace: true });
       }
       // Si es profesional, no redirigimos - deja que pueda cerrar sesión o cambiar
     }
-  }, [user, profile, profileLoading, navigate]);
+  }, [user, profile, profileLoading, navigate, showResetPassword]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -96,8 +121,12 @@ export const PatientAuthPage = () => {
 
     setResetLoading(true);
     try {
+      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
+        ? window.location.origin
+        : 'https://www.proconnection.me';
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/patient?type=recovery`
+        redirectTo: `${baseUrl}/auth/patient?type=recovery`
       });
 
       if (error) {
@@ -122,6 +151,60 @@ export const PatientAuthPage = () => {
       });
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "La contraseña debe tener al menos 6 caracteres",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: "Error",
+        description: "Las contraseñas no coinciden",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setResetPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "¡Contraseña actualizada!",
+          description: "Tu contraseña ha sido restablecida exitosamente",
+        });
+        setShowResetPassword(false);
+        setNewPassword("");
+        setConfirmNewPassword("");
+        navigate("/auth/patient");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al actualizar la contraseña",
+        variant: "destructive"
+      });
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -440,7 +523,7 @@ export const PatientAuthPage = () => {
               </p>
             </div>
 
-            {!isSignUp ? (
+            {!isSignUp && !showResetPassword && (
               <form onSubmit={handleSignIn} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="font-sans-geometric font-semibold text-blue-petrol">Correo Electrónico</Label>
@@ -533,7 +616,9 @@ export const PatientAuthPage = () => {
                   </p>
                 </div>
               </form>
-            ) : (
+            )}
+
+            {isSignUp && !showResetPassword && (
               <form onSubmit={handleSignUp} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -698,6 +783,70 @@ export const PatientAuthPage = () => {
                   </p>
                 </div>
               </form>
+            )}
+
+            {/* Reset Password Form */}
+            {showResetPassword && (
+              <div className="bg-white-warm border-4 border-lavender-soft rounded-2xl p-8 sm:p-10 shadow-[12px_12px_0px_0px_rgba(201,194,230,0.15)]">
+                <h2 className="font-serif-display text-2xl font-bold text-blue-petrol mb-4 text-center">Restablecer Contraseña</h2>
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword" className="font-sans-geometric font-semibold text-blue-petrol">Nueva Contraseña</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
+                      <Input
+                        id="newPassword"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="********"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="pl-12 pr-12 py-3 border-4 border-blue-petrol/20 rounded-lg font-sans-geometric"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={togglePasswordVisibility}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-petrol/50 hover:text-blue-petrol"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmNewPassword" className="font-sans-geometric font-semibold text-blue-petrol">Confirmar Contraseña</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-petrol/50" size={18} />
+                      <Input
+                        id="confirmNewPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="********"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className="pl-12 pr-12 py-3 border-4 border-blue-petrol/20 rounded-lg font-sans-geometric"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleConfirmPasswordVisibility}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-petrol/50 hover:text-blue-petrol"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={resetPasswordLoading}
+                    className="w-full bg-lavender-soft text-blue-petrol border-4 border-lavender-soft shadow-[6px_6px_0px_0px_rgba(201,194,230,0.4)] hover:shadow-[3px_3px_0px_0px_rgba(201,194,230,0.4)] hover:translate-x-1 hover:translate-y-1 font-sans-geometric font-bold text-lg py-6 rounded-lg transition-all duration-200"
+                  >
+                    {resetPasswordLoading ? "Actualizando..." : "Actualizar Contraseña"}
+                  </Button>
+                </form>
+              </div>
             )}
 
             {/* Forgot Password Modal */}

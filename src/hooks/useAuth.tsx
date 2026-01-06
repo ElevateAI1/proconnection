@@ -266,7 +266,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
         ? window.location.origin
         : 'https://www.proconnection.me';
-      const redirectUrl = `${baseUrl}/app`;
+      const redirectUrl = `${baseUrl}/app?verify=true`;
       
       // Crear el usuario con todos los datos en metadata
       const { data, error } = await supabase.auth.signUp({
